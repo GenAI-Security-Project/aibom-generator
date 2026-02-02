@@ -598,6 +598,9 @@ async def generate_form(
     # Normalization needs to parse URLs which contain special chars like / and :
     normalized_model_id = _normalise_model_id(model_id)
 
+    # Sanitize for safe display/logging after validation passes
+    sanitized_model_id = html.escape(model_id)
+
     # --- Check if the ID corresponds to an actual HF Model ---
     try:
         hf_api = HfApi()
