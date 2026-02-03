@@ -74,14 +74,18 @@ async def generate_form(
             "sbom_count": get_sbom_count()
         })
 
-    sanitized_model_id = html.escape(model_id)
-    if not is_valid_hf_input(sanitized_model_id):
+    # Security: Validate BEFORE sanitizing to prevent bypass attacks
+    # (e.g., <script>org/model</script> → &lt;script&gt;org/model&lt;/script&gt; could slip through)
+    if not is_valid_hf_input(model_id):
         return templates.TemplateResponse("error.html", {
             "request": request,
             "error": "Invalid model ID format.",
             "sbom_count": get_sbom_count(),
-            "model_id": sanitized_model_id
+            "model_id": html.escape(model_id)
         })
+
+    # Sanitize after validation for safe display/storage
+    sanitized_model_id = html.escape(model_id)
     
     # Use helper from Service to normalize
     normalized_id = AIBOMService._normalise_model_id(sanitized_model_id)
