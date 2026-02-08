@@ -1,0 +1,955 @@
+{
+  "registry_metadata": {
+    "description": "Field registry for configurable AI SBOM generation and scoring"
+  },
+  "scoring_config": {
+    "tier_weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "category_weights": {
+      "required_fields": 20,
+      "metadata": 20,
+      "component_basic": 20,
+      "component_model_card": 30,
+      "external_references": 10
+    },
+    "scoring_profiles": {
+      "basic": {
+        "description": "Minimal fields required for identification",
+        "required_categories": [
+          "required_fields",
+          "component_basic"
+        ],
+        "required_fields": [
+          "bomFormat",
+          "specVersion",
+          "serialNumber",
+          "version",
+          "name"
+        ],
+        "minimum_score": 40,
+        "weight_multiplier": 1.0
+      },
+      "standard": {
+        "description": "Comprehensive fields for proper documentation",
+        "required_categories": [
+          "required_fields",
+          "metadata",
+          "component_basic"
+        ],
+        "required_fields": [
+          "bomFormat",
+          "specVersion",
+          "serialNumber",
+          "version",
+          "name",
+          "downloadLocation",
+          "primaryPurpose",
+          "suppliedBy"
+        ],
+        "minimum_score": 70,
+        "weight_multiplier": 1.0
+      },
+      "advanced": {
+        "description": "Extensive documentation for maximum transparency",
+        "required_categories": [
+          "required_fields",
+          "metadata",
+          "component_basic",
+          "component_model_card",
+          "external_references"
+        ],
+        "required_fields": [
+          "bomFormat",
+          "specVersion",
+          "serialNumber",
+          "version",
+          "name",
+          "downloadLocation",
+          "primaryPurpose",
+          "suppliedBy",
+          "type",
+          "purl",
+          "description",
+          "licenses",
+          "hyperparameter",
+          "limitation",
+          "energyConsumption",
+          "safetyRiskAssessment",
+          "typeOfModel"
+        ],
+        "minimum_score": 85,
+        "weight_multiplier": 1.0
+      }
+    },
+    "algorithm_config": {
+      "type": "weighted_sum",
+      "max_score": 100,
+      "normalization": "category_based",
+      "penalty_for_missing_critical": 0.5,
+      "bonus_for_complete_categories": 0.1
+    }
+  },
+  "aibom_config": {
+    "structure_template": "cyclonedx_1.6",
+    "generator_info": {
+      "name": "owasp-aibom-generator",
+      "version": "1.0.0",
+      "manufacturer": "OWASP GenAI Security Project"
+    },
+    "generation_rules": {
+      "include_metadata_properties": true,
+      "include_model_card": true,
+      "include_external_references": true,
+      "include_dependencies": true
+    },
+    "validation_rules": {
+      "require_critical_fields": true,
+      "validate_jsonpath_expressions": true,
+      "enforce_cyclonedx_schema": true
+    }
+  },
+  "fields": {
+    "bomFormat": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "required_fields",
+      "description": "Format identifier for the SBOM",
+      "jsonpath": "$.bomFormat",
+      "aibom_generation": {
+        "location": "$.bomFormat",
+        "rule": "always_include",
+        "source_fields": [
+          "bomFormat"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: bomFormat - essential for SBOM identification",
+        "recommendation": "Ensure bomFormat is set to 'CycloneDX'"
+      }
+    },
+    "specVersion": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "required_fields",
+      "description": "CycloneDX specification version",
+      "jsonpath": "$.specVersion",
+      "aibom_generation": {
+        "location": "$.specVersion",
+        "rule": "always_include",
+        "source_fields": [
+          "specVersion"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: specVersion - required for CycloneDX compliance",
+        "recommendation": "Set specVersion to '1.6' for CycloneDX 1.6 compliance"
+      }
+    },
+    "serialNumber": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "required_fields",
+      "description": "Unique identifier for this SBOM instance",
+      "jsonpath": "$.serialNumber",
+      "aibom_generation": {
+        "location": "$.serialNumber",
+        "rule": "always_include",
+        "source_fields": [
+          "serialNumber"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: serialNumber - unique identifier required",
+        "recommendation": "Generate a UUID for the SBOM instance"
+      }
+    },
+    "version": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "required_fields",
+      "description": "Version of this SBOM document",
+      "jsonpath": "$.version",
+      "aibom_generation": {
+        "location": "$.version",
+        "rule": "always_include",
+        "source_fields": [
+          "version"
+        ],
+        "validation": "required",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: version - document version required",
+        "recommendation": "Set version to 1 for initial SBOM generation"
+      }
+    },
+    "primaryPurpose": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "metadata",
+      "description": "Primary purpose or task of the AI model",
+      "jsonpath": "$.metadata.properties[?(@.name=='primaryPurpose')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "primaryPurpose",
+          "pipeline_tag",
+          "ai:task"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: primaryPurpose - essential for understanding model intent",
+        "recommendation": "Add the primary task or purpose of the AI model"
+      }
+    },
+    "suppliedBy": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "metadata",
+      "description": "Organization or individual that supplied the model",
+      "jsonpath": "$.metadata.properties[?(@.name=='suppliedBy')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "suppliedBy",
+          "author",
+          "publisher"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: suppliedBy - supplier identification required",
+        "recommendation": "Add the organization or individual who provided the model"
+      }
+    },
+    "standardCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Standards or regulations the model complies with",
+      "jsonpath": "$.metadata.properties[?(@.name=='standardCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "standardCompliance",
+          "compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: standardCompliance - compliance information helpful",
+        "recommendation": "Add any relevant standards or regulations the model complies with"
+      }
+    },
+    "domain": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Domain or field of application",
+      "jsonpath": "$.metadata.properties[?(@.name=='domain')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "domain",
+          "field",
+          "application_area"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: domain - application domain helpful for context",
+        "recommendation": "Add the domain or field where this model is typically applied"
+      }
+    },
+    "autonomyType": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Level of autonomy or human involvement required",
+      "jsonpath": "$.metadata.properties[?(@.name=='autonomyType')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "autonomyType",
+          "autonomy_level"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: autonomyType - autonomy level information helpful",
+        "recommendation": "Add information about the level of human oversight required"
+      }
+    },
+    "name": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "component_basic",
+      "description": "Name of the AI model component",
+      "jsonpath": "$.components[0].name",
+      "aibom_generation": {
+        "location": "$.components[0].name",
+        "rule": "always_include",
+        "source_fields": [
+          "name",
+          "model_name"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing critical field: name - essential for model identification",
+        "recommendation": "Add a descriptive name for the model"
+      }
+    },
+    "type": {
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_basic",
+      "description": "Type of component (machine-learning-model)",
+      "jsonpath": "$.components[0].type",
+      "aibom_generation": {
+        "location": "$.components[0].type",
+        "rule": "always_include",
+        "source_fields": [
+          "type"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 3.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.15
+      },
+      "validation_message": {
+        "missing": "Missing field: type - component type classification needed",
+        "recommendation": "Set type to 'machine-learning-model' for AI models"
+      }
+    },
+    "purl": {
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_basic",
+      "description": "Package URL identifier",
+      "jsonpath": "$.components[0].purl",
+      "aibom_generation": {
+        "location": "$.components[0].purl",
+        "rule": "include_if_available",
+        "source_fields": [
+          "purl",
+          "package_url"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 3.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.15
+      },
+      "validation_message": {
+        "missing": "Missing field: purl - package URL for identification",
+        "recommendation": "Add a Package URL (PURL) for the model"
+      }
+    },
+    "description": {
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_basic",
+      "description": "Description of the AI model",
+      "jsonpath": "$.components[0].description",
+      "aibom_generation": {
+        "location": "$.components[0].description",
+        "rule": "include_if_available",
+        "source_fields": [
+          "description",
+          "summary"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 3.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.15
+      },
+      "validation_message": {
+        "missing": "Missing field: description - model description helpful for understanding",
+        "recommendation": "Add a clear description of what the model does"
+      }
+    },
+    "licenses": {
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_basic",
+      "description": "License information for the model",
+      "jsonpath": "$.components[0].licenses",
+      "aibom_generation": {
+        "location": "$.components[0].licenses",
+        "rule": "include_if_available",
+        "source_fields": [
+          "licenses",
+          "license"
+        ],
+        "validation": "recommended",
+        "data_type": "array"
+      },
+      "scoring": {
+        "points": 3.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.15
+      },
+      "validation_message": {
+        "missing": "Missing field: licenses - license information important for compliance",
+        "recommendation": "Add license information for the model"
+      }
+    },
+    "energyConsumption": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Energy consumption information",
+      "jsonpath": "$.metadata.properties[?(@.name=='energyConsumption')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "energyConsumption",
+          "energy_usage"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: energyConsumption - energy usage information helpful for sustainability",
+        "recommendation": "Add information about the model's energy consumption"
+      }
+    },
+    "hyperparameter": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Key hyperparameters used in training",
+      "jsonpath": "$.metadata.properties[?(@.name=='hyperparameter')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "hyperparameter",
+          "hyperparameters",
+          "training_params"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: hyperparameter - training configuration helpful for reproducibility",
+        "recommendation": "Add key hyperparameters used during model training"
+      }
+    },
+    "limitation": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Known limitations of the model",
+      "jsonpath": "$.metadata.properties[?(@.name=='limitation')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "limitation",
+          "limitations",
+          "known_issues"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: limitation - known limitations important for responsible use",
+        "recommendation": "Add information about known limitations or constraints"
+      }
+    },
+    "safetyRiskAssessment": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Safety and risk assessment information",
+      "jsonpath": "$.metadata.properties[?(@.name=='safetyRiskAssessment')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "safetyRiskAssessment",
+          "safety_assessment",
+          "risk_analysis"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: safetyRiskAssessment - safety assessment important for responsible deployment",
+        "recommendation": "Add safety and risk assessment information"
+      }
+    },
+    "typeOfModel": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Type or architecture of the model",
+      "jsonpath": "$.metadata.properties[?(@.name=='typeOfModel')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "typeOfModel",
+          "model_type",
+          "architecture"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: typeOfModel - model architecture information helpful",
+        "recommendation": "Add the type or architecture of the model (e.g., Transformer, CNN)"
+      }
+    },
+    "modelExplainability": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Information about model explainability",
+      "jsonpath": "$.metadata.properties[?(@.name=='modelExplainability')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "modelExplainability",
+          "explainability",
+          "interpretability"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: modelExplainability - explainability information helpful for transparency",
+        "recommendation": "Add information about model explainability or interpretability features"
+      }
+    },
+    "energyQuantity": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Quantitative energy consumption data",
+      "jsonpath": "$.metadata.properties[?(@.name=='energyQuantity')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "energyQuantity",
+          "energy_amount"
+        ],
+        "validation": "optional",
+        "data_type": "number"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: energyQuantity - quantitative energy data helpful for sustainability metrics",
+        "recommendation": "Add specific energy consumption quantities"
+      }
+    },
+    "energyUnit": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Unit of measurement for energy consumption",
+      "jsonpath": "$.metadata.properties[?(@.name=='energyUnit')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "energyUnit",
+          "energy_unit"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: energyUnit - energy measurement unit helpful for standardization",
+        "recommendation": "Add the unit of measurement for energy consumption (e.g., kWh, Joules)"
+      }
+    },
+    "informationAboutTraining": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Information about the training process",
+      "jsonpath": "$.metadata.properties[?(@.name=='informationAboutTraining')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "informationAboutTraining",
+          "training_info",
+          "training_details"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: informationAboutTraining - training details helpful for understanding model development",
+        "recommendation": "Add information about the training process and methodology"
+      }
+    },
+    "informationAboutApplication": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Information about intended applications",
+      "jsonpath": "$.metadata.properties[?(@.name=='informationAboutApplication')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "informationAboutApplication",
+          "application_info",
+          "intended_use"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: informationAboutApplication - application guidance helpful for proper usage",
+        "recommendation": "Add information about intended applications and use cases"
+      }
+    },
+    "metric": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Performance metrics and evaluation results",
+      "jsonpath": "$.metadata.properties[?(@.name=='metric')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "metric",
+          "metrics",
+          "performance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: metric - performance metrics helpful for evaluation",
+        "recommendation": "Add performance metrics and evaluation results"
+      }
+    },
+    "metricDecisionThreshold": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Decision thresholds for metrics",
+      "jsonpath": "$.metadata.properties[?(@.name=='metricDecisionThreshold')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "metricDecisionThreshold",
+          "decision_threshold",
+          "threshold"
+        ],
+        "validation": "optional",
+        "data_type": "number"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: metricDecisionThreshold - decision thresholds helpful for operational guidance",
+        "recommendation": "Add decision thresholds for performance metrics"
+      }
+    },
+    "modelDataPreprocessing": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Data preprocessing information",
+      "jsonpath": "$.metadata.properties[?(@.name=='modelDataPreprocessing')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "modelDataPreprocessing",
+          "data_preprocessing",
+          "preprocessing"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: modelDataPreprocessing - preprocessing details helpful for reproducibility",
+        "recommendation": "Add information about data preprocessing steps"
+      }
+    },
+    "useSensitivePersonalInformation": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Information about use of sensitive personal data",
+      "jsonpath": "$.metadata.properties[?(@.name=='useSensitivePersonalInformation')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "useSensitivePersonalInformation",
+          "sensitive_data",
+          "personal_data"
+        ],
+        "validation": "optional",
+        "data_type": "boolean"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: useSensitivePersonalInformation - privacy information important for compliance",
+        "recommendation": "Add information about use of sensitive or personal data"
+      }
+    },
+    "downloadLocation": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "external_references",
+      "description": "Location where the model can be downloaded",
+      "jsonpath": "$.externalReferences[0].url",
+      "aibom_generation": {
+        "location": "$.externalReferences",
+        "rule": "include_if_available",
+        "source_fields": [
+          "downloadLocation",
+          "download_url",
+          "repository_url"
+        ],
+        "validation": "recommended",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 1.0
+      },
+      "validation_message": {
+        "missing": "Missing critical field: downloadLocation - download location essential for model access",
+        "recommendation": "Add the URL where the model can be downloaded or accessed"
+      }
+    }
+  }
+}
