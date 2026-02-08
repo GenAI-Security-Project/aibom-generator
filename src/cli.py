@@ -8,7 +8,10 @@ def main():
     parser.add_argument("--output", "-o", help="Output file path")
     parser.add_argument("--inference", "-i", action="store_true", help="Use AI inference for enhanced metadata (requires configured valid endpoint)")
     parser.add_argument("--summarize", "-s", action="store_true", help="Enable intelligent description summarization (requires model download)")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument("--name", "-n", help="Component name in metadata")
+    parser.add_argument("--version", "-v", help="Component version in metadata")
+    parser.add_argument("--manufacturer", "-m", help="Component manufacturer/supplier in metadata")
     
     args = parser.parse_args()
     
@@ -18,7 +21,10 @@ def main():
         output_file=args.output,
         include_inference=args.inference,
         enable_summarization=args.summarize,
-        verbose=args.verbose
+        verbose=args.verbose,
+        name=args.name,
+        version=args.version,
+        manufacturer=args.manufacturer
     )
 
 if __name__ == "__main__":

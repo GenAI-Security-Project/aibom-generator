@@ -141,6 +141,71 @@
         "recommendation": "Ensure bomFormat is set to 'CycloneDX'"
       }
     },
+    "datasets": {
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_model_card",
+      "description": "Datasets used for training",
+      "jsonpath": "$.component.modelCard.modelParameters.datasets",
+      "aibom_generation": {
+        "location": "$.component.modelCard.modelParameters.datasets",
+        "rule": "include_if_available",
+        "source_fields": [
+          "datasets",
+          "dataset",
+          "data"
+        ],
+        "validation": "recommended",
+        "data_type": "array"
+      },
+      "scoring": {
+        "points": 3.0,
+        "required_for_profiles": [
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.1
+      },
+      "validation_message": {
+        "missing": "Missing field: datasets - training data information important for transparency",
+        "recommendation": "Add information about the datasets used to train the model"
+      }
+    },
+    "paper": {
+      "tier": "supplementary",
+      "weight": 2.0,
+      "category": "external_references",
+      "description": "Research paper associated with the model",
+      "jsonpath": "$.metadata.component.externalReferences[?(@.type=='documentation')]",
+      "aibom_generation": {
+        "location": "none",
+        "rule": "include_if_present",
+        "source_fields": [
+          "paper"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "api"
+        ],
+        "source_priority": [
+          "api"
+        ]
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "No research paper link found",
+        "recommendation": "Add ArXiv tag or paper link to model card"
+      }
+    },
     "specVersion": {
       "tier": "critical",
       "weight": 4.0,
@@ -233,9 +298,9 @@
       "weight": 4.0,
       "category": "metadata",
       "description": "Primary purpose or task of the AI model",
-      "jsonpath": "$.metadata.properties[?(@.name=='primaryPurpose')].value",
+      "jsonpath": "$.component.modelCard.modelParameters.task",
       "aibom_generation": {
-        "location": "$.metadata.properties",
+        "location": "$.component.modelCard.modelParameters.task",
         "rule": "include_if_available",
         "source_fields": [
           "primaryPurpose",
@@ -263,9 +328,9 @@
       "weight": 4.0,
       "category": "metadata",
       "description": "Organization or individual that supplied the model",
-      "jsonpath": "$.metadata.properties[?(@.name=='suppliedBy')].value",
+      "jsonpath": "$.component.supplier.name",
       "aibom_generation": {
-        "location": "$.metadata.properties",
+        "location": "$.component.supplier",
         "rule": "include_if_available",
         "source_fields": [
           "suppliedBy",
@@ -314,6 +379,35 @@
       "validation_message": {
         "missing": "Missing supplementary field: standardCompliance - compliance information helpful",
         "recommendation": "Add any relevant standards or regulations the model complies with"
+      }
+    },
+    "external_references": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_basic",
+      "description": "Additional external references",
+      "jsonpath": "$.component.externalReferences",
+      "aibom_generation": {
+        "location": "$.component.externalReferences",
+        "rule": "include_if_available",
+        "source_fields": [
+          "external_references",
+          "references",
+          "citations"
+        ],
+        "validation": "optional",
+        "data_type": "array"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: external_references - additional references helpful",
+        "recommendation": "Add links to papers, documentation, or other resources"
       }
     },
     "domain": {
@@ -518,6 +612,35 @@
         "recommendation": "Add license information for the model"
       }
     },
+    "ethicalConsiderations": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Ethical considerations and fairness assessments",
+      "jsonpath": "$.component.modelCard.considerations.ethicalConsiderations[0].description",
+      "aibom_generation": {
+        "location": "$.component.modelCard.considerations.ethicalConsiderations",
+        "rule": "include_if_available",
+        "source_fields": [
+          "ethicalConsiderations",
+          "ethics",
+          "fairness"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: ethicalConsiderations - ethical information is critical",
+        "recommendation": "Add ethical considerations or fairness assessments"
+      }
+    },
     "energyConsumption": {
       "tier": "important",
       "weight": 2.0,
@@ -580,9 +703,9 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Known limitations of the model",
-      "jsonpath": "$.metadata.properties[?(@.name=='limitation')].value",
+      "jsonpath": "$.component.modelCard.considerations.technicalLimitations[0]",
       "aibom_generation": {
-        "location": "$.metadata.properties",
+        "location": "$.component.modelCard.considerations.technicalLimitations",
         "rule": "include_if_available",
         "source_fields": [
           "limitation",
@@ -600,8 +723,8 @@
         "category_contribution": 0.067
       },
       "validation_message": {
-        "missing": "Missing field: limitation - known limitations important for responsible use",
-        "recommendation": "Add information about known limitations or constraints"
+        "missing": "Missing field: limitation - limitations information helpful for safety",
+        "recommendation": "Add known limitations of the model"
       }
     },
     "safetyRiskAssessment": {
@@ -631,6 +754,35 @@
       "validation_message": {
         "missing": "Missing field: safetyRiskAssessment - safety assessment important for responsible deployment",
         "recommendation": "Add safety and risk assessment information"
+      }
+    },
+    "intendedUse": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "component_model_card",
+      "description": "Intended use cases for the model",
+      "jsonpath": "$.component.modelCard.considerations.useCases[0]",
+      "aibom_generation": {
+        "location": "$.component.modelCard.considerations.useCases",
+        "rule": "include_if_available",
+        "source_fields": [
+          "intendedUse",
+          "use_cases",
+          "applications"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.067
+      },
+      "validation_message": {
+        "missing": "Missing field: intendedUse - intended use information helpful for context",
+        "recommendation": "Add intended use cases for the model"
       }
     },
     "typeOfModel": {
@@ -922,33 +1074,33 @@
       }
     },
     "downloadLocation": {
-      "tier": "critical",
-      "weight": 4.0,
-      "category": "external_references",
-      "description": "Location where the model can be downloaded",
-      "jsonpath": "$.externalReferences[0].url",
+      "tier": "important",
+      "weight": 3.0,
+      "category": "component_basic",
+      "description": "URL to download the model",
+      "jsonpath": "$.component.externalReferences[?(@.type=='distribution' || @.type=='website')].url",
       "aibom_generation": {
-        "location": "$.externalReferences",
+        "location": "$.component.externalReferences",
         "rule": "include_if_available",
         "source_fields": [
           "downloadLocation",
           "download_url",
-          "repository_url"
+          "model_url"
         ],
         "validation": "recommended",
         "data_type": "string"
       },
       "scoring": {
-        "points": 4.0,
+        "points": 3.0,
         "required_for_profiles": [
           "standard",
           "advanced"
         ],
-        "category_contribution": 1.0
+        "category_contribution": 0.15
       },
       "validation_message": {
-        "missing": "Missing critical field: downloadLocation - download location essential for model access",
-        "recommendation": "Add the URL where the model can be downloaded or accessed"
+        "missing": "Missing field: downloadLocation - model download URL required",
+        "recommendation": "Add a URL where the model can be downloaded"
       }
     }
   }
