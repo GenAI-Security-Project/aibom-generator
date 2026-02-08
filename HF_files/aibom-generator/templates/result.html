@@ -667,6 +667,32 @@
             margin-bottom: 10px;
             font-size: 18px;
         }
+        .category-table table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .category-table th:nth-child(1),
+        .category-table td:nth-child(1) {
+            width: 8%;
+        }
+        .category-table th:nth-child(2),
+        .category-table td:nth-child(2) {
+            width: 22%;
+        }
+        .category-table th:nth-child(3),
+        .category-table td:nth-child(3) {
+            width: 40%;
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
+        .category-table th:nth-child(4),
+        .category-table td:nth-child(4) {
+            width: 15%;
+        }
+        .category-table th:nth-child(5),
+        .category-table td:nth-child(5) {
+            width: 15%;
+        }
         .category-result {
             background-color: #f8f9fa;
             padding: 10px;
@@ -962,9 +988,9 @@
                     </tbody>
                 </table>
                 <div class="category-result">
-                    Result: {{ completeness_score.category_details.required_fields.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.required_fields.total_fields if completeness_score.category_details else 'N/A' }} present 
-                    ({{ completeness_score.category_details.required_fields.percentage if completeness_score.category_details else 'N/A' }}%) = 
-                    {{ completeness_score.section_scores.required_fields if completeness_score.section_scores else 'N/A' }}/20 points
+                    Result: {{ completeness_score.category_details.required_fields.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.required_fields.total_fields if completeness_score.category_details else 'N/A' }} present
+                    ({{ completeness_score.category_details.required_fields.percentage if completeness_score.category_details else 'N/A' }}%) =
+                    {{ completeness_score.section_scores.required_fields if completeness_score.section_scores else 'N/A' }}/{{ completeness_score.category_details.required_fields.max_points if completeness_score.category_details else '20' }} points
                 </div>
             </div>
 
@@ -1013,9 +1039,9 @@
                     </tbody>
                 </table>
                 <div class="category-result">
-                    Result: {{ completeness_score.category_details.metadata.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.metadata.total_fields if completeness_score.category_details else 'N/A' }} present 
-                    ({{ completeness_score.category_details.metadata.percentage if completeness_score.category_details else 'N/A' }}%) = 
-                    {{ completeness_score.section_scores.metadata if completeness_score.section_scores else 'N/A' }}/20 points
+                    Result: {{ completeness_score.category_details.metadata.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.metadata.total_fields if completeness_score.category_details else 'N/A' }} present
+                    ({{ completeness_score.category_details.metadata.percentage if completeness_score.category_details else 'N/A' }}%) =
+                    {{ completeness_score.section_scores.metadata if completeness_score.section_scores else 'N/A' }}/{{ completeness_score.category_details.metadata.max_points if completeness_score.category_details else '20' }} points
                 </div>
             </div>
 
@@ -1068,9 +1094,9 @@
                     </tbody>
                 </table>
                 <div class="category-result">
-                    Result: {{ completeness_score.category_details.component_basic.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.component_basic.total_fields if completeness_score.category_details else 'N/A' }} present 
-                    ({{ completeness_score.category_details.component_basic.percentage if completeness_score.category_details else 'N/A' }}%) = 
-                    {{ completeness_score.section_scores.component_basic if completeness_score.section_scores else 'N/A' }}/20 points
+                    Result: {{ completeness_score.category_details.component_basic.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.component_basic.total_fields if completeness_score.category_details else 'N/A' }} present
+                    ({{ completeness_score.category_details.component_basic.percentage if completeness_score.category_details else 'N/A' }}%) =
+                    {{ completeness_score.section_scores.component_basic if completeness_score.section_scores else 'N/A' }}/{{ completeness_score.category_details.component_basic.max_points if completeness_score.category_details else '20' }} points
                 </div>
             </div>
 
@@ -1132,9 +1158,9 @@
                     </tbody>
                 </table>
                 <div class="category-result">
-                    Result: {{ completeness_score.category_details.component_model_card.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.component_model_card.total_fields if completeness_score.category_details else 'N/A' }} present 
-                    ({{ completeness_score.category_details.component_model_card.percentage if completeness_score.category_details else 'N/A' }}%) = 
-                    {{ completeness_score.section_scores.component_model_card if completeness_score.section_scores else 'N/A' }}/30 points
+                    Result: {{ completeness_score.category_details.component_model_card.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.component_model_card.total_fields if completeness_score.category_details else 'N/A' }} present
+                    ({{ completeness_score.category_details.component_model_card.percentage if completeness_score.category_details else 'N/A' }}%) =
+                    {{ completeness_score.section_scores.component_model_card if completeness_score.section_scores else 'N/A' }}/{{ completeness_score.category_details.component_model_card.max_points if completeness_score.category_details else '37.5' }} points
                 </div>
             </div>
 
@@ -1177,9 +1203,9 @@
                     </tbody>
                 </table>
                 <div class="category-result">
-                    Result: {{ completeness_score.category_details.external_references.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.external_references.total_fields if completeness_score.category_details else 'N/A' }} present 
-                    ({{ completeness_score.category_details.external_references.percentage if completeness_score.category_details else 'N/A' }}%) = 
-                    {{ completeness_score.section_scores.external_references if completeness_score.section_scores else 'N/A' }}/10 points
+                    Result: {{ completeness_score.category_details.external_references.present_fields if completeness_score.category_details else 'N/A' }}/{{ completeness_score.category_details.external_references.total_fields if completeness_score.category_details else 'N/A' }} present
+                    ({{ completeness_score.category_details.external_references.percentage if completeness_score.category_details else 'N/A' }}%) =
+                    {{ completeness_score.section_scores.external_references if completeness_score.section_scores else 'N/A' }}/{{ completeness_score.category_details.external_references.max_points if completeness_score.category_details else '10' }} points
                 </div>
             </div>
             
@@ -1330,11 +1356,11 @@
                         <h4>How AIBOM Completeness is Scored</h4>
                         <p>The completeness score evaluates how well your AIBOM documents the model across five key categories:</p>
                         <ul>
-                            <li><strong>Required Fields (20 points):</strong> Basic SBOM structure mandated by CycloneDX</li>
-                            <li><strong>Metadata (20 points):</strong> Information about the SBOM generation and model purpose</li>
-                            <li><strong>Component Basic (20 points):</strong> Essential model identification and licensing</li>
-                            <li><strong>Model Card (30 points):</strong> Detailed AI-specific documentation for transparency</li>
-                            <li><strong>External References (10 points):</strong> Links to model resources and documentation</li>
+                            <li><strong>Required Fields ({{ completeness_score.category_details.required_fields.max_points if completeness_score.category_details else 'N/A' }} points):</strong> Basic SBOM structure mandated by CycloneDX</li>
+                            <li><strong>Metadata ({{ completeness_score.category_details.metadata.max_points if completeness_score.category_details else 'N/A' }} points):</strong> Information about the SBOM generation and model purpose</li>
+                            <li><strong>Component Basic ({{ completeness_score.category_details.component_basic.max_points if completeness_score.category_details else 'N/A' }} points):</strong> Essential model identification and licensing</li>
+                            <li><strong>Model Card ({{ completeness_score.category_details.component_model_card.max_points if completeness_score.category_details else 'N/A' }} points):</strong> Detailed AI-specific documentation for transparency</li>
+                            <li><strong>External References ({{ completeness_score.category_details.external_references.max_points if completeness_score.category_details else 'N/A' }} points):</strong> Links to model resources and documentation</li>
                         </ul>
                         
                         <p><strong>Calculation Method:</strong></p>
