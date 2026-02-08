@@ -1570,7 +1570,7 @@
                 <h3>📄 Raw JSON View</h3>
                 <p>This is the complete AIBOM in CycloneDX JSON format:</p>
                 <div class="json-view">
-                    <pre>{{ aibom|tojson(indent=2) }}</pre>
+                    <pre>{{ components_json }}</pre>
                 </div>
             </div>
         </div>
@@ -1653,7 +1653,7 @@
         }
 
         function downloadJSON() {
-            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({{ aibom| tojson }}, null, 2));
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent({{ aibom_json| safe }});
         var downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "{{ model_id|replace('/', '_') }}_aibom.json");

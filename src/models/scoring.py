@@ -323,9 +323,41 @@ def _validate_ai_requirements(aibom: Dict[str, Any]) -> List[Dict[str, Any]]:
     return issues
 
 def validate_aibom(aibom: Dict[str, Any]) -> Dict[str, Any]:
-    issues = _validate_ai_requirements(aibom)
+    """
+    Validate the AIBOM against the appropriate CycloneDX schema.
+    """
+    issues = []
+    
+    # 1. Schema Validation (using local schemas)
+    try:
+        import json
+        import jsonschema
+        import os
+        
+        spec_version = aibom.get("specVersion", "1.6")
+        schema_file = f"bom-{spec_version}.schema.json"
+        # Relative path from src/models/scoring.py -> src/schemas/
+        schema_path = os.path.join(os.path.dirname(__file__), '..', 'schemas', schema_file)
+        
+        if os.path.exists(schema_path):
+            with open(schema_path, 'r') as f:
+                schema = json.load(f)
+            jsonschema.validate(instance=aibom, schema=schema)
+        else:
+             # If schema missing, warn but don't fail hard
+             issues.append({"severity": "warning", "message": f"Schema file not found: {schema_file}, skipping strict validation."})
+             
+    except jsonschema.ValidationError as e:
+        issues.append({"severity": "error", "message": e.message, "path": getattr(e, "json_path", "unknown")})
+    except Exception as e:
+        issues.append({"severity": "error", "message": f"Validation error: {str(e)}"})
+        
+    # 2. Custom Business Logic Checks (AI Requirements)
+    custom_issues = _validate_ai_requirements(aibom)
+    issues.extend(custom_issues)
+
     return {
-        "valid": len(issues) == 0,
+        "valid": not any(i["severity"] == "error" for i in issues),
         "issues": issues,
-        "summary": {"error_count": len(issues), "warning_count": 0, "info_count": 0}
+        "error_count": sum(1 for i in issues if i["severity"] == "error")
     }

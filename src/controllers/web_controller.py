@@ -147,6 +147,7 @@ async def generate_form(
             "download_url": f"/output/{filename}",
             "aibom": aibom,
             "aibom_json": json.dumps(aibom, indent=2),
+            "components_json": json.dumps(aibom.get("components", []), indent=2),
             "model_id": normalized_id,
             "sbom_count": get_sbom_count(),
             "completeness_score": completeness_score,
