@@ -48,10 +48,36 @@ python3 -m src.main
 
 ### 3. Run via CLI
 Generate an AIBOM for a Hugging Face model directly from your terminal:
+
+**Basic Usage:**
 ```bash
 python3 -m src.cli google-bert/bert-base-uncased
 ```
-*   Metrics and SBOMs are saved to the `sboms/` directory.
+
+**Advanced Usage:**
+You can specify additional metadata like component name, version, and supplier.
+```bash
+python3 -m src.cli google-bert/bert-base-uncased \
+  --name "My Custom BERT" \
+  --version "1.0.0" \
+  --manufacturer "Acme Corp" \
+  --output "my_sbom.json"
+```
+
+**Command Line Options:**
+
+| Option | Shorthand | Description |
+|--------|-----------|-------------|
+| `model_id` | | Hugging Face Model ID (e.g., `owner/model`) |
+| `--output` | `-o` | Custom output file path |
+| `--name` | `-n` | Override component name in metadata |
+| `--version` | `-v` | Override component version in metadata |
+| `--manufacturer` | `-m` | Override component manufacturer/supplier |
+| `--inference` | `-i` | Use AI inference for enhanced metadata (requires API key) |
+| `--summarize` | `-s` | Enable intelligent description summarization |
+| `--verbose` | | Enable verbose logging |
+
+*   Metrics and SBOMs are saved to the `sboms/` directory by default.
 
 ---
 
