@@ -96,8 +96,8 @@ Where possible, links point directly to the relevant specification section.
 | Performance metrics | `modelCard.quantitativeAnalysis` | `metric` | |
 | Decision thresholds | Partial support | `metricDecisionThreshold` | Limited in CDX |
 | Energy consumption | `environmentalConsiderations` | `energyConsumption` | |
-| Training information | Partial (modelCard) | `informationAboutTraining` | |
-| Data preprocessing | Extension | `modelDataPreprocessing` | |
+| Training information | `formulation` | `informationAboutTraining` | |
+| Data preprocessing | `formulation` | `modelDataPreprocessing` | |
 | Sensitive data usage | Partial | `useSensitivePersonalInformation` | |
 | Explainability information | Extension | `modelExplainability` | |
 | Known limitations | `technicalLimitations` | `limitation` | |
@@ -105,7 +105,7 @@ Where possible, links point directly to the relevant specification section.
 | Runtime dependencies | `dependencies` | `dependsOn` | Structural differences |
 | Model lineage | `pedigree.ancestors` | `ancestorOf` | |
 | Training datasets | `modelCard.datasets` | `trainedOn` | |
-| Test datasets | `modelCard.datasets` | `testedOn` | Role distinction differs |
+| Test datasets | `modelCard.datasets` in `formulation` | `testedOn` | Role distinction differs |
 
 ---
 
