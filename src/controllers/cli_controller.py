@@ -54,7 +54,7 @@ class CLIController:
                     normalized_id = self.service._normalise_model_id(model_id)
                     import os
                     os.makedirs("sboms", exist_ok=True)
-                    suffix = f"_{spec_version.replace('.', '_')}" if spec_version != "1.6" else ""
+                    suffix = f"_{spec_version.replace('.', '_')}"
                     current_output_file = os.path.join("sboms", f"{normalized_id.replace('/', '_')}_ai_sbom{suffix}.json")
                 elif spec_version != "1.6":
                      import os
@@ -130,7 +130,9 @@ class CLIController:
                     }
 
                     html_content = template.render(context)
-                    html_output_file = output_file_primary.replace(".json", ".html")
+                    # For CycloneDX 1.6, we want the HTML file name to be clean (without _1_6 suffix)
+                    # even though the JSON file has the suffix.
+                    html_output_file = output_file_primary.replace("_1_6.json", ".html").replace(".json", ".html")
                     with open(html_output_file, "w") as f:
                         f.write(html_content)
                     
