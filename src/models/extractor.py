@@ -378,11 +378,13 @@ class EnhancedExtractor:
                 return paper
         
         # 2. Check tags for arxiv: ID
+        papers = []
         if hasattr(info, 'tags') and info.tags:
             for tag in info.tags:
                 if isinstance(tag, str) and tag.startswith('arxiv:'):
-                    return f"https://arxiv.org/abs/{tag.split(':', 1)[1]}"
-        return None
+                    papers.append(f"https://arxiv.org/abs/{tag.split(':', 1)[1]}")
+        
+        return papers if papers else None
 
     def _try_api_extraction(self, field_name: str, context: Dict[str, Any]) -> Any:
         """Try to extract field from HuggingFace API data"""

@@ -121,7 +121,7 @@ async def generate_form(
         service, aibom, report = await loop.run_in_executor(None, _generate_task)
         
         # Save file (non-blocking I/O)
-        filename = f"{normalized_id.replace('/', '_')}_ai_sbom.json"
+        filename = f"{normalized_id.replace('/', '_')}_ai_sbom_1_6.json"
         filepath = os.path.join(OUTPUT_DIR, filename)
         
         def _save_task():
