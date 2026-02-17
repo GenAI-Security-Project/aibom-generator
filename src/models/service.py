@@ -16,7 +16,8 @@ from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
 from .schemas import AIBOMResponse, EnhancementReport
 from ..utils.validation import validate_aibom, get_validation_summary
-from ..utils.license_utils import normalize_license_id, get_license_url
+from ..utils.license_utils import normalize_license_id, get_license_url, is_valid_spdx_license_id
+from ..config import AIBOM_GEN_VERSION, AIBOM_GEN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +161,18 @@ class AIBOMService:
             
         return PackageURL(type='huggingface', namespace=group, name=name, version=version).to_string()
 
+    def _get_tool_metadata(self) -> Dict[str, Any]:
+        """Generate the standardized tool metadata for the AIBOM Generator"""
+        return {
+            "components": [{
+                "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION).to_string(),
+                "type": "application",
+                "name": AIBOM_GEN_NAME,
+                "version": AIBOM_GEN_VERSION,
+                "manufacturer": {"name": "OWASP GenAI Security Project"}
+            }]
+        }
+
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
         hf_purl = self._generate_hf_purl(model_id, "1.0")
@@ -171,14 +184,7 @@ class AIBOMService:
             "version": 1,
             "metadata": {
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
-                "tools": {
-                    "components": [{
-                        "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name='owasp-aibom-generator', version='1.0.0').to_string(),
-                        "type": "application",
-                        "name": "OWASP AIBOM Generator",
-                        "version": "1.0.0"
-                    }]
-                },
+                "tools": self._get_tool_metadata(),
                 "component": {
                     "bom-ref": PackageURL(type='generic', name=model_id, version="1.0").to_string(),
                     "type": "application",
@@ -265,15 +271,7 @@ class AIBOMService:
         purl_name = comp_name.replace(" ", "-")
         purl = PackageURL(type='generic', namespace=purl_ns, name=purl_name, version=comp_version).to_string()
         
-        tools = {
-            "components": [{
-                "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name='owasp-aibom-generator', version='1.0.0').to_string(),
-                "type": "application",
-                "name": "OWASP AIBOM Generator",
-                "version": "1.0.0",
-                "manufacturer": {"name": "OWASP GenAI Security Project"}
-            }]
-        }
+        tools = {"tools": self._get_tool_metadata()}
         
         authors = []
         if "author" in metadata and metadata["author"]:
@@ -294,7 +292,7 @@ class AIBOMService:
             
         return {
             "timestamp": timestamp,
-            "tools": tools,
+            **tools,
             "component": component
         }
 
@@ -372,46 +370,45 @@ class AIBOMService:
     def _process_licenses(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Process and normalize license information."""
         raw_license = metadata.get("licenses") or metadata.get("license")
+        
+        # 1. No license provided -> Return empty list (no license in SBOM)
         if not raw_license:
-            # Default fallback per user request to use name for NOASSERTION
-            return [{"license": {"name": "NOASSERTION"}}]
+            return []
 
-        # Handle list input (e.g. from regex text extraction)
+        # Handle list input
         if isinstance(raw_license, list):
             if len(raw_license) > 0:
-                raw_license = raw_license[0] # Take the first match
+                raw_license = raw_license[0]
             else:
-                return [{"license": {"name": "NOASSERTION"}}]
+                return []
         
+        if not isinstance(raw_license, str) or not raw_license.strip():
+             return []
+
         norm_license = normalize_license_id(raw_license)
         
-        # User request: treat NOASSERTION as name to be safe
-        if norm_license == "NOASSERTION":
-             return [{"license": {"name": "NOASSERTION"}}]
-        elif norm_license and norm_license.lower() != "other":
-            # Check if it looks like a valid SPDX ID (simple heuristic: no spaces, usually short)
-            # But our normalize_license_id might return long URLs or names if mapped 
-            # (e.g. nvidia-open-model-license is not a standard SPDX ID but we treat it as key)
+        # Skip NOASSERTION or 'other' explicitly
+        if norm_license == "NOASSERTION" or (norm_license and norm_license.lower() == "other"):
+            return []
             
-            # If it's the NVIDIA license, putting it in ID fails schema validation because it's not in the enum.
-            # So we put it in name, and add the URL.
-            if "nvidia" in norm_license.lower():
-                 return [{
-                    "license": {
-                        "name": norm_license,
-                        "url": get_license_url(norm_license)
-                    }
-                }]
-            else:
-                return [{
-                    "license": {
-                        "id": norm_license,
-                        "url": get_license_url(norm_license)
-                    }
-                }]
-        else:
-            # Fallback if normalization fails or is 'other', use name
-            return [{"license": {"name": raw_license}}]
+        if norm_license:
+            # 1. Strict SPDX validation
+            if not is_valid_spdx_license_id(norm_license):
+                lic_data = {"name": norm_license}
+                # Try to find a known URL (e.g. for Nvidia license)
+                known_url = get_license_url(norm_license, fallback=False)
+                if known_url:
+                    lic_data["url"] = known_url
+                return [{"license": lic_data}]
+
+            # 2. Valid SPDX ID
+            return [{"license": {"id": norm_license}}]
+            
+        # Fallback if normalization fails, use name unless generic
+        if raw_license.lower() not in ["other", "unknown", "noassertion"]:
+             return [{"license": {"name": raw_license}}]
+             
+        return []
 
     def _process_authors_and_suppliers(self, metadata: Dict[str, Any], group: str) -> tuple:
         """

@@ -547,7 +547,11 @@ class EnhancedExtractor:
                 # Replace newlines/tabs with single space
                 val = re.sub(r'\s+', ' ', match.group(1)).strip()
                 # Filtering: 'the' is never a license, and generic "other" values
-                ignored_values = {"the", "other", "other license", "other-license", "unknown"}
+                ignored_values = {
+                    "the", "other", "other license", "other-license", "unknown",
+                    "vision", "text", "audio", "image", "video", "data", "dataset", "datasets",
+                    "training", "eval", "evaluation"
+                }
                 if val.lower() in ignored_values:
                     continue
                 matches.append(val)
