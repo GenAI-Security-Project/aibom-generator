@@ -104,5 +104,20 @@ class TestService(unittest.TestCase):
         self.assertEqual(inputs, [])
         self.assertEqual(outputs, [])
 
+    def test_generate_purl_huggingface_default(self):
+        """Test _generate_purl with default huggingface type"""
+        purl = self.service._generate_purl("owner/model", "1.0")
+        self.assertEqual(purl, "pkg:huggingface/owner/model@1.0")
+    
+    def test_generate_purl_generic_type(self):
+        """Test _generate_purl with generic type"""
+        purl = self.service._generate_purl("owner/model", "1.0", purl_type="generic")
+        self.assertEqual(purl, "pkg:generic/owner/model@1.0")
+    
+    def test_generate_purl_no_namespace(self):
+        """Test _generate_purl without namespace"""
+        purl = self.service._generate_purl("model", "1.0")
+        self.assertEqual(purl, "pkg:huggingface/model@1.0")
+
 if __name__ == '__main__':
     unittest.main()
