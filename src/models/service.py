@@ -149,21 +149,15 @@ class AIBOMService:
         return metadata
 
     def _generate_hf_purl(self, model_id: str, version: str) -> str:
-        """Helper to generate consistent Hugging Face PURLs"""
-        parts = model_id.split("/")
-        if len(parts) > 1:
-            group = parts[0]
-            name = "/".join(parts[1:])
-            # Preserve case and URL encode parts
-            purl_path = f"{quote(group)}/{quote(name)}"
-        else:
-            purl_path = quote(model_id)
-            
-        return f"pkg:huggingface/{purl_path}@{version}"
+        """Generate HuggingFace PURL"""
+        parts = model_id.split("/", 1)
+        namespace = parts[0] if len(parts) == 2 else None
+        name = parts[1] if len(parts) == 2 else parts[0]
+        return str(PackageURL(type="huggingface", namespace=namespace, name=name, version=version))
 
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
-        _hf_purl = self._generate_hf_purl(model_id, "1.0")
+        hf_purl = self._generate_hf_purl(model_id, "1.0")
         
         return {
             "bomFormat": "CycloneDX",
@@ -188,11 +182,11 @@ class AIBOMService:
                 }
             },
             "components": [{
-                "bom-ref": _hf_purl,
+                "bom-ref": hf_purl,
                 "type": "machine-learning-model",
                 "name": model_id.split("/")[-1],
                 "version": "1.0",
-                "purl": _hf_purl
+                "purl": hf_purl
             }]
         }
 
@@ -210,13 +204,6 @@ class AIBOMService:
             logger.warning(f"Error fetching model card for {model_id}: {e}")
             return None
 
-    def _generate_hf_purl(self, model_id: str, version: str) -> str:
-        """Generate HuggingFace PURL using packageurl-python library."""
-        parts = model_id.split("/", 1)
-        namespace = parts[0] if len(parts) == 2 else None
-        name = parts[1] if len(parts) == 2 else parts[0]
-        return str(PackageURL(type="huggingface", namespace=namespace, name=name, version=version))
-
     @staticmethod
     def _normalise_model_id(raw_id: str) -> str:
         if raw_id.startswith(("http://", "https://")):
@@ -227,8 +214,10 @@ class AIBOMService:
             return path
         return raw_id
 
-    def _create_aibom_structure(self, model_id: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        version = metadata.get("commit", "1.0")
+    def _create_aibom_structure(self, model_id: str, metadata: Dict[str, Any], spec_version: str = "1.6",
+                              metadata_overrides: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        full_commit = metadata.get("commit")
+        version = full_commit[:8] if full_commit else "1.0"
         
         aibom = {
             "bomFormat": "CycloneDX",
@@ -307,7 +296,8 @@ class AIBOMService:
         parts = model_id.split("/")
         group = parts[0] if len(parts) > 1 else ""
         name = parts[1] if len(parts) > 1 else parts[0]
-        version = metadata.get("commit", "1.0")
+        full_commit = metadata.get("commit")
+        version = full_commit[:8] if full_commit else "1.0"
         purl = self._generate_hf_purl(model_id, version)
 
         component = {
