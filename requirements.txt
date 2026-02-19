@@ -10,6 +10,7 @@ PyYAML>=6.0.1
 flask>=2.3.0
 gunicorn>=21.2.0
 cyclonedx-python-lib>=4.0.0
+packageurl-python>=0.11.1
 python-multipart
 jinja2>=3.0.0
 datasets>=2.0.0

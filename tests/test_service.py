@@ -33,7 +33,7 @@ class TestService(unittest.TestCase):
 
     @patch("src.models.service.calculate_completeness_score")
     @patch("src.models.service.EnhancedExtractor")
-    def test_generate_aibom_purl_encoding(self, mock_extractor_cls, mock_score):
+    def test_generate_aibom_purl_format(self, mock_extractor_cls, mock_score):
         # Setup
         mock_extractor = mock_extractor_cls.return_value
         mock_extractor.extract_metadata.return_value = {"name": "test-model", "author": "tester"}
@@ -46,18 +46,17 @@ class TestService(unittest.TestCase):
         model_id = "owner/model"
         aibom = self.service.generate_aibom(model_id)
         
-        # Verify PURL encoding (slash should be %2F)
-        # Expected: pkg:huggingface/owner%2Fmodel@...
+        # Verify PURL format using packageurl-python library
+        # Expected: pkg:huggingface/owner/model@... (namespace/name format)
         
-        # Check root component
-        root_cmp = aibom["metadata"]["component"]
-        self.assertIn("owner%2Fmodel", root_cmp["bom-ref"])
-        self.assertIn("owner%2Fmodel", root_cmp["purl"])
-        
-        # Check components section (ML model)
+        # Check components section (ML model) - uses packageurl-python
         ml_cmp = aibom["components"][0]
-        self.assertIn("owner%2Fmodel", ml_cmp["bom-ref"])
-        self.assertIn("owner%2Fmodel", ml_cmp["purl"])
+        self.assertIn("pkg:huggingface/owner/model@", ml_cmp["bom-ref"])
+        self.assertIn("pkg:huggingface/owner/model@", ml_cmp["purl"])
+        
+        # Verify namespace and name are correctly separated
+        self.assertEqual(ml_cmp["group"], "owner")
+        self.assertEqual(ml_cmp["name"], "model")
 
 if __name__ == '__main__':
     unittest.main()

@@ -7,6 +7,7 @@ import re
 from typing import Dict, Optional, Any, List, Union
 from urllib.parse import urlparse
 
+from packageurl import PackageURL
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
 
@@ -147,6 +148,8 @@ class AIBOMService:
 
     def _create_minimal_aibom(self, model_id: str) -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
+        _hf_purl = self._generate_hf_purl(model_id, "1.0")
+        
         return {
             "bomFormat": "CycloneDX",
             "specVersion": "1.6",
@@ -170,11 +173,11 @@ class AIBOMService:
                 }
             },
             "components": [{
-                "bom-ref": f"pkg:huggingface/{model_id.replace('/', '%2F')}@1.0",
+                "bom-ref": _hf_purl,
                 "type": "machine-learning-model",
                 "name": model_id.split("/")[-1],
                 "version": "1.0",
-                "purl": f"pkg:huggingface/{model_id.replace('/', '%2F')}@1.0"
+                "purl": _hf_purl
             }]
         }
 
@@ -192,6 +195,13 @@ class AIBOMService:
             logger.warning(f"Error fetching model card for {model_id}: {e}")
             return None
 
+    def _generate_hf_purl(self, model_id: str, version: str) -> str:
+        """Generate HuggingFace PURL using packageurl-python library."""
+        parts = model_id.split("/", 1)
+        namespace = parts[0] if len(parts) == 2 else None
+        name = parts[1] if len(parts) == 2 else parts[0]
+        return str(PackageURL(type="huggingface", namespace=namespace, name=name, version=version))
+
     @staticmethod
     def _normalise_model_id(raw_id: str) -> str:
         if raw_id.startswith(("http://", "https://")):
@@ -204,6 +214,7 @@ class AIBOMService:
 
     def _create_aibom_structure(self, model_id: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         version = metadata.get("commit", "1.0")
+        _hf_purl = self._generate_hf_purl(model_id, version)
         
         aibom = {
             "bomFormat": "CycloneDX",
@@ -215,7 +226,7 @@ class AIBOMService:
             "dependencies": [
                 {
                     "ref": f"pkg:generic/{model_id.replace('/', '%2F')}@{version}",
-                    "dependsOn": [f"pkg:huggingface/{model_id.replace('/', '%2F')}@{version}"]
+                    "dependsOn": [_hf_purl]
                 }
             ]
         }
@@ -284,15 +295,10 @@ class AIBOMService:
         group = parts[0] if len(parts) > 1 else ""
         name = parts[1] if len(parts) > 1 else parts[0]
         version = metadata.get("commit", "1.0")
-        
-        purl = f"pkg:huggingface/{model_id.replace('/', '%2F')}"
-        if "commit" in metadata:
-            purl += f"@{metadata['commit']}"
-        else:
-            purl += f"@{version}"
-            
+        purl = self._generate_hf_purl(model_id, version)
+
         component = {
-            "bom-ref": f"pkg:huggingface/{model_id.replace('/', '%2F')}@{version}",
+            "bom-ref": purl,
             "type": "machine-learning-model",
             "group": group,
             "name": name,
