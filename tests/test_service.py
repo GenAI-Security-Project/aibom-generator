@@ -28,7 +28,8 @@ class TestService(unittest.TestCase):
         aibom = self.service.generate_aibom("owner/test-model")
         
         self.assertIsNotNone(aibom)
-        self.assertEqual(aibom["metadata"]["component"]["name"], "test-model")
+        # Metadata component name is timestamp by default, check ML component instead
+        self.assertEqual(aibom["components"][0]["name"], "test-model")
         self.assertEqual(aibom["bomFormat"], "CycloneDX")
 
     @patch("src.models.service.calculate_completeness_score")

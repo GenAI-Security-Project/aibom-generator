@@ -121,7 +121,7 @@ async def generate_form(
         service, aibom, report = await loop.run_in_executor(None, _generate_task)
         
         # Save file (non-blocking I/O)
-        filename = f"{normalized_id.replace('/', '_')}_ai_sbom.json"
+        filename = f"{normalized_id.replace('/', '_')}_ai_sbom_1_6.json"
         filepath = os.path.join(OUTPUT_DIR, filename)
         
         def _save_task():
@@ -147,6 +147,7 @@ async def generate_form(
             "download_url": f"/output/{filename}",
             "aibom": aibom,
             "aibom_json": json.dumps(aibom, indent=2),
+            "components_json": json.dumps(aibom.get("components", []), indent=2),
             "model_id": normalized_id,
             "sbom_count": get_sbom_count(),
             "completeness_score": completeness_score,

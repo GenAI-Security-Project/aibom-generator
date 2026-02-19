@@ -221,8 +221,9 @@ class FieldRegistryManager:
             if path.startswith('$.'):
                 path = path[2:]
             
-            # Handle special JSONPath-like syntax for property arrays
-            if '[?(@.name==' in path:
+            # Handle special JSONPath-like syntax for property/array filtering
+            # Supports [?(@.field=='value')]
+            if '[?(@.' in path:
                 return self._handle_property_array_path(data, path)
             
             # Split path and traverse
@@ -261,30 +262,48 @@ class FieldRegistryManager:
     
     def _handle_property_array_path(self, data: dict, path: str) -> Tuple[bool, Any]:
         """
-        Handle JSONPath-like syntax for property arrays
+        Handle generic JSONPath-like syntax for array filtering
+        Supports: base_path[?(@.key=='value')].optional_suffix
+        Example: metadata.component.externalReferences[?(@.type=='documentation')]
         Example: metadata.properties[?(@.name=='primaryPurpose')].value
         """
         try:
-            # Extract the base path, property name, and final key
-            match = re.match(r'(.+)\.properties\[\?\(@\.name==\'(.+)\'\)\]\.(.+)', path)
+            # Regex to capture: Base Path, Filter Key, Filter Value, Optional Suffix
+            # matches: something[?(@.key=='val')] or something[?(@.key=='val')].sub
+            pattern = r'(.+)\[\?\(@\.(\w+)==\'([^\']+)\'\)\](.*)'
+            match = re.search(pattern, path)
+            
             if not match:
                 return False, None
             
-            base_path, prop_name, final_key = match.groups()
+            base_path, filter_key, filter_val, suffix = match.groups()
             
-            # Get to the properties array
-            base_found, base_value = self._get_nested_value(data, base_path + '.properties')
-            if not base_found or not isinstance(base_value, list):
+            # Get the list at base_path
+            base_found, base_list = self._get_nested_value(data, base_path)
+            if not base_found or not isinstance(base_list, list):
                 return False, None
             
-            # Find the property with matching name
-            for prop in base_value:
-                if isinstance(prop, dict) and prop.get('name') == prop_name:
-                    if final_key in prop:
-                        value = prop[final_key]
-                        if value is not None and value != "" and value != []:
-                            return True, value
+            # Find matching item
+            found_item = None
+            for item in base_list:
+                if isinstance(item, dict) and str(item.get(filter_key)) == filter_val:
+                    found_item = item
+                    break
             
+            if found_item is None:
+                return False, None
+                
+            # If there's a suffix (e.g., .value), traverse it
+            if suffix:
+                if suffix.startswith('.'):
+                    suffix = suffix[1:]
+                return self._get_nested_value(found_item, suffix)
+            
+            # No suffix, return the item itself
+            return True, found_item
+            
+        except Exception as e:
+            logger.error(f"Error handling array path {path}: {e}")
             return False, None
             
         except Exception as e:

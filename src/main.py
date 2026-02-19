@@ -76,6 +76,9 @@ async def cleanup_middleware(request: Request, call_next):
 # --- Static Files ---
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
+# Mount static files (CSS/JS)
+os.makedirs("src/static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 # --- Routes ---
 app.include_router(web_router)

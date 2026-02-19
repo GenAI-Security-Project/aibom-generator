@@ -1,8 +1,11 @@
 
+
 import logging
 import re
+import yaml
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
+from enum import Enum
 from urllib.parse import urlparse, urljoin
 
 from huggingface_hub import HfApi, ModelCard, hf_hub_download
@@ -367,6 +370,22 @@ class EnhancedExtractor:
         )
         return None
     
+    def _extract_paper_link(self, info: Any) -> Union[str, List[str], None]:
+        # 1. Check card_data for explicit paper field
+        if hasattr(info, 'card_data') and info.card_data:
+            paper = getattr(info.card_data, 'paper', None)
+            if paper:
+                return paper
+        
+        # 2. Check tags for arxiv: ID
+        papers = []
+        if hasattr(info, 'tags') and info.tags:
+            for tag in info.tags:
+                if isinstance(tag, str) and tag.startswith('arxiv:'):
+                    papers.append(f"https://arxiv.org/abs/{tag.split(':', 1)[1]}")
+        
+        return papers if papers else None
+
     def _try_api_extraction(self, field_name: str, context: Dict[str, Any]) -> Any:
         """Try to extract field from HuggingFace API data"""
         model_info = context.get('model_info')
@@ -385,7 +404,9 @@ class EnhancedExtractor:
             'primaryPurpose': lambda info: getattr(info, 'pipeline_tag', 'text-generation'),
             'downloadLocation': lambda info: f"https://huggingface.co/{context['model_id']}/tree/main",
             'license': lambda info: getattr(info.card_data, 'license', None) if hasattr(info, 'card_data') and info.card_data else None,
-            'licenses': lambda info: getattr(info.card_data, 'license', None) if hasattr(info, 'card_data') and info.card_data else None
+            'licenses': lambda info: getattr(info.card_data, 'license', None) if hasattr(info, 'card_data') and info.card_data else None,
+            'datasets': lambda info: getattr(info.card_data, 'datasets', []) if hasattr(info, 'card_data') and info.card_data else [],
+            'paper': self._extract_paper_link
         }
         
         if field_name in api_mappings:
@@ -393,6 +414,10 @@ class EnhancedExtractor:
                 val = api_mappings[field_name](model_info)
                 # If valid value found, return it (filtering out "other")
                 if val:
+                    # Special handling for lists (datasets, tags, paper) - don't lowercase/string convert immmediately
+                    if field_name in ["datasets", "tags", "external_references", "paper"]:
+                         return val
+
                     str_val = str(val).lower()
                     if isinstance(val, list) and len(val) > 0:
                         str_val = str(val[0]).lower()
