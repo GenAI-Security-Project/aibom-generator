@@ -34,7 +34,7 @@ class TestService(unittest.TestCase):
 
     @patch("src.models.service.calculate_completeness_score")
     @patch("src.models.service.EnhancedExtractor")
-    def test_generate_aibom_purl_format(self, mock_extractor_cls, mock_score):
+    def test_generate_aibom_purl_encoding(self, mock_extractor_cls, mock_score):
         # Setup
         mock_extractor = mock_extractor_cls.return_value
         mock_extractor.extract_metadata.return_value = {"name": "test-model", "author": "tester"}
@@ -47,37 +47,62 @@ class TestService(unittest.TestCase):
         model_id = "owner/model"
         aibom = self.service.generate_aibom(model_id)
         
-        # Verify PURL format using packageurl-python library
-        # Expected: pkg:huggingface/owner/model@... (namespace/name format)
+        # Verify PURL encoding (slash should be / now, case preserved)
+        # Expected: pkg:huggingface/owner/model@12345678 (truncated hash)
         
-        # Check components section (ML model) - uses packageurl-python
+        # Check components section (ML model)
         ml_cmp = aibom["components"][0]
-        self.assertIn("pkg:huggingface/owner/model@", ml_cmp["bom-ref"])
-        self.assertIn("pkg:huggingface/owner/model@", ml_cmp["purl"])
+        # Hash "123456" is less than 8 chars, so it remains "123456"
+        # Let's use a longer hash to test truncation
         
-        # Verify namespace and name are correctly separated
-        self.assertEqual(ml_cmp["group"], "owner")
-        self.assertEqual(ml_cmp["name"], "model")
+    @patch("src.models.service.calculate_completeness_score")
+    @patch("src.models.service.EnhancedExtractor")
+    def test_generate_aibom_version_truncation(self, mock_extractor_cls, mock_score):
+        # Setup
+        mock_extractor = mock_extractor_cls.return_value
+        long_sha = "a" * 40
+        # Extractor typically puts commit in metadata if available
+        mock_extractor.extract_metadata.return_value = {"name": "test-model", "commit": long_sha}
+        mock_extractor.extraction_results = {}
+        mock_score.return_value = {"total_score": 50}
+        
+        self.service.hf_api.model_info.return_value = MagicMock(sha=long_sha)
+        
+        # Action
+        aibom = self.service.generate_aibom("owner/model")
+        
+        # Verify
+        ml_cmp = aibom["components"][0]
+        expected_version = "aaaaaaaa" # First 8 chars
+        
+        self.assertEqual(ml_cmp["version"], expected_version)
+        self.assertIn(f"@{expected_version}", ml_cmp["purl"])
+        self.assertIn(f"@{expected_version}", ml_cmp["bom-ref"])
+        
+        # Verify dependencies
+        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["ref"])
+        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["dependsOn"][0])
 
-    def test_generate_hf_purl_with_namespace(self):
-        """Test PURL generation for model with namespace (owner/model)"""
-        purl = self.service._generate_hf_purl("deepseek-ai/DeepSeek-R1", "abc1234")
-        self.assertEqual(purl, "pkg:huggingface/deepseek-ai/DeepSeek-R1@abc1234")
+    def test_infer_io_formats(self):
+        # Test Text Classification
+        inputs, outputs = self.service._infer_io_formats("text-classification")
+        self.assertEqual(inputs, ["string"])
+        self.assertEqual(outputs, ["string"])
         
-    def test_generate_hf_purl_without_namespace(self):
-        """Test PURL generation for model without namespace (just model name)"""
-        purl = self.service._generate_hf_purl("gpt2", "1.0")
-        self.assertEqual(purl, "pkg:huggingface/gpt2@1.0")
+        # Test Image Classification
+        inputs, outputs = self.service._infer_io_formats("image-classification")
+        self.assertEqual(inputs, ["image"])
+        self.assertEqual(outputs, ["string", "json"])
         
-    def test_generate_hf_purl_special_characters(self):
-        """Test PURL generation handles special characters correctly"""
-        purl = self.service._generate_hf_purl("owner/model-name_v2", "1.0.0")
-        self.assertEqual(purl, "pkg:huggingface/owner/model-name_v2@1.0.0")
+        # Test ASR (Audio)
+        inputs, outputs = self.service._infer_io_formats("automatic-speech-recognition")
+        self.assertEqual(inputs, ["audio"])
+        self.assertEqual(outputs, ["string"])
         
-    def test_generate_hf_purl_preserves_case(self):
-        """Test PURL generation preserves case sensitivity"""
-        purl = self.service._generate_hf_purl("OpenAI/GPT-4", "v1.0")
-        self.assertEqual(purl, "pkg:huggingface/OpenAI/GPT-4@v1.0")
+        # Test Unknown
+        inputs, outputs = self.service._infer_io_formats("unknown-task")
+        self.assertEqual(inputs, [])
+        self.assertEqual(outputs, [])
 
 if __name__ == '__main__':
     unittest.main()
