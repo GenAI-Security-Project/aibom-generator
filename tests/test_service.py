@@ -58,5 +58,25 @@ class TestService(unittest.TestCase):
         self.assertEqual(ml_cmp["group"], "owner")
         self.assertEqual(ml_cmp["name"], "model")
 
+    def test_generate_hf_purl_with_namespace(self):
+        """Test PURL generation for model with namespace (owner/model)"""
+        purl = self.service._generate_hf_purl("deepseek-ai/DeepSeek-R1", "abc1234")
+        self.assertEqual(purl, "pkg:huggingface/deepseek-ai/DeepSeek-R1@abc1234")
+        
+    def test_generate_hf_purl_without_namespace(self):
+        """Test PURL generation for model without namespace (just model name)"""
+        purl = self.service._generate_hf_purl("gpt2", "1.0")
+        self.assertEqual(purl, "pkg:huggingface/gpt2@1.0")
+        
+    def test_generate_hf_purl_special_characters(self):
+        """Test PURL generation handles special characters correctly"""
+        purl = self.service._generate_hf_purl("owner/model-name_v2", "1.0.0")
+        self.assertEqual(purl, "pkg:huggingface/owner/model-name_v2@1.0.0")
+        
+    def test_generate_hf_purl_preserves_case(self):
+        """Test PURL generation preserves case sensitivity"""
+        purl = self.service._generate_hf_purl("OpenAI/GPT-4", "v1.0")
+        self.assertEqual(purl, "pkg:huggingface/OpenAI/GPT-4@v1.0")
+
 if __name__ == '__main__':
     unittest.main()
