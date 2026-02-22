@@ -330,8 +330,10 @@ class EnhancedExtractor:
                     readme = context.get('readme_content')
                     if readme:
                         # Clean README: Remove YAML frontmatter if present
-                        # Matches content between first two --- lines at start of file
-                        clean_readme = re.sub(r'^---\n.*?\n---\n', '', readme, flags=re.DOTALL).strip()
+                        # Clean README: Remove common YAML frontmatter fields instead of risking deleting content blocks
+                        clean_readme = re.sub(r'^(license|language|datasets|tags|base_model|model_name|library_name|pipeline_tag|extra_gated_prompt):.*?$(?:\n\s*- .*$)*', '', readme, flags=re.MULTILINE | re.IGNORECASE)
+                        # Remove residual --- markers
+                        clean_readme = re.sub(r'(?m)^---$', '', clean_readme).strip()
                         
                         summary = LocalSummarizer.summarize(clean_readme)
                         if summary:

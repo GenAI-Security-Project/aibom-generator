@@ -10,7 +10,8 @@ class LocalSummarizer:
     """
     _tokenizer = None
     _model = None
-    _model_name = "sshleifer/distilbart-cnn-12-6"
+    #_model_name = "sshleifer/distilbart-cnn-12-6"
+    _model_name = "google/flan-t5-small"
 
     @classmethod
     def _load_model(cls):
@@ -18,9 +19,18 @@ class LocalSummarizer:
         if cls._model is None:
             try:
                 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+                import transformers
                 logger.info(f"⏳ Loading summarization model ({cls._model_name})...")
+                
+                # Temporarily suppress transformers warnings (like tie_word_embeddings warning)
+                old_verbosity = transformers.logging.get_verbosity()
+                transformers.logging.set_verbosity_error()
+                
                 cls._tokenizer = AutoTokenizer.from_pretrained(cls._model_name)
                 cls._model = AutoModelForSeq2SeqLM.from_pretrained(cls._model_name)
+                
+                transformers.logging.set_verbosity(old_verbosity)
+                
                 logger.info("✅ Summarization model loaded successfully")
             except Exception as e:
                 logger.error(f"❌ Failed to load summarization model: {e}")
@@ -42,19 +52,49 @@ class LocalSummarizer:
             return None
 
         try:
-            # Truncate input broadly
-            truncated_input = text[:2500]
+            import re
+            from bs4 import BeautifulSoup
+            
+            # Remove HTML tags and CSS
+            soup = BeautifulSoup(text, "html.parser")
+            for tag in soup(["style", "script"]):
+                tag.decompose()
+            text = soup.get_text(separator=' ')
+            
+            # Remove markdown tables
+            text = re.sub(r'\|.*?\|', '', text)
+            text = re.sub(r'(?m)^\|.*\|$', '', text)
+            
+            # Remove excessive whitespace and rudimentary markdown tokens
+            text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text) 
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            # Truncate input broadly, 1000 chars is sufficient for summary and avoids trailing licenses/params
+            truncated_input = text[:1000]
             
             # Prepare inputs
-            # DistilBART doesn't need "summarize: " prefix
-            inputs = cls._tokenizer(truncated_input, return_tensors="pt", max_length=1024, truncation=True)
+            # T5 model task prefix
+            if "t5" in cls._model_name.lower() or "flan" in cls._model_name.lower():
+                truncated_input = f"Summarize the following AI model description:\n\n{truncated_input}"
+
+            inputs = cls._tokenizer(truncated_input, return_tensors="pt", max_length=512, truncation=True)
             
             # Generate
+            generate_kwargs = {
+                "max_length": 250,
+                "do_sample": False,
+                "num_beams": 4,
+                "early_stopping": True,
+                "repetition_penalty": 1.5
+            }
+            
+            # Add min_length for non-T5 models, as T5 can struggle with forced min_lengths
+            if "t5" not in cls._model_name.lower() and "flan" not in cls._model_name.lower():
+                generate_kwargs["min_length"] = 30
+
             summary_ids = cls._model.generate(
                 inputs["input_ids"],
-                max_length=120,
-                min_length=30,
-                do_sample=False
+                **generate_kwargs
             )
             
             summary = cls._tokenizer.decode(summary_ids[0], skip_special_tokens=True)

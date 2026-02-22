@@ -29,7 +29,8 @@ def main():
             "FireRedTeam/FireRed-Image-Edit-1.0",
             "nvidia/NVIDIA-Nemotron-Nano-9B-v2-Japanese",
             "mistralai/Voxtral-Mini-4B-Realtime-2602",
-            "TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF"
+            "TeichAI/GLM-4.7-Flash-Claude-Opus-4.5-High-Reasoning-Distill-GGUF",
+            "CIRCL/vulnerability-severity-classification-roberta-base"
         ]
         
         print(f"Running test mode against {len(test_models)} models...")

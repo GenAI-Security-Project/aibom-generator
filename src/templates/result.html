@@ -35,10 +35,12 @@
 
         <!-- Key Information -->
         <div class="key-info">
-            <h3>📋 AIBOM Summary for model <span class="model-name">{{ model_id }}</span></h3>
+            <h3>📋 AIBOM Summary for model <a href="https://huggingface.co/{{ model_id }}" target="_blank"
+                    class="model-name-link"><span class="model-name">{{ model_id }}</span></a></h3>
             <div class="aibom-property">
                 <span class="property-name">Model:</span>
-                <span class="property-value">{{ model_id }}</span>
+                <span class="property-value"><a href="https://huggingface.co/{{ model_id }}" target="_blank">{{ model_id
+                        }}</a></span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Generated:</span>
@@ -46,7 +48,8 @@
             </div>
             <div class="aibom-property">
                 <span class="property-name">SBOM Format:</span>
-                <span class="property-value">{{ aibom.bomFormat }} {{ aibom.specVersion }}</span>
+                <span class="property-value"><a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard"
+                        target="_blank">{{ aibom.bomFormat }} {{ aibom.specVersion }}</a></span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Serial Number:</span>
@@ -212,8 +215,9 @@
                         </div>
                     </div>
 
-                    <p>This breakdown outlines field categories and statuses in the AIBOM generated for model <strong>{{
-                            model_id }}</strong>, showing how each field impacts the completeness score.</p>
+                    <p>This breakdown outlines field categories and statuses in the AIBOM generated for model <strong><a
+                                href="https://huggingface.co/{{ model_id }}" target="_blank">{{ model_id
+                                }}</a></strong>, showing how each field impacts the completeness score.</p>
 
                     {% if completeness_score.field_checklist %}
                     <!-- Required Fields Category -->
@@ -545,7 +549,8 @@
                     <!-- Specific Breakdown for This SBOM -->
                     <div class="note-box">
                         <h4>Your AIBOM Breakdown</h4>
-                        <p><strong>Model:</strong> {{ model_id }}</p>
+                        <p><strong>Model:</strong> <a href="https://huggingface.co/{{ model_id }}" target="_blank">{{
+                                model_id }}</a></p>
 
                         <table class="score-table">
                             <thead>
