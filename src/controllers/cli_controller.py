@@ -130,8 +130,6 @@ class CLIController:
                     }
 
                     html_content = template.render(context)
-                    # For CycloneDX 1.6, we want the HTML file name to be clean (without _1_6 suffix)
-                    # even though the JSON file has the suffix.
                     html_output_file = output_file_primary.replace("_1_6.json", ".html").replace(".json", ".html")
                     with open(html_output_file, "w") as f:
                         f.write(html_content)

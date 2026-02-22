@@ -260,14 +260,25 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         field_checklist[field] = f"{'✔' if is_present else '✘'} {importance_indicator}"
 
     # Calculate category scores
+    category_details = {}
     category_scores = {}
     for category, counts in fields_by_category.items():
+        weight = max_scores.get(category, 0)
+        percentage = 0
         if counts["total"] > 0:
-            weight = max_scores.get(category, 0)
-            raw_score = (counts["present"] / counts["total"]) * weight
+            percentage = (counts["present"] / counts["total"]) * 100
+            raw_score = (percentage / 100) * weight
             category_scores[category] = round(raw_score, 1)
         else:
              category_scores[category] = 0.0
+        
+        category_details[category] = {
+            "present_fields": counts["present"],
+            "total_fields": counts["total"],
+            "max_points": weight,
+            "percentage": round(percentage, 1)
+        }
+
 
     subtotal_score = sum(category_scores.values())
     
@@ -297,6 +308,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "total_score": final_score,
         "subtotal_score": subtotal_score,
         "section_scores": category_scores,
+        "category_details": category_details,
         "max_scores": max_scores,
         "field_checklist": field_checklist,
         "missing_fields": missing_fields,

@@ -5,7 +5,8 @@ import datetime
 import logging
 import re
 from typing import Dict, Optional, Any, List, Union
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse
+from packageurl import PackageURL
 
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
@@ -153,12 +154,11 @@ class AIBOMService:
         if len(parts) > 1:
             group = parts[0]
             name = "/".join(parts[1:])
-            # Preserve case and URL encode parts
-            purl_path = f"{quote(group)}/{quote(name)}"
         else:
-            purl_path = quote(model_id)
+            group = None
+            name = model_id
             
-        return f"pkg:huggingface/{purl_path}@{version}"
+        return PackageURL(type='huggingface', namespace=group, name=name, version=version).to_string()
 
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
@@ -173,14 +173,14 @@ class AIBOMService:
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
                 "tools": {
                     "components": [{
-                        "bom-ref": "pkg:generic/owasp-genai/owasp-aibom-generator@1.0.0",
+                        "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name='owasp-aibom-generator', version='1.0.0').to_string(),
                         "type": "application",
                         "name": "OWASP AIBOM Generator",
                         "version": "1.0.0"
                     }]
                 },
                 "component": {
-                    "bom-ref": f"pkg:generic/{model_id.replace('/', '%2F')}@1.0",
+                    "bom-ref": PackageURL(type='generic', name=model_id, version="1.0").to_string(),
                     "type": "application",
                     "name": model_id.split("/")[-1],
                     "version": "1.0"
@@ -233,7 +233,7 @@ class AIBOMService:
             "components": [self._create_component_section(model_id, metadata)],
             "dependencies": [
                 {
-                    "ref": f"pkg:generic/{model_id.replace('/', '%2F')}@{version}",
+                    "ref": PackageURL(type='generic', name=model_id, version=version).to_string(),
                     # Must match the component PURL format
                     "dependsOn": [self._generate_hf_purl(model_id, version)]
                 }
@@ -263,11 +263,11 @@ class AIBOMService:
         # namespace = manufacturer
         purl_ns = comp_mfr.replace(" ", "-") # simplistic sanitation
         purl_name = comp_name.replace(" ", "-")
-        purl = f"pkg:generic/{purl_ns}/{purl_name}@{comp_version}"
+        purl = PackageURL(type='generic', namespace=purl_ns, name=purl_name, version=comp_version).to_string()
         
         tools = {
             "components": [{
-                "bom-ref": "pkg:generic/owasp-genai/owasp-aibom-generator@1.0.0",
+                "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name='owasp-aibom-generator', version='1.0.0').to_string(),
                 "type": "application",
                 "name": "OWASP AIBOM Generator",
                 "version": "1.0.0",
@@ -307,15 +307,8 @@ class AIBOMService:
         
         # PURL Construction: pkg:huggingface/<group>/<name>@<version>
         # Ensure group and name are URL encoded, separated by /, and preserve case
-        if group:
-            purl_path = f"{quote(group)}/{quote(name)}"
-        else:
-            purl_path = quote(name)
-            
-        purl = f"pkg:huggingface/{purl_path}"
         
-        # Use shortened version in PURL
-        purl += f"@{version}"
+        purl = PackageURL(type='huggingface', namespace=group if group else None, name=name, version=version).to_string()
             
         component = {
             "bom-ref": purl,

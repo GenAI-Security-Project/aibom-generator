@@ -422,7 +422,9 @@ class EnhancedExtractor:
                     if isinstance(val, list) and len(val) > 0:
                         str_val = str(val[0]).lower()
                     
-                    if str_val != "other" and str_val != "['other']" and str_val != "['other']":
+                    # Enhanced filtering for "other" variants
+                    ignored_values = {"other", "['other']", "other license", "other-license", "unknown"}
+                    if str_val not in ignored_values:
                         return val
                 return None
             except Exception as e:
@@ -466,7 +468,9 @@ class EnhancedExtractor:
                         str_val = str(val).lower()
                         if isinstance(val, list) and len(val) > 0:
                             str_val = str(val[0]).lower()
-                        return val if str_val != "other" else None
+                        
+                        ignored_values = {"other", "['other']", "other license", "other-license", "unknown"}
+                        return val if str_val not in ignored_values else None
                     return None
             
             # Direct field name lookup
@@ -542,8 +546,9 @@ class EnhancedExtractor:
             if match:
                 # Replace newlines/tabs with single space
                 val = re.sub(r'\s+', ' ', match.group(1)).strip()
-                # Filtering: 'the' is never a license
-                if val.lower() == 'the':
+                # Filtering: 'the' is never a license, and generic "other" values
+                ignored_values = {"the", "other", "other license", "other-license", "unknown"}
+                if val.lower() in ignored_values:
                     continue
                 matches.append(val)
         return list(set(matches)) # Return unique matches

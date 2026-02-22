@@ -584,7 +584,8 @@
                                             {% set progress_class = "progress-poor" %}
                                             {% endif %}
                                             <div class="progress-bar {{ progress_class }}"
-                                                style="width: {{ percentage }}%">{{ percentage|round(0) }}%</div>
+                                                style="width: {{ percentage|round|int }}%">{{ percentage|round|int }}%
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -665,15 +666,26 @@
                     <p>The completeness score evaluates how well your AIBOM documents the model across five key
                         categories:</p>
                     <ul>
-                        <li><strong>Required Fields (20 points):</strong> Basic SBOM structure mandated by CycloneDX
+                        <li><strong>Required Fields ({{ completeness_score.category_details.required_fields.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Basic SBOM
+                            structure mandated by CycloneDX
                         </li>
-                        <li><strong>Metadata (20 points):</strong> Information about the SBOM generation and model
+                        <li><strong>Metadata ({{ completeness_score.category_details.metadata.max_points if
+                                completeness_score.category_details else 'N/A' }} points):</strong> Information about
+                            the SBOM generation and model
                             purpose</li>
-                        <li><strong>Component Basic (20 points):</strong> Essential model identification and licensing
+                        <li><strong>Component Basic ({{ completeness_score.category_details.component_basic.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Essential model
+                            identification and licensing
                         </li>
-                        <li><strong>Model Card (30 points):</strong> Detailed AI-specific documentation for transparency
+                        <li><strong>Model Card ({{ completeness_score.category_details.component_model_card.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Detailed
+                            AI-specific documentation for transparency
                         </li>
-                        <li><strong>External References (10 points):</strong> Links to model resources and documentation
+                        <li><strong>External References ({{
+                                completeness_score.category_details.external_references.max_points if
+                                completeness_score.category_details else 'N/A' }} points):</strong> Links to model
+                            resources and documentation
                         </li>
                     </ul>
 
@@ -708,7 +720,7 @@
         <div id="json-view" class="tab-content">
             <div class="content-section">
                 <h3>📄 Raw JSON View</h3>
-                <p>This is the complete AIBOM in CycloneDX JSON format:</p>
+                <p>This is the complete AIBOM components array in CycloneDX JSON format:</p>
                 <div class="json-view">
                     <pre>{{ components_json }}</pre>
                 </div>
