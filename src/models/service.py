@@ -603,7 +603,7 @@ class AIBOMService:
             "limitations", "ethicalConsiderations", "datasets", "eval_results", 
             "pipeline_tag", "name", "author", "license", "description", 
             "commit", "bomFormat", "specVersion", "version", "licenses", 
-            "external_references", "tags", "library_name", "paper"
+            "external_references", "tags", "library_name", "paper", "downloadLocation"
         ]
         
         for k, v in metadata.items():

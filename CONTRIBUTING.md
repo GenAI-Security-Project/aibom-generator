@@ -1,4 +1,4 @@
-# Contributing to OWASP AIBOM Generator
+# Contributing to OWASP GenAI Security Project - AIBOM Generator
 
 Thank you for your interest in contributing to the OWASP AIBOM Generator! This project is part of the [OWASP GenAI Security Project](https://genai.owasp.org) and welcomes contributions from the community.
 

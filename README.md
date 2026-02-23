@@ -1,4 +1,4 @@
-# 🤖 OWASP AIBOM Generator
+# 🤖 OWASP GenAI Security Project - AIBOM Generator
 
 This is the official GitHub repository for the **OWASP AIBOM Generator** — an open-source tool for generating **AI Bills of Materials (AIBOMs)** in [CycloneDX](https://cyclonedx.org) format.  
 The tool is also listed in the official **[CycloneDX Tool Center](https://cyclonedx.org/tool-center/)**.

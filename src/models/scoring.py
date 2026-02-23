@@ -97,10 +97,18 @@ def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
                 return True
 
     # External References Check
-    if field == "downloadLocation" and "externalReferences" in aibom:
-        # Optimized generator expression
-        return any(ref.get("type") == "distribution" and ref.get("url") for ref in aibom["externalReferences"])
-        
+    components = aibom.get("components", [])
+    if components:
+        ext_refs = components[0].get("externalReferences", [])
+        if field == "downloadLocation":
+            return any(ref.get("type") in ["distribution", "website"] and ref.get("url") for ref in ext_refs)
+        if field == "vcs":
+            return any(ref.get("type") == "vcs" and ref.get("url") for ref in ext_refs)
+        if field == "website":
+            return any(ref.get("type") == "website" and ref.get("url") for ref in ext_refs)
+        if field == "paper":
+            return any(ref.get("type") == "documentation" and ref.get("url") for ref in ext_refs)
+            
     return False
 
 def check_field_with_enhanced_results(aibom: Dict[str, Any], field: str, extraction_results: Optional[Dict[str, Any]] = None) -> bool:

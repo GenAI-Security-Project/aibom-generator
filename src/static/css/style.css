@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 /* Base & Common */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -6,6 +8,39 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f9f9f9;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Poppins', sans-serif;
+}
+
+h1 {
+    font-weight: 700;
+}
+
+h2 {
+    font-weight: 600;
+}
+
+h3 {
+    font-weight: 600;
+}
+
+h4 {
+    font-weight: 500;
+}
+
+h5 {
+    font-weight: 500;
+}
+
+h6 {
+    font-weight: 400;
 }
 
 .container {
@@ -63,10 +98,12 @@ a:hover {
 
 .header h1 {
     margin: 0;
+    font-family: 'Poppins', sans-serif;
     font-size: 28px;
     color: #2c3e50;
-    font-weight: 600;
-    margin-bottom: 5px;
+    font-weight: 700;
+    margin-top: 5px;
+    /* Adjusting down to align with logo */
 }
 
 .header-right {
@@ -147,6 +184,7 @@ button:disabled {
 
 .generate-another-btn:hover {
     background-color: #2980b9;
+    color: white;
     text-decoration: none;
 }
 
@@ -686,33 +724,109 @@ th {
     color: #555;
 }
 
-/* Support & Footer */
-.support-section {
-    background-color: #f8f9fa;
-    border-left: 4px solid #6c757d;
-    padding: 20px;
-    margin: 30px 0;
-    border-radius: 8px;
-    text-align: center;
+/* Footer Styles */
+.footer-wrapper {
+    background-color: transparent;
+    padding: 30px 20px 20px;
+    margin-top: 40px;
+    border-top: 1px solid #e9ecef;
 }
 
-.support-section h3 {
+.footer-widgets {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 30px;
+    max-width: 1000px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.footer-widget {
+    flex: 1;
+    min-width: 200px;
+}
+
+.footer-widget h4 {
+    font-size: 16px;
+    color: #2c3e50;
     margin-top: 0;
-    color: #495057;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    font-weight: 600;
 }
 
-.support-section p {
-    margin-bottom: 15px;
-    color: #6c757d;
+.footer-widget p {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 10px;
 }
 
-.footer {
+.footer-widget a {
+    color: #333;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer-widget a:hover {
+    color: #3498db;
+    text-decoration: underline;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.footer-links a:hover {
+    color: #3498db;
+    text-decoration: underline;
+}
+
+.social-share-btn-footer {
+    display: inline-block;
+    padding: 8px 15px !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    font-weight: 500;
+    text-decoration: none !important;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    margin-top: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.social-share-btn-footer:hover {
+    background-color: #0077b5 !important;
+    color: white !important;
+    border-color: #0077b5;
+}
+
+.footer-bottom {
     text-align: center;
-    padding: 20px;
+    padding-top: 20px;
+    margin-top: 40px;
     color: #7f8c8d;
     font-size: 14px;
-    margin-top: 30px;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Mobile Responsiveness */
@@ -956,6 +1070,28 @@ th {
     color: #2c3e50;
     margin-bottom: 10px;
     font-size: 18px;
+}
+
+.category-table table th:first-child,
+.category-table table td:first-child {
+    text-align: center;
+    vertical-align: middle;
+    width: 1%;
+    white-space: nowrap;
+}
+
+.category-table table th:nth-child(4),
+.category-table table td:nth-child(4) {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.category-table table th:nth-child(5),
+.category-table table td:nth-child(5) {
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .category-result {
