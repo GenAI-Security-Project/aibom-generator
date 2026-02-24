@@ -12,6 +12,7 @@ from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
 
 from .extractor import EnhancedExtractor
+from .model_file_extractors import ModelFileExtractor, default_extractors
 from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
 from .schemas import AIBOMResponse, EnhancementReport
@@ -33,6 +34,7 @@ class AIBOMService:
         inference_model_url: Optional[str] = None,
         use_inference: bool = True,
         use_best_practices: bool = True,
+        model_file_extractors: Optional[List[ModelFileExtractor]] = None,
     ):
         self.hf_api = HfApi(token=hf_token)
         self.inference_model_url = inference_model_url
@@ -40,6 +42,10 @@ class AIBOMService:
         self.use_best_practices = use_best_practices
         self.enhancement_report = None
         self.extraction_results = {}
+        self.model_file_extractors = (
+            model_file_extractors if model_file_extractors is not None
+            else default_extractors()
+        )
         
         # Initialize registry manager
         try:
@@ -139,7 +145,7 @@ class AIBOMService:
 
     def _extract_metadata(self, model_id: str, model_info: Dict[str, Any], model_card: Optional[ModelCard], enable_summarization: bool = False) -> Dict[str, Any]:
         """Wrapper around EnhancedExtractor"""
-        extractor = EnhancedExtractor(self.hf_api) # Pass hfapi instance
+        extractor = EnhancedExtractor(self.hf_api, model_file_extractors=self.model_file_extractors)
         # Ideally we reuse the registry manager
         if self.registry_manager:
             extractor.registry_manager = self.registry_manager
@@ -472,13 +478,34 @@ class AIBOMService:
         return authors, manufacturer, supplier
 
     def _process_technical_properties(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract technical properties from metadata."""
         tech_props = []
         for field in ["model_type", "tokenizer_class", "architectures", "library_name"]:
             if field in metadata:
                 val = metadata[field]
-                if isinstance(val, list): val = ", ".join(val)
+                if isinstance(val, list):
+                    val = ", ".join(val)
                 tech_props.append({"name": field, "value": str(val)})
+
+        if "hyperparameter" in metadata and isinstance(metadata["hyperparameter"], dict):
+            for param_name, param_value in metadata["hyperparameter"].items():
+                if param_value is not None:
+                    tech_props.append({
+                        "name": f"hyperparameter:{param_name}",
+                        "value": str(param_value),
+                    })
+
+        if "quantization" in metadata and isinstance(metadata["quantization"], dict):
+            for q_name, q_value in metadata["quantization"].items():
+                if q_value is not None:
+                    tech_props.append({
+                        "name": f"quantization:{q_name}",
+                        "value": str(q_value),
+                    })
+
+        for scalar_field in ["context_length", "vocab_size"]:
+            if scalar_field in metadata and metadata[scalar_field] is not None:
+                tech_props.append({"name": scalar_field, "value": str(metadata[scalar_field])})
+
         return tech_props
 
     def _process_external_references(self, model_id: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -617,11 +644,13 @@ class AIBOMService:
         props = []
         # Fields we've already mapped to structured homes
         mapped_fields = [
-            "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse", 
-            "limitations", "ethicalConsiderations", "datasets", "eval_results", 
-            "pipeline_tag", "name", "author", "license", "description", 
-            "commit", "bomFormat", "specVersion", "version", "licenses", 
-            "external_references", "tags", "library_name", "paper", "downloadLocation"
+            "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
+            "limitations", "ethicalConsiderations", "datasets", "eval_results",
+            "pipeline_tag", "name", "author", "license", "description",
+            "commit", "bomFormat", "specVersion", "version", "licenses",
+            "external_references", "tags", "library_name", "paper", "downloadLocation",
+            "hyperparameter", "quantization", "context_length", "vocab_size",
+            "gguf_filename", "gguf_license",
         ]
         
         for k, v in metadata.items():
