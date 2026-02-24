@@ -101,10 +101,13 @@ class FieldRegistryManager:
         classification = {}
         
         for field_name, field_config in fields.items():
+            jsonpath = field_config.get("jsonpath", "")
+            param_type = "AI" if "properties[" in jsonpath else "CDX"
             classification[field_name] = {
                 "tier": field_config.get("tier", "supplementary"),
                 "weight": field_config.get("weight", 1),
-                "category": field_config.get("category", "unknown")
+                "category": field_config.get("category", "unknown"),
+                "parameter_type": param_type
             }
         
         self._field_classification = classification

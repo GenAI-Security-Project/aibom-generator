@@ -206,6 +206,78 @@
         "recommendation": "Add ArXiv tag or paper link to model card"
       }
     },
+    "vcs": {
+      "tier": "supplementary",
+      "weight": 4.0,
+      "category": "external_references",
+      "description": "Version control system URL",
+      "jsonpath": "$.components[0].externalReferences[?(@.type=='vcs')].url",
+      "aibom_generation": {
+        "location": "none",
+        "rule": "include_if_present",
+        "source_fields": [
+          "vcs",
+          "repository"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "api"
+        ],
+        "source_priority": [
+          "api"
+        ]
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.4
+      },
+      "validation_message": {
+        "missing": "No VCS link found",
+        "recommendation": "Add repository link to model card"
+      }
+    },
+    "website": {
+      "tier": "supplementary",
+      "weight": 4.0,
+      "category": "external_references",
+      "description": "Model website or documentation URL",
+      "jsonpath": "$.components[0].externalReferences[?(@.type=='website')].url",
+      "aibom_generation": {
+        "location": "none",
+        "rule": "include_if_present",
+        "source_fields": [
+          "website",
+          "url"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "api"
+        ],
+        "source_priority": [
+          "api"
+        ]
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.4
+      },
+      "validation_message": {
+        "missing": "No website link found",
+        "recommendation": "Add website link to model card"
+      }
+    },
     "specVersion": {
       "tier": "critical",
       "weight": 4.0,
@@ -498,8 +570,8 @@
       }
     },
     "type": {
-      "tier": "important",
-      "weight": 3.0,
+      "tier": "critical",
+      "weight": 4.0,
       "category": "component_basic",
       "description": "Type of component (machine-learning-model)",
       "jsonpath": "$.components[0].type",
@@ -513,16 +585,46 @@
         "data_type": "string"
       },
       "scoring": {
-        "points": 3.0,
+        "points": 4.0,
         "required_for_profiles": [
+          "basic",
           "standard",
           "advanced"
         ],
-        "category_contribution": 0.15
+        "category_contribution": 0.2
       },
       "validation_message": {
         "missing": "Missing field: type - component type classification needed",
         "recommendation": "Set type to 'machine-learning-model' for AI models"
+      }
+    },
+    "component_version": {
+      "tier": "critical",
+      "weight": 4.0,
+      "category": "component_basic",
+      "description": "Version of the component",
+      "jsonpath": "$.components[0].version",
+      "aibom_generation": {
+        "location": "$.components[0].version",
+        "rule": "always_include",
+        "source_fields": [
+          "version"
+        ],
+        "validation": "required",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 4.0,
+        "required_for_profiles": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "category_contribution": 0.2
+      },
+      "validation_message": {
+        "missing": "Missing field: version - component version needed",
+        "recommendation": "Set an appropriate version for the component"
       }
     },
     "purl": {
@@ -790,9 +892,9 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Type or architecture of the model",
-      "jsonpath": "$.metadata.properties[?(@.name=='typeOfModel')].value",
+      "jsonpath": "$.components[0].modelCard.modelParameters.modelArchitecture",
       "aibom_generation": {
-        "location": "$.metadata.properties",
+        "location": "$.components[0].modelCard.modelParameters.modelArchitecture",
         "rule": "include_if_available",
         "source_fields": [
           "typeOfModel",
@@ -1078,7 +1180,7 @@
       "weight": 3.0,
       "category": "component_basic",
       "description": "URL to download the model",
-      "jsonpath": "$.component.externalReferences[?(@.type=='distribution' || @.type=='website')].url",
+      "jsonpath": "$.components[0].externalReferences[?(@.type=='distribution' || @.type=='website')].url",
       "aibom_generation": {
         "location": "$.component.externalReferences",
         "rule": "include_if_available",

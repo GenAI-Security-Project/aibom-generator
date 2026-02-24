@@ -72,8 +72,10 @@ def normalize_license_id(license_id: str) -> Optional[str]:
          
     return None
 
-def get_license_url(license_id: str) -> str:
-    """Get the URL for a license based on its ID."""
+def get_license_url(license_id: str, fallback: bool = True) -> Optional[str]:
+    """Get the URL for a license based on its ID.
+       If fallback is False, returns None if not in known list.
+    """
     if license_id in LICENSE_URLS:
         return LICENSE_URLS[license_id]
     
@@ -83,4 +85,45 @@ def get_license_url(license_id: str) -> str:
         if valid_id.lower() == lower_id:
             return url
             
-    return f"https://spdx.org/licenses/{license_id}.html"
+    return f"https://spdx.org/licenses/{license_id}.html" if fallback else None
+
+# Global licensing instance
+_licensing = None
+
+def is_valid_spdx_license_id(license_id: str) -> bool:
+    """Check if the license ID is a valid SPDX ID"""
+    global _licensing
+    try:
+        from license_expression import get_spdx_licensing
+        if _licensing is None:
+            _licensing = get_spdx_licensing()
+            
+        # Validate that it is a valid SPDX expression AND a simple license ID (no AND/OR/WITH)
+        res = _licensing.validate(license_id)
+        if len(res.errors) > 0:
+            return False
+            
+        # Parse expression to ensure it's a single license, not a compound expression
+        parsed = _licensing.parse(license_id)
+        # Check if it's a simple LicenseSymbol (single ID)
+        # license-expression objects: LicenseSymbol, LicenseExpression (AND, OR, WITH)
+        # We only want simple IDs for the 'id' field in CycloneDX 
+        # (though CDX 'expression' field exists, 'id' must be a valid SPDX ID from the enum)
+        
+        # Checking if it has children or is a symbol
+        # parsed object structure depends on library version, but safe bet is type check
+        # A simple license parses to a LicenseSymbol which has no 'children' usually, 
+        # or we check if the string representation matches the input (normalized)
+        
+        # Actually simplest way: check if it contains spaces or operators
+        # But let's use the library structure if possible.
+        # "MIT" -> LicenseSymbol
+        # "MIT OR Apache-2.0" -> OR expression
+        
+        return hasattr(parsed, "key") and not hasattr(parsed, "children")
+    except ImportError:
+        logger.warning("license-expression library not found, skipping validation")
+        return True 
+    except Exception as e:
+        logger.debug(f"License validation error: {e}")
+        return False

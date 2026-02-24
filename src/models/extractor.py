@@ -329,11 +329,7 @@ class EnhancedExtractor:
                     from ..utils.summarizer import LocalSummarizer
                     readme = context.get('readme_content')
                     if readme:
-                        # Clean README: Remove YAML frontmatter if present
-                        # Matches content between first two --- lines at start of file
-                        clean_readme = re.sub(r'^---\n.*?\n---\n', '', readme, flags=re.DOTALL).strip()
-                        
-                        summary = LocalSummarizer.summarize(clean_readme)
+                        summary = LocalSummarizer.summarize(readme, model_id=context.get('model_id', ''))
                         if summary:
                             self.extraction_results[field_name] = ExtractionResult(
                                 value=summary,
@@ -422,7 +418,9 @@ class EnhancedExtractor:
                     if isinstance(val, list) and len(val) > 0:
                         str_val = str(val[0]).lower()
                     
-                    if str_val != "other" and str_val != "['other']" and str_val != "['other']":
+                    # Enhanced filtering for "other" variants
+                    ignored_values = {"other", "['other']", "other license", "other-license", "unknown"}
+                    if str_val not in ignored_values:
                         return val
                 return None
             except Exception as e:
@@ -466,7 +464,9 @@ class EnhancedExtractor:
                         str_val = str(val).lower()
                         if isinstance(val, list) and len(val) > 0:
                             str_val = str(val[0]).lower()
-                        return val if str_val != "other" else None
+                        
+                        ignored_values = {"other", "['other']", "other license", "other-license", "unknown"}
+                        return val if str_val not in ignored_values else None
                     return None
             
             # Direct field name lookup
@@ -542,8 +542,13 @@ class EnhancedExtractor:
             if match:
                 # Replace newlines/tabs with single space
                 val = re.sub(r'\s+', ' ', match.group(1)).strip()
-                # Filtering: 'the' is never a license
-                if val.lower() == 'the':
+                # Filtering: 'the' is never a license, and generic "other" values
+                ignored_values = {
+                    "the", "other", "other license", "other-license", "unknown",
+                    "vision", "text", "audio", "image", "video", "data", "dataset", "datasets",
+                    "training", "eval", "evaluation"
+                }
+                if val.lower() in ignored_values:
                     continue
                 matches.append(val)
         return list(set(matches)) # Return unique matches
@@ -753,10 +758,24 @@ class EnhancedExtractor:
             metadata['license'] = "NOASSERTION"
         return metadata
     
+    def _fetch_with_backoff(self, fetch_func, *args, max_retries=3, initial_backoff=1.0, **kwargs):
+        import time
+        for attempt in range(max_retries):
+            try:
+                return fetch_func(*args, **kwargs)
+            except Exception as e:
+                error_msg = str(e)
+                if "401" in error_msg or "404" in error_msg:  # Auth or not found don't retry
+                    raise e
+                if attempt == max_retries - 1:
+                    raise e
+                time.sleep(initial_backoff * (2 ** attempt))
+
     def _download_and_parse_config(self, model_id: str, filename: str) -> Optional[Dict[str, Any]]:
-        """Download and parse a configuration file from the model repository"""
+        """Download and parse a JSON config file from the model repository"""
+        import json
         try:
-            file_path = hf_hub_download(repo_id=model_id, filename=filename)
+            file_path = self._fetch_with_backoff(hf_hub_download, repo_id=model_id, filename=filename)
             with open(file_path, 'r') as f:
                 return json.load(f)
         except (RepositoryNotFoundError, EntryNotFoundError, json.JSONDecodeError):
@@ -769,7 +788,7 @@ class EnhancedExtractor:
         try:
             if model_card and hasattr(model_card, 'content'):
                 return model_card.content
-            readme_path = hf_hub_download(repo_id=model_id, filename="README.md")
+            readme_path = self._fetch_with_backoff(hf_hub_download, repo_id=model_id, filename="README.md")
             with open(readme_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception:

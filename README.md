@@ -1,4 +1,4 @@
-# 🤖 OWASP AIBOM Generator
+# 🤖 OWASP GenAI Security Project - AIBOM Generator
 
 This is the official GitHub repository for the **OWASP AIBOM Generator** — an open-source tool for generating **AI Bills of Materials (AIBOMs)** in [CycloneDX](https://cyclonedx.org) format.  
 The tool is also listed in the official **[CycloneDX Tool Center](https://cyclonedx.org/tool-center/)**.
@@ -69,6 +69,7 @@ python3 -m src.cli google-bert/bert-base-uncased \
 | Option | Shorthand | Description |
 |--------|-----------|-------------|
 | `model_id` | | Hugging Face Model ID (e.g., `owner/model`) |
+| `--test` | `-t` | Run test mode for multiple predefined models |
 | `--output` | `-o` | Custom output file path |
 | `--name` | `-n` | Override component name in metadata |
 | `--version` | `-v` | Override component version in metadata |
@@ -77,7 +78,7 @@ python3 -m src.cli google-bert/bert-base-uncased \
 | `--summarize` | `-s` | Enable intelligent description summarization |
 | `--verbose` | | Enable verbose logging |
 
-*   Metrics and SBOMs are saved to the `sboms/` directory by default.
+*   Metrics and produced SBOMs are saved to the `sboms/` directory by default.
 
 ---
 

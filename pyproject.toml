@@ -1,0 +1,72 @@
+
+[project]
+name = "owasp-aibom-generator"
+version = "1.0.2"
+description = "A comprehensive AI Bill of Materials (AIBOM) generation tool for Hugging Face models."
+authors = [
+    { name = "OWASP GenAI Security Project", email = "genai-security@owasp.org" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+    "beautifulsoup4>=4.11.0",
+    "cyclonedx-python-lib>=4.0.0",
+    "datasets>=2.0.0",
+    "fastapi>=0.104.0",
+    "flask>=2.3.0",
+    "gunicorn>=21.2.0",
+    "huggingface_hub>=0.19.0",
+    "jinja2>=3.0.0",
+    "jsonschema>=4.17.0",
+    "license-expression>=30.4.4",
+    "nltk>=3.8.0",
+    "packageurl-python>=0.11.1",
+    "pydantic>=2.4.0",
+    "python-dateutil>=2.8.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart",
+    "PyYAML>=6.0.1",
+    "requests>=2.31.0",
+    "sentencepiece>=0.1.99",
+    "torch>=2.0.0",
+    "transformers>=4.36.0",
+    "uvicorn>=0.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "ruff"
+]
+
+[project.scripts]
+aibom = "src.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+namespaces = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --cov=src"
+testpaths = [
+    "tests",
+]
+pythonpath = [
+    "."
+]

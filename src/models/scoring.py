@@ -97,10 +97,18 @@ def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
                 return True
 
     # External References Check
-    if field == "downloadLocation" and "externalReferences" in aibom:
-        # Optimized generator expression
-        return any(ref.get("type") == "distribution" and ref.get("url") for ref in aibom["externalReferences"])
-        
+    components = aibom.get("components", [])
+    if components:
+        ext_refs = components[0].get("externalReferences", [])
+        if field == "downloadLocation":
+            return any(ref.get("type") in ["distribution", "website"] and ref.get("url") for ref in ext_refs)
+        if field == "vcs":
+            return any(ref.get("type") == "vcs" and ref.get("url") for ref in ext_refs)
+        if field == "website":
+            return any(ref.get("type") == "website" and ref.get("url") for ref in ext_refs)
+        if field == "paper":
+            return any(ref.get("type") == "documentation" and ref.get("url") for ref in ext_refs)
+            
     return False
 
 def check_field_with_enhanced_results(aibom: Dict[str, Any], field: str, extraction_results: Optional[Dict[str, Any]] = None) -> bool:
@@ -234,6 +242,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
     missing_fields = {"critical": [], "important": [], "supplementary": []}
     fields_by_category = {category: {"total": 0, "present": 0} for category in max_scores.keys()}
     field_checklist = {}
+    field_types = {}
 
     # Evaluate fields
     for field, classification in FIELD_CLASSIFICATION.items():
@@ -258,16 +267,28 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
                 
         importance_indicator = "★★★" if tier == "critical" else "★★" if tier == "important" else "★"
         field_checklist[field] = f"{'✔' if is_present else '✘'} {importance_indicator}"
+        field_types[field] = classification.get("parameter_type", "CDX")
 
     # Calculate category scores
+    category_details = {}
     category_scores = {}
     for category, counts in fields_by_category.items():
+        weight = max_scores.get(category, 0)
+        percentage = 0
         if counts["total"] > 0:
-            weight = max_scores.get(category, 0)
-            raw_score = (counts["present"] / counts["total"]) * weight
+            percentage = (counts["present"] / counts["total"]) * 100
+            raw_score = (percentage / 100) * weight
             category_scores[category] = round(raw_score, 1)
         else:
              category_scores[category] = 0.0
+        
+        category_details[category] = {
+            "present_fields": counts["present"],
+            "total_fields": counts["total"],
+            "max_points": weight,
+            "percentage": round(percentage, 1)
+        }
+
 
     subtotal_score = sum(category_scores.values())
     
@@ -297,8 +318,10 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "total_score": final_score,
         "subtotal_score": subtotal_score,
         "section_scores": category_scores,
+        "category_details": category_details,
         "max_scores": max_scores,
         "field_checklist": field_checklist,
+        "field_types": field_types,
         "missing_fields": missing_fields,
         "completeness_profile": determine_completeness_profile(aibom, final_score),
         "penalty_applied": penalty_factor < 1.0,

@@ -130,8 +130,6 @@ class CLIController:
                     }
 
                     html_content = template.render(context)
-                    # For CycloneDX 1.6, we want the HTML file name to be clean (without _1_6 suffix)
-                    # even though the JSON file has the suffix.
                     html_output_file = output_file_primary.replace("_1_6.json", ".html").replace(".json", ".html")
                     with open(html_output_file, "w") as f:
                         f.write(html_content)
@@ -200,7 +198,9 @@ class CLIController:
             # Display Detailed Score Summary (from primary)
             if primary_report and "final_score" in primary_report:
                 score = primary_report["final_score"]
-                print(f"\n📊 Completeness Score: {score.get('total_score', 0)}/100")
+                t_score = score.get('total_score', 0)
+                formatted_t_score = int(t_score) if isinstance(t_score, (int, float)) and t_score == int(t_score) else t_score
+                print(f"\n📊 Completeness Score: {formatted_t_score}/100")
                 
                 if "completeness_profile" in score:
                     profile = score["completeness_profile"]
@@ -211,7 +211,8 @@ class CLIController:
                     
                     for section, s_score in score["section_scores"].items():
                         max_s = score.get("max_scores", {}).get(section, "?")
-                        print(f"   - {section.replace('_', ' ').title()}: {s_score}/{max_s}")
+                        formatted_s_score = int(s_score) if isinstance(s_score, (int, float)) and s_score == int(s_score) else s_score
+                        print(f"   - {section.replace('_', ' ').title()}: {formatted_s_score}/{max_s}")
 
         else:
              print("\n❌ Failed to generate any SBOMs.")

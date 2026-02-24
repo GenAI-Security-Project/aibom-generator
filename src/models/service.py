@@ -5,7 +5,8 @@ import datetime
 import logging
 import re
 from typing import Dict, Optional, Any, List, Union
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse
+from packageurl import PackageURL
 
 from packageurl import PackageURL
 from huggingface_hub import HfApi, ModelCard
@@ -16,7 +17,8 @@ from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
 from .schemas import AIBOMResponse, EnhancementReport
 from ..utils.validation import validate_aibom, get_validation_summary
-from ..utils.license_utils import normalize_license_id, get_license_url
+from ..utils.license_utils import normalize_license_id, get_license_url, is_valid_spdx_license_id
+from ..config import AIBOM_GEN_VERSION, AIBOM_GEN_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -207,16 +209,34 @@ class AIBOMService:
             }]
         }
 
+    def _fetch_with_backoff(self, fetch_func, *args, max_retries=3, initial_backoff=1.0, **kwargs):
+        import time
+        for attempt in range(max_retries):
+            try:
+                return fetch_func(*args, **kwargs)
+            except Exception as e:
+                # e.g., huggingface_hub.utils.HfHubHTTPError
+                error_msg = str(e)
+                if "401" in error_msg or "404" in error_msg:  # Auth or not found don't retry
+                    raise e
+                if attempt == max_retries - 1:
+                    logger.warning(f"Final attempt failed for API call: {e}")
+                    raise e
+                
+                sleep_time = initial_backoff * (2 ** attempt)
+                logger.warning(f"API call failed: {e}. Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+
     def _fetch_model_info(self, model_id: str) -> Dict[str, Any]:
         try:
-            return self.hf_api.model_info(model_id)
+            return self._fetch_with_backoff(self.hf_api.model_info, model_id)
         except Exception as e:
             logger.warning(f"Error fetching model info for {model_id}: {e}")
             return {}
 
     def _fetch_model_card(self, model_id: str) -> Optional[ModelCard]:
         try:
-            return ModelCard.load(model_id)
+            return self._fetch_with_backoff(ModelCard.load, model_id)
         except Exception as e:
             logger.warning(f"Error fetching model card for {model_id}: {e}")
             return None
@@ -303,7 +323,7 @@ class AIBOMService:
             
         return {
             "timestamp": timestamp,
-            "tools": tools,
+            **tools,
             "component": component
         }
 
@@ -377,46 +397,45 @@ class AIBOMService:
     def _process_licenses(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Process and normalize license information."""
         raw_license = metadata.get("licenses") or metadata.get("license")
+        
+        # 1. No license provided -> Return empty list (no license in SBOM)
         if not raw_license:
-            # Default fallback per user request to use name for NOASSERTION
-            return [{"license": {"name": "NOASSERTION"}}]
+            return []
 
-        # Handle list input (e.g. from regex text extraction)
+        # Handle list input
         if isinstance(raw_license, list):
             if len(raw_license) > 0:
-                raw_license = raw_license[0] # Take the first match
+                raw_license = raw_license[0]
             else:
-                return [{"license": {"name": "NOASSERTION"}}]
+                return []
         
+        if not isinstance(raw_license, str) or not raw_license.strip():
+             return []
+
         norm_license = normalize_license_id(raw_license)
         
-        # User request: treat NOASSERTION as name to be safe
-        if norm_license == "NOASSERTION":
-             return [{"license": {"name": "NOASSERTION"}}]
-        elif norm_license and norm_license.lower() != "other":
-            # Check if it looks like a valid SPDX ID (simple heuristic: no spaces, usually short)
-            # But our normalize_license_id might return long URLs or names if mapped 
-            # (e.g. nvidia-open-model-license is not a standard SPDX ID but we treat it as key)
+        # Skip NOASSERTION or 'other' explicitly
+        if norm_license == "NOASSERTION" or (norm_license and norm_license.lower() == "other"):
+            return []
             
-            # If it's the NVIDIA license, putting it in ID fails schema validation because it's not in the enum.
-            # So we put it in name, and add the URL.
-            if "nvidia" in norm_license.lower():
-                 return [{
-                    "license": {
-                        "name": norm_license,
-                        "url": get_license_url(norm_license)
-                    }
-                }]
-            else:
-                return [{
-                    "license": {
-                        "id": norm_license,
-                        "url": get_license_url(norm_license)
-                    }
-                }]
-        else:
-            # Fallback if normalization fails or is 'other', use name
-            return [{"license": {"name": raw_license}}]
+        if norm_license:
+            # 1. Strict SPDX validation
+            if not is_valid_spdx_license_id(norm_license):
+                lic_data = {"name": norm_license}
+                # Try to find a known URL (e.g. for Nvidia license)
+                known_url = get_license_url(norm_license, fallback=False)
+                if known_url:
+                    lic_data["url"] = known_url
+                return [{"license": lic_data}]
+
+            # 2. Valid SPDX ID
+            return [{"license": {"id": norm_license}}]
+            
+        # Fallback if normalization fails, use name unless generic
+        if raw_license.lower() not in ["other", "unknown", "noassertion"]:
+             return [{"license": {"name": raw_license}}]
+             
+        return []
 
     def _process_authors_and_suppliers(self, metadata: Dict[str, Any], group: str) -> tuple:
         """
@@ -611,7 +630,7 @@ class AIBOMService:
             "limitations", "ethicalConsiderations", "datasets", "eval_results", 
             "pipeline_tag", "name", "author", "license", "description", 
             "commit", "bomFormat", "specVersion", "version", "licenses", 
-            "external_references", "tags", "library_name", "paper"
+            "external_references", "tags", "library_name", "paper", "downloadLocation"
         ]
         
         for k, v in metadata.items():

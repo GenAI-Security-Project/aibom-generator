@@ -15,11 +15,11 @@
         <div class="header">
             <div class="header-left">
                 <a href="https://genai.owasp.org/" target="_blank">
-                    <img src="https://huggingface.co/spaces/GenAISecurityProject/OWASP-AIBOM-Generator/resolve/main/templates/images/OWASP_GenAI_Security_Project-logo.png"
+                    <img src="{{ static_root|default('/static') }}/images/genai_security_project_logo.webp"
                         alt="OWASP GenAI Security Project logo">
                 </a>
                 <div class="header-content">
-                    <h1>OWASP AIBOM Generator</h1>
+                    <h1>AIBOM Generator</h1>
                 </div>
             </div>
             <div class="header-right">
@@ -35,10 +35,11 @@
 
         <!-- Key Information -->
         <div class="key-info">
-            <h3>📋 AIBOM Summary for model <span class="model-name">{{ model_id }}</span></h3>
+            <h3>📋 AIBOM Summary</h3>
             <div class="aibom-property">
                 <span class="property-name">Model:</span>
-                <span class="property-value">{{ model_id }}</span>
+                <span class="property-value"><a href="https://huggingface.co/{{ model_id }}" target="_blank">{{ model_id
+                        }}</a></span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Generated:</span>
@@ -46,7 +47,8 @@
             </div>
             <div class="aibom-property">
                 <span class="property-name">SBOM Format:</span>
-                <span class="property-value">{{ aibom.bomFormat }} {{ aibom.specVersion }}</span>
+                <span class="property-value"><a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard"
+                        target="_blank">{{ aibom.bomFormat }} {{ aibom.specVersion }}</a></span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Serial Number:</span>
@@ -88,13 +90,15 @@
                     <h4>🤖 AI Model Information</h4>
                     <div class="aibom-property">
                         <span class="property-name">Name:</span>
-                        <span class="property-value">{{ aibom.components[0].name if aibom.components else 'Not
-                            specified' }}</span>
+                        <span class="property-value">
+                            {{ aibom.components[0].name if aibom.components else 'Not specified' }}
+                        </span>
                     </div>
                     <div class="aibom-property">
                         <span class="property-name">Type:</span>
-                        <span class="property-value">{{ aibom.components[0].type if aibom.components else 'Not
-                            specified' }}</span>
+                        <span class="property-value">
+                            {{ aibom.components[0].type if aibom.components else 'Not specified' }}
+                        </span>
                     </div>
                     <div class="aibom-property">
                         <span class="property-name">Version:</span>
@@ -116,7 +120,13 @@
                         <span class="property-name">Licenses:</span>
                         <span class="property-value">
                             {% for license in aibom.components[0].licenses %}
-                            <span class="tag">{{ license.license.id if license.license else 'Unknown' }}</span>
+                            <span class="tag">
+                                {% if license.license %}
+                                {{ license.license.id if license.license.id else license.license.name }}
+                                {% else %}
+                                Unknown
+                                {% endif %}
+                            </span>
                             {% endfor %}
                         </span>
                     </div>
@@ -129,9 +139,10 @@
                     {% if aibom.components[0].modelCard.modelParameters %}
                     <div class="aibom-property">
                         <span class="property-name">Architecture:</span>
-                        <span class="property-value">{{ aibom.components[0].modelCard.modelParameters.modelArchitecture
-                            if aibom.components[0].modelCard.modelParameters.modelArchitecture else 'Not specified'
-                            }}</span>
+                        <span class="property-value">
+                            {{ aibom.components[0].modelCard.modelParameters.modelArchitecture if
+                            aibom.components[0].modelCard.modelParameters.modelArchitecture else 'Not specified' }}
+                        </span>
                     </div>
                     <div class="aibom-property">
                         <span class="property-name">Task:</span>
@@ -212,8 +223,9 @@
                         </div>
                     </div>
 
-                    <p>This breakdown outlines field categories and statuses in the AIBOM generated for model <strong>{{
-                            model_id }}</strong>, showing how each field impacts the completeness score.</p>
+                    <p>This breakdown outlines field categories and statuses in the AIBOM generated for model <strong><a
+                                href="https://huggingface.co/{{ model_id }}" target="_blank">{{ model_id
+                                }}</a></strong>, showing how each field impacts the completeness score.</p>
 
                     {% if completeness_score.field_checklist %}
                     <!-- Required Fields Category -->
@@ -249,7 +261,7 @@
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-critical"></span> Critical</td>
-                                    <td>CDX</td>
+                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -299,13 +311,19 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        $.metadata.properties[name="{{ field }}"]
+                                        {% if field == 'primaryPurpose' %}
+                                        $.components[0].modelCard.modelParameters.task
+                                        {% elif field == 'suppliedBy' %}
+                                        $.components[0].supplier.name
+                                        {% else %}
+                                        $.components[0].modelCard.properties[name="{{ field }}"]
+                                        {% endif %}
                                         {% else %}
                                         Not found
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>AI</td>
+                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -338,7 +356,8 @@
                             <tbody>
                                 {% set component_basic_fields = [
                                 ('name', 'Critical'),
-                                ('type', 'Important'),
+                                ('type', 'Critical'),
+                                ('component_version', 'Critical'),
                                 ('purl', 'Important'),
                                 ('description', 'Important'),
                                 ('licenses', 'Important')
@@ -352,10 +371,15 @@
                                         <span class="x-mark">✘</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ field }}</td>
+                                    <td>{% if field == 'component_version' %}version{% else %}{{ field }}{% endif %}
+                                    </td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
+                                        {% if field == 'component_version' %}
+                                        $.components[0].version
+                                        {% else %}
                                         $.components[0].{{ field }}
+                                        {% endif %}
                                         {% else %}
                                         {% if field == 'description' %}
                                         Not found in component level
@@ -365,7 +389,7 @@
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>CDX</td>
+                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -425,7 +449,12 @@
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
                                         {% if field == 'typeOfModel' %}
-                                        $.metadata.properties[name="{{ field }}"]
+                                        $.components[0].modelCard.modelParameters.modelArchitecture
+                                        {% elif field in ['safetyRiskAssessment', 'modelExplainability',
+                                        'energyConsumption', 'energyQuantity', 'energyUnit', 'hyperparameter'] %}
+                                        $.components[0].modelCard.properties[name="{{ field }}"]
+                                        {% elif field == 'limitation' %}
+                                        $.components[0].modelCard.considerations.technicalLimitations
                                         {% else %}
                                         $.components[0].modelCard.{{ field }}
                                         {% endif %}
@@ -434,7 +463,7 @@
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>AI</td>
+                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -465,7 +494,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set external_ref_fields = [('downloadLocation', 'Critical')] %}
+                                {% set external_ref_fields = [
+                                ('downloadLocation', 'Critical'),
+                                ('vcs', 'Supplementary'),
+                                ('website', 'Supplementary')
+                                ] %}
                                 {% for field, tier in external_ref_fields %}
                                 <tr>
                                     <td>
@@ -478,13 +511,19 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
+                                        {% if field == 'downloadLocation' %}
                                         $.externalReferences[type="distribution"]
+                                        {% elif field == 'vcs' %}
+                                        $.externalReferences[type="vcs"]
+                                        {% elif field == 'website' %}
+                                        $.externalReferences[type="website"]
+                                        {% endif %}
                                         {% else %}
                                         Not found
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>CDX</td>
+                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -518,7 +557,8 @@
                             "Undefined" else 0)|round(1) }}/100</div>
                         <div class="total-progress">
                             <div class="progress-container">
-                                {% set score_percent = completeness_score.total_score %}
+                                {% set score_percent = (completeness_score.total_score if completeness_score.total_score
+                                != 'Undefined' else 0) | float %}
                                 {% if score_percent >= 90 %}
                                 {% set score_class = 'progress-excellent' %}
                                 {% set score_label = 'Excellent' %}
@@ -533,7 +573,8 @@
                                 {% set score_label = 'Poor' %}
                                 {% endif %}
 
-                                <div class="progress-bar {{ score_class }}" style="width: {{ score_percent }}%">
+                                <div class="progress-bar {{ score_class }}"
+                                    style="width: {{ score_percent|round|int }}%">
                                     {{ score_percent|int }}% {{ score_label }}
                                 </div>
                             </div>
@@ -545,7 +586,8 @@
                     <!-- Specific Breakdown for This SBOM -->
                     <div class="note-box">
                         <h4>Your AIBOM Breakdown</h4>
-                        <p><strong>Model:</strong> {{ model_id }}</p>
+                        <p><strong>Model:</strong> <a href="https://huggingface.co/{{ model_id }}" target="_blank">{{
+                                model_id }}</a></p>
 
                         <table class="score-table">
                             <thead>
@@ -584,7 +626,8 @@
                                             {% set progress_class = "progress-poor" %}
                                             {% endif %}
                                             <div class="progress-bar {{ progress_class }}"
-                                                style="width: {{ percentage }}%">{{ percentage|round(0) }}%</div>
+                                                style="width: {{ percentage|round|int }}%">{{ percentage|round|int }}%
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -665,15 +708,26 @@
                     <p>The completeness score evaluates how well your AIBOM documents the model across five key
                         categories:</p>
                     <ul>
-                        <li><strong>Required Fields (20 points):</strong> Basic SBOM structure mandated by CycloneDX
+                        <li><strong>Required Fields ({{ completeness_score.category_details.required_fields.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Basic SBOM
+                            structure mandated by CycloneDX
                         </li>
-                        <li><strong>Metadata (20 points):</strong> Information about the SBOM generation and model
+                        <li><strong>Metadata ({{ completeness_score.category_details.metadata.max_points if
+                                completeness_score.category_details else 'N/A' }} points):</strong> Information about
+                            the SBOM generation and model
                             purpose</li>
-                        <li><strong>Component Basic (20 points):</strong> Essential model identification and licensing
+                        <li><strong>Component Basic ({{ completeness_score.category_details.component_basic.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Essential model
+                            identification and licensing
                         </li>
-                        <li><strong>Model Card (30 points):</strong> Detailed AI-specific documentation for transparency
+                        <li><strong>Model Card ({{ completeness_score.category_details.component_model_card.max_points
+                                if completeness_score.category_details else 'N/A' }} points):</strong> Detailed
+                            AI-specific documentation for transparency
                         </li>
-                        <li><strong>External References (10 points):</strong> Links to model resources and documentation
+                        <li><strong>External References ({{
+                                completeness_score.category_details.external_references.max_points if
+                                completeness_score.category_details else 'N/A' }} points):</strong> Links to model
+                            resources and documentation
                         </li>
                     </ul>
 
@@ -708,7 +762,7 @@
         <div id="json-view" class="tab-content">
             <div class="content-section">
                 <h3>📄 Raw JSON View</h3>
-                <p>This is the complete AIBOM in CycloneDX JSON format:</p>
+                <p>This is the complete AIBOM components array in CycloneDX JSON format:</p>
                 <div class="json-view">
                     <pre>{{ components_json }}</pre>
                 </div>
@@ -716,47 +770,57 @@
         </div>
     </div>
 
-    <!-- Support Section -->
-    <div class="support-section">
-        <h3>🛠️ Need Help or Found an Issue?</h3>
-        <p>If you encountered any problems, found a bug, or have suggestions for improvement, we'd love to hear from
-            you!</p>
-        <a href="https://genai.owasp.org/" target="_blank">
-            OWASP GenAI Security Project
-        </a>
-    </div>
+    <!-- New Footer Wrapper containing all footer contents -->
+    <div class="footer-wrapper">
+        <div class="footer-widgets">
+            <!-- Column 1: Brand -->
+            <div class="footer-widget brand-col">
+                <a href="https://genai.owasp.org/" target="_blank">
+                    <!-- Default to index image relative path if not rendered with static_root -->
+                    <img src="{% if static_root %}{{ static_root }}{% else %}/static{% endif %}/images/genai_security_project_logo.webp"
+                        alt="OWASP GenAI Security Project logo" style="height: 50px; margin-bottom: 15px;">
+                </a>
+                <p style="font-size: 13px;">Follow us for updates:<br>
+                    <a href="https://www.linkedin.com/company/owasp-aibom/" target="_blank" rel="noopener noreferrer"
+                        style="color: #3498db;">@OWASP GenAI Security Project - AIBOM Initiative</a>
+                </p>
+            </div>
 
-    <!-- Help us spread the word section -->
-    <div class="content-section" style="text-align: center;">
-        <h3>🗣️ Help Us Spread the Word</h3>
-        <div class="footer-links">
-            <a href="https://github.com/GenAI-Security-Project/aibom-generator" target="_blank">GitHub Repository</a>
-            <a href="https://github.com/GenAI-Security-Project/aibom-generator/issues" target="_blank">Report Issue</a>
-            <a href="https://genai.owasp.org/" target="_blank">OWASP GenAI</a>
+            <!-- Column 2: Links -->
+            <div class="footer-widget links-col">
+                <h4>OWASP GenAI</h4>
+                <ul class="footer-links">
+                    <li><a href="https://github.com/GenAI-Security-Project/aibom-generator" target="_blank">GitHub
+                            Repository</a></li>
+                    <li><a href="https://github.com/GenAI-Security-Project/aibom-generator/issues"
+                            target="_blank">Report Issue</a></li>
+                </ul>
+            </div>
+
+            <!-- Column 3: Help -->
+            <div class="footer-widget help-col">
+                <h4>🛠️ Need Help or Found an Issue?</h4>
+                <p style="font-size: 13px;">If you encountered any problems, found a bug, or have suggestions for
+                    improvement, we'd love to hear from you!</p>
+            </div>
+
+            <!-- Column 4: Spread the Word -->
+            <div class="footer-widget spread-col">
+                <h4>🗣️ Help Us Spread the Word</h4>
+                <p style="font-size: 13px;">If you find this tool useful, share it with your network!</p>
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://huggingface.co/spaces/GenAISecurityProject/OWASP-AIBOM-Generator"
+                    target="_blank" rel="noopener noreferrer" class="social-share-btn-footer">
+                    🔗 Share on LinkedIn
+                </a>
+            </div>
         </div>
-        <p>If you find this tool useful, share it with your network! <a href="https://genai.owasp.org/" target="_blank"
-                rel="noopener noreferrer">https://genai.owasp.org/</a></p>
-        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://huggingface.co/spaces/GenAISecurityProject/OWASP-AIBOM-Generator"
-            target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
-            <button style="background-color: #0077b5;">🔗 Share on LinkedIn</button>
-        </a>
-        <p style="margin-top: 10px; font-size: 14px;">
-            Follow us for updates:
-            <a href="https://www.linkedin.com/company/owasp-top-10-for-large-language-model-applications/"
-                target="_blank" rel="noopener noreferrer">@OWASP GenAI Security Project</a>
-        </p>
-    </div>
 
-    <!-- Info Section -->
-    <div class="content-section" style="text-align: center;">
-        <!-- Display the SBOM count -->
-        <div class="sbom-count">🚀 Generated AIBOMs using this tool: <strong>{{ sbom_count if sbom_count else 'N/A'
-                }}</strong></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <p>© 2025 OWASP GenAI Security Project | OWASP AIBOM Generator</p>
+        <div class="footer-bottom">
+            <div class="sbom-count" style="margin-bottom: 5px; color: #7f8c8d;">🚀 Generated AIBOMs using this tool:
+                <strong>{{ sbom_count if sbom_count else 'N/A' }}</strong>
+            </div>
+            <p style="margin: 0;">© 2026 OWASP GenAI Security Project - AIBOM Initiative</p>
+        </div>
     </div>
     </div>
 
