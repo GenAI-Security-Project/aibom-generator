@@ -5,12 +5,6 @@ from typing import Dict, Optional
 
 from gguf import GGUFWriter
 
-from src.models.gguf_metadata import (
-    GGUFModelInfo,
-    GGUFChatTemplateInfo,
-    HashValue,
-)
-
 
 def _write_gguf_to_bytes(writer: GGUFWriter, path: str) -> bytes:
     writer.write_header_to_file()
@@ -101,48 +95,6 @@ def build_gguf_bytes(
             getattr(writer, method)(key, value)
 
     return _write_gguf_to_bytes(writer, path)
-
-
-def build_gguf_model_info(
-    *,
-    filename: str = "test.gguf",
-    architecture: str = "llama",
-    name: str = "Test Model",
-    chat_template: Optional[str] = None,
-    template_hash: Optional[str] = None,
-    named_templates: Optional[Dict[str, str]] = None,
-) -> GGUFModelInfo:
-    ct_info = None
-    if chat_template is not None:
-        template_hash_structured = HashValue.from_content(chat_template)
-        if template_hash is None:
-            template_hash = template_hash_structured.to_prefixed()
-
-        named_template_hashes = {}
-        named_template_hashes_structured = {}
-        if named_templates:
-            for tname, tcontent in named_templates.items():
-                h = HashValue.from_content(tcontent)
-                named_template_hashes[tname] = h.to_prefixed()
-                named_template_hashes_structured[tname] = h
-
-        ct_info = GGUFChatTemplateInfo(
-            has_template=True,
-            default_template=chat_template,
-            named_templates=named_templates or {},
-            template_names=list(named_templates.keys()) if named_templates else [],
-            template_hash=template_hash,
-            template_hash_structured=template_hash_structured,
-            named_template_hashes=named_template_hashes,
-            named_template_hashes_structured=named_template_hashes_structured,
-        )
-
-    return GGUFModelInfo(
-        filename=filename,
-        architecture=architecture,
-        name=name,
-        chat_template=ct_info,
-    )
 
 
 SAMPLE_CHAT_TEMPLATE = (

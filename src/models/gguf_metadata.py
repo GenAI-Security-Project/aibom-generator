@@ -4,18 +4,12 @@ GGUF Metadata Extraction for AIBOM Generator
 This module extracts metadata from GGUF files without downloading the full file.
 It uses HTTP range requests to fetch only the header portion (typically 2-8MB)
 of potentially multi-GB model files.
-
-GGUF files bundle model weights, tokenizer, and chat template together,
-making them a critical attack surface for chat template poisoning.
 """
 
 import struct
-import hashlib
 import logging
-from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, OrderedDict
 from collections import OrderedDict as OrderedDictType
-from datetime import datetime, timezone
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
@@ -67,77 +61,68 @@ class GGUFValueType:
     FLOAT64 = 12
 
 
-@dataclass
-class HashValue:
-    """Hash value in both CycloneDX structured and prefixed string formats."""
-    algorithm: str
-    value: str
-
-    def to_cyclonedx(self) -> Dict[str, str]:
-        """CycloneDX 1.6 structured format for component.hashes[]."""
-        return {"alg": self.algorithm, "content": self.value}
-
-    def to_prefixed(self) -> str:
-        """Prefixed string format (e.g., 'sha256:abc123...')."""
-        return f"{self.algorithm.lower().replace('-', '')}:{self.value}"
-
-    @classmethod
-    def from_content(cls, content: str, algorithm: str = "SHA-256") -> "HashValue":
-        """Create hash from content string."""
-        algo_for_hashlib = algorithm.lower().replace("-", "")
-        hasher = getattr(hashlib, algo_for_hashlib, None)
-        if not hasher:
-            raise ValueError(f"Unsupported algorithm: {algorithm}")
-        digest = hasher(content.encode("utf-8")).hexdigest()
-        return cls(algorithm=algorithm.upper(), value=digest)
-
-
-@dataclass
 class GGUFMetadata:
     """Parsed GGUF file metadata."""
-    version: int
-    tensor_count: int
-    kv_count: int
-    metadata: Dict[str, Any]
-    header_length: int
-    filename: str = ""
+
+    def __init__(
+        self,
+        version: int,
+        tensor_count: int,
+        kv_count: int,
+        metadata: Dict[str, Any],
+        header_length: int,
+        filename: str = "",
+    ):
+        self.version = version
+        self.tensor_count = tensor_count
+        self.kv_count = kv_count
+        self.metadata = metadata
+        self.header_length = header_length
+        self.filename = filename
 
 
-@dataclass
-class GGUFChatTemplateInfo:
-    """Chat template information extracted from GGUF file."""
-    has_template: bool
-    default_template: Optional[str]
-    named_templates: Dict[str, str]
-    template_names: List[str]
-    template_hash: Optional[str] = None
-    template_hash_structured: Optional[HashValue] = None
-    named_template_hashes: Dict[str, str] = field(default_factory=dict)
-    named_template_hashes_structured: Dict[str, HashValue] = field(default_factory=dict)
-
-
-@dataclass
 class GGUFModelInfo:
     """Model information extracted from GGUF metadata for AIBOM."""
-    filename: str
-    architecture: Optional[str] = None
-    name: Optional[str] = None
-    quantization_version: Optional[int] = None
-    file_type: Optional[int] = None
-    tokenizer_model: Optional[str] = None
-    vocab_size: Optional[int] = None
-    chat_template: Optional[GGUFChatTemplateInfo] = None
-    context_length: Optional[int] = None
-    embedding_length: Optional[int] = None
-    block_count: Optional[int] = None
-    attention_head_count: Optional[int] = None
-    attention_head_count_kv: Optional[int] = None
-    feed_forward_length: Optional[int] = None
-    rope_dimension_count: Optional[int] = None
-    description: Optional[str] = None
-    license: Optional[str] = None
-    author: Optional[str] = None
-    raw_metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        filename: str,
+        architecture: Optional[str] = None,
+        name: Optional[str] = None,
+        quantization_version: Optional[int] = None,
+        file_type: Optional[int] = None,
+        tokenizer_model: Optional[str] = None,
+        vocab_size: Optional[int] = None,
+        context_length: Optional[int] = None,
+        embedding_length: Optional[int] = None,
+        block_count: Optional[int] = None,
+        attention_head_count: Optional[int] = None,
+        attention_head_count_kv: Optional[int] = None,
+        feed_forward_length: Optional[int] = None,
+        rope_dimension_count: Optional[int] = None,
+        description: Optional[str] = None,
+        license: Optional[str] = None,
+        author: Optional[str] = None,
+        raw_metadata: Optional[Dict[str, Any]] = None,
+    ):
+        self.filename = filename
+        self.architecture = architecture
+        self.name = name
+        self.quantization_version = quantization_version
+        self.file_type = file_type
+        self.tokenizer_model = tokenizer_model
+        self.vocab_size = vocab_size
+        self.context_length = context_length
+        self.embedding_length = embedding_length
+        self.block_count = block_count
+        self.attention_head_count = attention_head_count
+        self.attention_head_count_kv = attention_head_count_kv
+        self.feed_forward_length = feed_forward_length
+        self.rope_dimension_count = rope_dimension_count
+        self.description = description
+        self.license = license
+        self.author = author
+        self.raw_metadata = raw_metadata or {}
 
 
 class _ByteReader:
@@ -276,66 +261,9 @@ def parse_gguf_metadata(buffer: bytes, filename: str = "") -> GGUFMetadata:
     )
 
 
-def extract_chat_template_info(metadata: Dict[str, Any]) -> GGUFChatTemplateInfo:
-    """Extract chat template information from GGUF metadata."""
-    default_template = metadata.get("tokenizer.chat_template")
-
-    template_names_raw = metadata.get("tokenizer.chat_templates", [])
-    template_names: List[str] = []
-
-    if isinstance(template_names_raw, (list, tuple)):
-        for entry in template_names_raw:
-            if isinstance(entry, str):
-                template_names.append(entry)
-
-    named_templates: Dict[str, str] = {}
-    prefix = "tokenizer.chat_template."
-
-    for name in template_names:
-        key = prefix + name
-        value = metadata.get(key)
-        if isinstance(value, str):
-            named_templates[name] = value
-
-    if not template_names:
-        for key, value in metadata.items():
-            if key.startswith(prefix) and isinstance(value, str):
-                suffix = key[len(prefix):]
-                if suffix and suffix not in named_templates:
-                    named_templates[suffix] = value
-                    template_names.append(suffix)
-
-    has_template = bool(default_template or named_templates)
-
-    template_hash = None
-    template_hash_structured = None
-    if default_template:
-        template_hash_structured = HashValue.from_content(default_template)
-        template_hash = template_hash_structured.to_prefixed()
-
-    named_template_hashes = {}
-    named_template_hashes_structured = {}
-    for name, content in named_templates.items():
-        hash_obj = HashValue.from_content(content)
-        named_template_hashes[name] = hash_obj.to_prefixed()
-        named_template_hashes_structured[name] = hash_obj
-
-    return GGUFChatTemplateInfo(
-        has_template=has_template,
-        default_template=default_template,
-        named_templates=named_templates,
-        template_names=template_names,
-        template_hash=template_hash,
-        template_hash_structured=template_hash_structured,
-        named_template_hashes=named_template_hashes,
-        named_template_hashes_structured=named_template_hashes_structured,
-    )
-
-
 def extract_model_info(gguf_metadata: GGUFMetadata) -> GGUFModelInfo:
     """Extract AIBOM-relevant model information from GGUF metadata."""
     meta = gguf_metadata.metadata
-    chat_template = extract_chat_template_info(meta)
     arch = meta.get("general.architecture", "")
 
     def get_arch_key(suffix: str) -> Optional[Any]:
@@ -353,7 +281,6 @@ def extract_model_info(gguf_metadata: GGUFMetadata) -> GGUFModelInfo:
         file_type=meta.get("general.file_type"),
         tokenizer_model=meta.get("tokenizer.ggml.model"),
         vocab_size=len(meta.get("tokenizer.ggml.tokens", [])) or None,
-        chat_template=chat_template,
         context_length=get_arch_key("context_length"),
         embedding_length=get_arch_key("embedding_length"),
         block_count=get_arch_key("block_count"),
@@ -510,14 +437,11 @@ def extract_all_gguf_metadata(
                 **kwargs
             )
             results.append(info)
-            logger.info(f"  {filename}: architecture={info.architecture}, has_chat_template={info.chat_template.has_template if info.chat_template else False}")
+            logger.info(f"  {filename}: architecture={info.architecture}")
         except Exception as e:
             logger.warning(f"  {filename}: failed to extract metadata: {e}")
 
     return results
-
-
-AIBOM_NAMESPACE = "aibom"
 
 
 def _map_core_fields(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
@@ -593,102 +517,6 @@ def _map_hyperparameters(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
         hyperparams["rope_dimension_count"] = gguf_info.rope_dimension_count
 
     return {"hyperparameter": hyperparams} if hyperparams else {}
-
-
-def _build_security_status(template_hash: str, template_hash_structured: Optional[HashValue] = None) -> Dict[str, Any]:
-    """Build the canonical security status structure."""
-    subject = {
-        "type": "chat_template",
-        "hash": template_hash,
-    }
-    if template_hash_structured:
-        subject["hash_structured"] = template_hash_structured.to_cyclonedx()
-
-    return {
-        "subject": subject,
-        "status": "unscanned",
-        "scanner_name": None,
-        "scanner_version": None,
-        "scan_timestamp": None,
-        "report_uri": None,
-        "findings": [],
-    }
-
-
-def _security_status_to_cdx_attestation(security_status: Dict[str, Any]) -> Dict[str, Any]:
-    """Derive CycloneDX attestation from canonical security status."""
-    return {
-        "assessor": security_status["scanner_name"],
-        "map": [
-            {
-                "requirement": "chat_template_integrity",
-                "claims": [security_status["subject"]["hash"]],
-                "status": security_status["status"],
-            }
-        ],
-        "signature": None,
-    }
-
-
-def _map_chat_template_fields(
-    gguf_info: GGUFModelInfo,
-    model_id: str,
-    include_template_content: bool,
-    extraction_timestamp: str,
-) -> Dict[str, Any]:
-    """Map chat template and its provenance/security metadata."""
-    if not gguf_info.chat_template or not gguf_info.chat_template.has_template:
-        return {}
-
-    ct = gguf_info.chat_template
-    metadata = {}
-
-    metadata["chat_template_hash"] = ct.template_hash
-    if ct.template_hash_structured:
-        metadata["chat_template_hash_structured"] = ct.template_hash_structured.to_cyclonedx()
-
-    if include_template_content and ct.default_template:
-        metadata["chat_template"] = ct.default_template
-
-    metadata["extraction_provenance"] = {
-        "source_file": gguf_info.filename,
-        "source_repository": f"https://huggingface.co/{model_id}",
-        "source_type": "gguf_embedded",
-        "extraction_timestamp": extraction_timestamp,
-        "extractor_tool": "aibom-generator",
-    }
-
-    metadata["model_lineage"] = {
-        "inherited_from_base": False,
-        "base_model": None,
-        "derivation_method": None,
-    }
-
-    security_status = _build_security_status(ct.template_hash, ct.template_hash_structured)
-    metadata["template_security_status"] = security_status
-    metadata["cdx_attestation"] = _security_status_to_cdx_attestation(security_status)
-
-    if ct.named_template_hashes:
-        metadata["named_chat_templates"] = ct.named_template_hashes
-    if ct.named_template_hashes_structured:
-        metadata["named_chat_templates_structured"] = {
-            name: h.to_cyclonedx() for name, h in ct.named_template_hashes_structured.items()
-        }
-
-    metadata["cdx_component_properties"] = [
-        {"name": f"{AIBOM_NAMESPACE}:chat_template_hash", "value": ct.template_hash},
-        {"name": f"{AIBOM_NAMESPACE}:template_source_type", "value": "gguf_embedded"},
-        {"name": f"{AIBOM_NAMESPACE}:template_source_file", "value": gguf_info.filename},
-    ]
-    if include_template_content and ct.default_template:
-        metadata["cdx_component_properties"].append(
-            {"name": f"{AIBOM_NAMESPACE}:chat_template", "value": ct.default_template}
-        )
-
-    if ct.template_hash_structured:
-        metadata["cdx_component_hashes"] = [ct.template_hash_structured.to_cyclonedx()]
-
-    return metadata
 
 
 def map_to_metadata(gguf_info: GGUFModelInfo) -> Dict[str, Any]:

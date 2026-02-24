@@ -4,30 +4,23 @@ Unit tests for GGUF metadata extraction module.
 Tests the public interface of the gguf_metadata module.
 """
 
-import hashlib
 import struct
 import unittest
-from datetime import datetime, timezone
 
 from src.models.gguf_metadata import (
     GGUF_MAGIC,
     GGUFModelInfo,
     BufferUnderrunError,
     InvalidMagicError,
-    HashValue,
     parse_gguf_metadata,
-    extract_chat_template_info,
     extract_model_info,
     build_huggingface_url,
     map_to_metadata,
-    _map_chat_template_fields,
 )
 
 from tests.fixtures import (
     build_gguf_bytes,
-    build_gguf_model_info,
     SAMPLE_CHAT_TEMPLATE,
-    get_sample_chat_template_hash,
 )
 
 
@@ -110,68 +103,6 @@ class TestParseGGUFMetadata(unittest.TestCase):
         self.assertGreater(context.exception.required_bytes, 8)
 
 
-class TestExtractChatTemplateInfo(unittest.TestCase):
-
-    def test_extract_default_template(self):
-        metadata = {"tokenizer.chat_template": SAMPLE_CHAT_TEMPLATE}
-
-        result = extract_chat_template_info(metadata)
-
-        self.assertTrue(result.has_template)
-        self.assertEqual(result.default_template, SAMPLE_CHAT_TEMPLATE)
-        self.assertEqual(result.template_hash, get_sample_chat_template_hash())
-        self.assertEqual(result.named_templates, {})
-        self.assertEqual(result.template_names, [])
-
-    def test_extract_named_templates(self):
-        metadata = {
-            "tokenizer.chat_template": "{{ default }}",
-            "tokenizer.chat_templates": ["chatml", "plain"],
-            "tokenizer.chat_template.chatml": "{{ chatml_template }}",
-            "tokenizer.chat_template.plain": "{{ plain_template }}",
-        }
-
-        result = extract_chat_template_info(metadata)
-
-        self.assertTrue(result.has_template)
-        self.assertEqual(result.default_template, "{{ default }}")
-        self.assertIn("chatml", result.named_templates)
-        self.assertIn("plain", result.named_templates)
-        self.assertEqual(result.named_templates["chatml"], "{{ chatml_template }}")
-        self.assertEqual(result.named_templates["plain"], "{{ plain_template }}")
-
-    def test_extract_fallback_named_templates(self):
-        metadata = {
-            "tokenizer.chat_template": "{{ default }}",
-            "tokenizer.chat_template.tool_use": "{{ tool_use }}",
-            "tokenizer.chat_template.rag": "{{ rag }}",
-        }
-
-        result = extract_chat_template_info(metadata)
-
-        self.assertIn("tool_use", result.named_templates)
-        self.assertIn("rag", result.named_templates)
-
-    def test_no_template(self):
-        metadata = {"general.architecture": "bert", "general.name": "bert-base"}
-
-        result = extract_chat_template_info(metadata)
-
-        self.assertFalse(result.has_template)
-        self.assertIsNone(result.default_template)
-        self.assertIsNone(result.template_hash)
-        self.assertEqual(result.named_templates, {})
-
-    def test_different_templates_different_hashes(self):
-        template1 = "{{ message1 }}"
-        template2 = "{{ message2 }}"
-
-        result1 = extract_chat_template_info({"tokenizer.chat_template": template1})
-        result2 = extract_chat_template_info({"tokenizer.chat_template": template2})
-
-        self.assertNotEqual(result1.template_hash, result2.template_hash)
-
-
 class TestExtractModelInfo(unittest.TestCase):
 
     def test_extract_full_model_info(self):
@@ -199,9 +130,6 @@ class TestExtractModelInfo(unittest.TestCase):
         self.assertEqual(result.block_count, 32)
         self.assertEqual(result.quantization_version, 2)
         self.assertEqual(result.file_type, 7)
-        self.assertIsNotNone(result.chat_template)
-        self.assertTrue(result.chat_template.has_template)
-        self.assertEqual(result.chat_template.default_template, SAMPLE_CHAT_TEMPLATE)
 
     def test_extract_minimal_model_info(self):
         data = build_gguf_bytes(architecture="gpt2", model_name="GPT-2")
@@ -211,8 +139,6 @@ class TestExtractModelInfo(unittest.TestCase):
 
         self.assertEqual(result.architecture, "gpt2")
         self.assertEqual(result.name, "GPT-2")
-        self.assertIsNotNone(result.chat_template)
-        self.assertFalse(result.chat_template.has_template)
 
 
 class TestBuildHuggingfaceUrl(unittest.TestCase):
@@ -244,7 +170,7 @@ class TestBuildHuggingfaceUrl(unittest.TestCase):
 class TestMapToMetadata(unittest.TestCase):
 
     def test_core_fields_mapped(self):
-        info = build_gguf_model_info(
+        info = GGUFModelInfo(
             filename="model.gguf",
             architecture="llama",
             name="Test Model",
@@ -254,17 +180,6 @@ class TestMapToMetadata(unittest.TestCase):
 
         self.assertEqual(result["model_type"], "llama")
         self.assertEqual(result["gguf_filename"], "model.gguf")
-        self.assertNotIn("chat_template_hash", result)
-        self.assertNotIn("extraction_provenance", result)
-
-    def test_map_without_chat_template(self):
-        info = build_gguf_model_info(architecture="bert", name="BERT Base", chat_template=None)
-
-        result = map_to_metadata(info)
-
-        self.assertNotIn("chat_template", result)
-        self.assertNotIn("chat_template_hash", result)
-        self.assertEqual(result["model_type"], "bert")
 
     def test_supplementary_fields_mapped(self):
         info = GGUFModelInfo(
@@ -300,155 +215,6 @@ class TestMapToMetadata(unittest.TestCase):
         self.assertEqual(result["hyperparameter"]["attention_head_count"], 32)
         self.assertEqual(result["hyperparameter"]["attention_head_count_kv"], 8)
         self.assertNotIn("vocab_size", result["hyperparameter"])
-
-
-class TestChatTemplateMapping(unittest.TestCase):
-
-    def test_chat_template_hash_produced(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ message }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        self.assertTrue(result["chat_template_hash"].startswith("sha256:"))
-
-    def test_template_content_requires_explicit_opt_in(self):
-        template = "{{ message }}"
-        info = build_gguf_model_info(filename="model.gguf", chat_template=template)
-
-        result_default = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-        self.assertNotIn("chat_template", result_default)
-
-        result_opted = _map_chat_template_fields(info, "owner/repo", True, "2025-01-01T00:00:00Z")
-        self.assertEqual(result_opted["chat_template"], template)
-
-    def test_extraction_provenance_tracks_source(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ msg }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-06-15T12:00:00Z")
-
-        prov = result["extraction_provenance"]
-        self.assertEqual(prov["source_file"], "model.gguf")
-        self.assertEqual(prov["source_type"], "gguf_embedded")
-        self.assertEqual(prov["source_repository"], "https://huggingface.co/owner/repo")
-        self.assertEqual(prov["extraction_timestamp"], "2025-06-15T12:00:00Z")
-
-    def test_security_status_defaults_to_unscanned(self):
-        info = build_gguf_model_info(chat_template="{{ msg }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        status = result["template_security_status"]
-        self.assertEqual(status["status"], "unscanned")
-        self.assertEqual(status["subject"]["type"], "chat_template")
-
-    def test_no_fields_without_chat_template(self):
-        info = build_gguf_model_info(chat_template=None)
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        self.assertEqual(result, {})
-
-    def test_cdx_properties_produced(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ message }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        props = result.get("cdx_component_properties", [])
-        prop_dict = {p["name"]: p["value"] for p in props}
-        self.assertIn("aibom:chat_template_hash", prop_dict)
-
-    def test_attestation_derived_from_security_status(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ msg }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        status = result["template_security_status"]
-        attestation = result["cdx_attestation"]
-        self.assertEqual(attestation["map"][0]["status"], status["status"])
-
-
-class TestHashValue(unittest.TestCase):
-
-    def test_from_content_creates_sha256_hash(self):
-        content = "test content"
-        h = HashValue.from_content(content)
-
-        self.assertEqual(h.algorithm, "SHA-256")
-        self.assertEqual(len(h.value), 64)
-        self.assertEqual(h.value, hashlib.sha256(content.encode("utf-8")).hexdigest())
-
-    def test_to_cyclonedx_produces_structured_format(self):
-        h = HashValue(algorithm="SHA-256", value="abc123")
-
-        cdx = h.to_cyclonedx()
-
-        self.assertEqual(cdx, {"alg": "SHA-256", "content": "abc123"})
-
-    def test_to_prefixed_produces_string_format(self):
-        h = HashValue(algorithm="SHA-256", value="abc123def456")
-
-        prefixed = h.to_prefixed()
-
-        self.assertEqual(prefixed, "sha256:abc123def456")
-
-    def test_roundtrip_content_to_both_formats(self):
-        content = "{% for m in messages %}{{ m.content }}{% endfor %}"
-        h = HashValue.from_content(content)
-
-        prefixed = h.to_prefixed()
-        cdx = h.to_cyclonedx()
-
-        self.assertTrue(prefixed.startswith("sha256:"))
-        self.assertEqual(cdx["alg"], "SHA-256")
-        self.assertEqual(cdx["content"], prefixed.split(":")[1])
-
-
-class TestStructuredHashesInMetadata(unittest.TestCase):
-
-    def test_structured_hash_included_in_chat_template_info(self):
-        template = "{{ message }}"
-        data = build_gguf_bytes(chat_template=template)
-
-        parsed = parse_gguf_metadata(data)
-        ct_info = extract_chat_template_info(parsed.metadata)
-
-        self.assertIsNotNone(ct_info.template_hash_structured)
-        self.assertEqual(ct_info.template_hash_structured.algorithm, "SHA-256")
-        self.assertEqual(ct_info.template_hash, ct_info.template_hash_structured.to_prefixed())
-
-    def test_structured_hash_in_chat_template_fields(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ msg }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        self.assertIn("chat_template_hash_structured", result)
-        h = result["chat_template_hash_structured"]
-        self.assertEqual(h["alg"], "SHA-256")
-
-    def test_cdx_component_hashes_array(self):
-        info = build_gguf_model_info(filename="model.gguf", chat_template="{{ msg }}")
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        self.assertIn("cdx_component_hashes", result)
-        hashes = result["cdx_component_hashes"]
-        self.assertEqual(len(hashes), 1)
-        self.assertEqual(hashes[0]["alg"], "SHA-256")
-
-    def test_named_templates_have_structured_hashes(self):
-        info = build_gguf_model_info(
-            filename="model.gguf",
-            chat_template="{{ default }}",
-            named_templates={"tool_use": "{{ tool }}", "rag": "{{ rag }}"}
-        )
-
-        result = _map_chat_template_fields(info, "owner/repo", False, "2025-01-01T00:00:00Z")
-
-        self.assertIn("named_chat_templates_structured", result)
-        structured = result["named_chat_templates_structured"]
-        self.assertIn("tool_use", structured)
-        self.assertIn("rag", structured)
-        self.assertEqual(structured["tool_use"]["alg"], "SHA-256")
 
 
 if __name__ == '__main__':
