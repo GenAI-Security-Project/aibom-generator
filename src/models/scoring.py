@@ -2,6 +2,7 @@
 import logging
 import re
 import os
+import json
 from typing import Dict, List, Optional, Any, Union
 from enum import Enum
 from .registry import get_field_registry_manager
@@ -30,16 +31,44 @@ except Exception as e:
     VALIDATION_MESSAGES = {}
     SCORING_WEIGHTS = {}
 
+# Load SPDX licenses
+try:
+    schema_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas", "spdx.schema.json")
+    with open(schema_path, "r", encoding="utf-8") as f:
+        _spdx_schema = json.load(f)
+        SPDX_LICENSES = set(_spdx_schema.get("enum", []))
+    logger.info(f"✅ SPDX licenses schema loaded: {len(SPDX_LICENSES)} licenses")
+except Exception as e:
+    logger.error(f"❌ Failed to load SPDX schema: {e}")
+    SPDX_LICENSES = {"MIT", "Apache-2.0", "GPL-3.0-only", "GPL-2.0-only", "LGPL-3.0-only",
+                     "BSD-3-Clause", "BSD-2-Clause", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0",
+                     "Unlicense", "NONE"}
+
+# Build JSON Schema Registry
+JSON_SCHEMA_REGISTRY = None
+try:
+    from referencing import Registry, Resource
+    registry = Registry()
+    schemas_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas")
+    if os.path.exists(schemas_dir):
+        for filename in os.listdir(schemas_dir):
+            if filename.endswith(".json"):
+                with open(os.path.join(schemas_dir, filename), "r", encoding="utf-8") as schema_file:
+                    schema_data = json.load(schema_file)
+                    resource = Resource.from_contents(schema_data)
+                    schema_id = schema_data.get("$id", "")
+                    if schema_id:
+                        registry = registry.with_resource(uri=schema_id, resource=resource)
+                    registry = registry.with_resource(uri=filename, resource=resource)
+        JSON_SCHEMA_REGISTRY = registry
+        logger.info("✅ JSON Schema Registry loaded for local ref resolution")
+except Exception as e:
+    logger.error(f"❌ Failed to build JSON Schema Registry: {e}")
 
 def validate_spdx(license_entry):
-    spdx_licenses = [
-        "MIT", "Apache-2.0", "GPL-3.0-only", "GPL-2.0-only", "LGPL-3.0-only",
-        "BSD-3-Clause", "BSD-2-Clause", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0",
-        "Unlicense", "NONE"
-    ]
     if isinstance(license_entry, list):
-        return all(lic in spdx_licenses for lic in license_entry)
-    return license_entry in spdx_licenses
+        return all(lic in SPDX_LICENSES for lic in license_entry)
+    return license_entry in SPDX_LICENSES
 
 def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
     """
@@ -363,9 +392,12 @@ def validate_aibom(aibom: Dict[str, Any]) -> Dict[str, Any]:
         schema_path = os.path.join(os.path.dirname(__file__), '..', 'schemas', schema_file)
         
         if os.path.exists(schema_path):
-            with open(schema_path, 'r') as f:
+            with open(schema_path, 'r', encoding="utf-8") as f:
                 schema = json.load(f)
-            jsonschema.validate(instance=aibom, schema=schema)
+            if JSON_SCHEMA_REGISTRY is not None:
+                jsonschema.validate(instance=aibom, schema=schema, registry=JSON_SCHEMA_REGISTRY)
+            else:
+                jsonschema.validate(instance=aibom, schema=schema)
         else:
              # If schema missing, warn but don't fail hard
              issues.append({"severity": "warning", "message": f"Schema file not found: {schema_file}, skipping strict validation."})
