@@ -160,6 +160,34 @@
                         </span>
                     </div>
                     {% endif %}
+                    {% set hp_props = [] %}
+                    {% set quant_props = [] %}
+                    {% if aibom.components[0].properties %}
+                    {% for prop in aibom.components[0].properties %}
+                        {% if prop.name.startswith('hyperparameter:') %}{% if hp_props.append(prop) %}{% endif %}{% endif %}
+                        {% if prop.name.startswith('quantization:') %}{% if quant_props.append(prop) %}{% endif %}{% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% if hp_props %}
+                    <div class="aibom-property">
+                        <span class="property-name">Hyperparameters:</span>
+                        <span class="property-value">
+                            {% for prop in hp_props %}
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if quant_props %}
+                    <div class="aibom-property">
+                        <span class="property-name">Quantization:</span>
+                        <span class="property-value">
+                            {% for prop in quant_props %}
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
