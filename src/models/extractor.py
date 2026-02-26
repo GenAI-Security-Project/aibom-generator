@@ -13,6 +13,7 @@ from huggingface_hub.utils import RepositoryNotFoundError, EntryNotFoundError
 
 from .schemas import DataSource, ConfidenceLevel, ExtractionResult
 from .registry import get_field_registry_manager
+from .model_file_extractors import ModelFileExtractor, default_extractors
 
 logger = logging.getLogger(__name__)
 
@@ -109,16 +110,18 @@ class EnhancedExtractor:
         ]
     }
 
-    def __init__(self, hf_api: Optional[HfApi] = None):
-        """
-        Initialize the enhanced extractor with registry integration.
-        
-        Args:
-            hf_api: Optional HuggingFace API instance (will create if not provided)
-        """
+    def __init__(
+        self,
+        hf_api: Optional[HfApi] = None,
+        model_file_extractors: Optional[List[ModelFileExtractor]] = None,
+    ):
         self.hf_api = hf_api or HfApi()
         self.extraction_results = {}
-        
+        self.model_file_extractors = (
+            model_file_extractors if model_file_extractors is not None
+            else default_extractors()
+        )
+
         # Initialize registry manager
         try:
             self.registry_manager = get_field_registry_manager()
@@ -126,7 +129,7 @@ class EnhancedExtractor:
         except Exception as e:
             logger.warning(f"⚠️ Could not initialize registry manager: {e}")
             self.registry_manager = None
-        
+
         # Load registry fields
         self.registry_fields = {}
         if self.registry_manager:
@@ -136,10 +139,7 @@ class EnhancedExtractor:
             except Exception as e:
                 logger.error(f"❌ Error loading registry fields: {e}")
                 self.registry_fields = {}
-        
-        # Patterns are now class-level constants
-        # self._compile_patterns() - Removed
-        
+
         logger.info(f"Enhanced extractor initialized (registry-driven: {bool(self.registry_fields)})")
     
     # def _compile_patterns(self):  - Removed
@@ -231,8 +231,19 @@ class EnhancedExtractor:
                 continue
         
         logger.info(f"📊 Registry extraction complete: {successful_extractions} successful, {failed_extractions} failed")
-        
-        # Add external references (always needed)
+
+        model_file_metadata = self._extract_model_file_metadata(model_id)
+        if model_file_metadata:
+            for key, value in model_file_metadata.items():
+                if value is not None:
+                    metadata[key] = value
+                    self.extraction_results[key] = ExtractionResult(
+                        value=value,
+                        source=DataSource.REPOSITORY_FILES,
+                        confidence=ConfidenceLevel.HIGH,
+                        extraction_method="model_file_header",
+                    )
+
         # Always extract commit SHA if available (vital for BOM versioning)
         if 'commit' not in metadata:
              commit_sha = getattr(model_info, 'sha', None)
@@ -244,6 +255,23 @@ class EnhancedExtractor:
         
         return metadata
     
+    def _extract_model_file_metadata(self, model_id: str) -> Dict[str, Any]:
+        for extractor in self.model_file_extractors:
+            try:
+                if extractor.can_extract(model_id):
+                    metadata = extractor.extract_metadata(model_id)
+                    if metadata:
+                        logger.info(
+                            f"{type(extractor).__name__} returned {len(metadata)} fields"
+                        )
+                        return metadata
+            except Exception as e:
+                logger.warning(
+                    f"Model file extraction failed ({type(extractor).__name__}): {e}"
+                )
+                continue
+        return {}
+
     def _extract_registry_field(self, field_name: str, field_config: Dict[str, Any], context: Dict[str, Any]) -> Any:
         """
         Extract a single field based on its registry configuration.

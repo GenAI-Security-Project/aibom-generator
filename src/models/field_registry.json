@@ -775,8 +775,8 @@
       "tier": "important",
       "weight": 2.0,
       "category": "component_model_card",
-      "description": "Key hyperparameters used in training",
-      "jsonpath": "$.metadata.properties[?(@.name=='hyperparameter')].value",
+      "description": "Key hyperparameters of the model architecture",
+      "jsonpath": "$.components[0].properties[?(@.name=~'hyperparameter:.*')]",
       "aibom_generation": {
         "location": "$.metadata.properties",
         "rule": "include_if_available",
