@@ -18,7 +18,7 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
    docker run -p 7860:7860 aibom
 
    # Or local Python setup
-   pip install -r requirements.txt
+   pip install .[dev]
    ```
 
 ## Development Workflow
@@ -131,7 +131,7 @@ aibom-generator/
 │   ├── schemas/              # JSON schemas (CycloneDX, SPDX)
 │   └── templates/            # HTML templates
 ├── tests/                    # Unit and integration tests
-└── requirements.txt
+└── pyproject.toml
 ```
 
 ### Key Concepts
@@ -145,7 +145,7 @@ aibom-generator/
 
 ```bash
 # Install test dependencies
-pip install -r requirements.txt
+pip install .[dev]
 
 # Run all tests
 pytest
@@ -169,7 +169,7 @@ docker run -p 7860:7860 aibom
 ### Local Development
 
 ```bash
-pip install -r requirements.txt
+pip install .[dev]
 
 # Run API server
 python -m uvicorn src.main:app --reload --port 7860
