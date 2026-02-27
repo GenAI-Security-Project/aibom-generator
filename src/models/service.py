@@ -7,8 +7,6 @@ import re
 from typing import Dict, Optional, Any, List, Union
 from urllib.parse import urlparse
 from packageurl import PackageURL
-
-from packageurl import PackageURL
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
 
@@ -172,10 +170,20 @@ class AIBOMService:
         purl = PackageURL(type="generic", namespace="owasp-genai", name="owasp-aibom-generator", version="1.0.0")
         return purl.to_string()
 
+    def _get_tool_metadata(self) -> Dict[str, Any]:
+        """Get metadata component block for OWASP AIBOM Generator tool."""
+        tool_purl = self._get_tool_purl()
+        return {
+            "bom-ref": tool_purl,
+            "type": "application",
+            "name": "OWASP AIBOM Generator",
+            "version": "1.0.0",
+            "manufacturer": {"name": "OWASP GenAI Security Project"}
+        }
+
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
         hf_purl = self._generate_purl(model_id, "1.0")
-        tool_purl = self._get_tool_purl()
         metadata_purl = self._generate_purl(model_id, "1.0", purl_type="generic")
         
         return {
@@ -186,12 +194,7 @@ class AIBOMService:
             "metadata": {
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
                 "tools": {
-                    "components": [{
-                        "bom-ref": tool_purl,
-                        "type": "application",
-                        "name": "OWASP AIBOM Generator",
-                        "version": "1.0.0"
-                    }]
+                    "components": [self._get_tool_metadata()]
                 },
                 "component": {
                     "bom-ref": metadata_purl,
@@ -293,15 +296,8 @@ class AIBOMService:
         purl_ns = comp_mfr.replace(" ", "-")
         purl_name = comp_name.replace(" ", "-")
         purl = PackageURL(type="generic", namespace=purl_ns, name=purl_name, version=comp_version).to_string()
-        tool_purl = self._get_tool_purl()
         tools = {
-            "components": [{
-                "bom-ref": tool_purl,
-                "type": "application",
-                "name": "OWASP AIBOM Generator",
-                "version": "1.0.0",
-                "manufacturer": {"name": "OWASP GenAI Security Project"}
-            }]
+            "components": [self._get_tool_metadata()]
         }
         
         authors = []

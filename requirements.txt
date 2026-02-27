@@ -19,7 +19,6 @@ nltk>=3.8.0
 python-dateutil>=2.8.0
 jsonschema>=4.17.0
 sentencepiece>=0.1.99
-packageurl-python>=0.11.1
 
 # Test dependencies
 pytest>=7.0.0

@@ -52,8 +52,12 @@ class TestService(unittest.TestCase):
         
         # Check components section (ML model)
         ml_cmp = aibom["components"][0]
-        # Hash "123456" is less than 8 chars, so it remains "123456"
-        # Let's use a longer hash to test truncation
+        self.assertIn("pkg:huggingface/owner/model@123456", ml_cmp["bom-ref"])
+        self.assertEqual(ml_cmp["purl"], ml_cmp["bom-ref"])
+
+        # Check dependency links use matching purls
+        self.assertIn("pkg:generic/owner/model@123456", aibom["dependencies"][0]["ref"])
+        self.assertIn("pkg:huggingface/owner/model@123456", aibom["dependencies"][0]["dependsOn"][0])
         
     @patch("src.models.service.calculate_completeness_score")
     @patch("src.models.service.EnhancedExtractor")
