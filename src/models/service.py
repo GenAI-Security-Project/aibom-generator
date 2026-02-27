@@ -7,6 +7,7 @@ import re
 from typing import Dict, Optional, Any, List, Union
 from urllib.parse import urlparse
 from packageurl import PackageURL
+
 from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
 
@@ -167,18 +168,19 @@ class AIBOMService:
 
     def _get_tool_purl(self) -> str:
         """Get PURL for OWASP AIBOM Generator tool"""
-        purl = PackageURL(type="generic", namespace="owasp-genai", name="owasp-aibom-generator", version="1.0.0")
+        purl = PackageURL(type="generic", namespace="owasp-genai", name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION)
         return purl.to_string()
 
     def _get_tool_metadata(self) -> Dict[str, Any]:
-        """Get metadata component block for OWASP AIBOM Generator tool."""
-        tool_purl = self._get_tool_purl()
+        """Generate the standardized tool metadata for the AIBOM Generator"""
         return {
-            "bom-ref": tool_purl,
-            "type": "application",
-            "name": "OWASP AIBOM Generator",
-            "version": "1.0.0",
-            "manufacturer": {"name": "OWASP GenAI Security Project"}
+            "components": [{
+                "bom-ref": self._get_tool_purl(),
+                "type": "application",
+                "name": AIBOM_GEN_NAME,
+                "version": AIBOM_GEN_VERSION,
+                "manufacturer": {"name": "OWASP GenAI Security Project"}
+            }]
         }
 
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
@@ -193,9 +195,7 @@ class AIBOMService:
             "version": 1,
             "metadata": {
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
-                "tools": {
-                    "components": [self._get_tool_metadata()]
-                },
+                "tools": self._get_tool_metadata(),
                 "component": {
                     "bom-ref": metadata_purl,
                     "type": "application",
@@ -293,12 +293,11 @@ class AIBOMService:
         comp_mfr = overrides.get("manufacturer") or default_mfr
         
         # Normalize for PURL (replace spaces with - or similar if needed, but minimal change is best)
-        purl_ns = comp_mfr.replace(" ", "-")
+        purl_ns = comp_mfr.replace(" ", "-") # simplistic sanitation
         purl_name = comp_name.replace(" ", "-")
         purl = PackageURL(type="generic", namespace=purl_ns, name=purl_name, version=comp_version).to_string()
-        tools = {
-            "components": [self._get_tool_metadata()]
-        }
+
+        tools = {"tools": self._get_tool_metadata()}
         
         authors = []
         if "author" in metadata and metadata["author"]:
