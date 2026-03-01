@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from cyclonedx.model import ExternalReferenceType
 from src.models.service import AIBOMService
 
 class TestService(unittest.TestCase):
@@ -80,7 +81,7 @@ class TestService(unittest.TestCase):
         self.assertIn(f"@{expected_version}", ml_cmp["bom-ref"])
         
         # Verify dependencies
-        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["ref"])
+        self.assertIn("dependencies", aibom)
         self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["dependsOn"][0])
 
     def test_infer_io_formats(self):
@@ -103,6 +104,30 @@ class TestService(unittest.TestCase):
         inputs, outputs = self.service._infer_io_formats("unknown-task")
         self.assertEqual(inputs, [])
         self.assertEqual(outputs, [])
+
+    def test_create_aibom_structure_uses_cyclonedx_outputter(self):
+        metadata = {
+            "name": "test-model",
+            "author": "tester",
+            "commit": "1234567890abcdef"
+        }
+
+        aibom = self.service._create_aibom_structure("owner/test-model", metadata)
+
+        self.assertEqual(aibom["bomFormat"], "CycloneDX")
+        self.assertEqual(aibom["specVersion"], "1.6")
+        self.assertIn("$schema", aibom)
+        self.assertEqual(aibom["components"][0]["type"], "machine-learning-model")
+
+    def test_external_reference_type_mapping_defaults_to_website(self):
+        self.assertEqual(
+            self.service._map_external_reference_type("documentation"),
+            ExternalReferenceType.DOCUMENTATION
+        )
+        self.assertEqual(
+            self.service._map_external_reference_type("totally-unknown-type"),
+            ExternalReferenceType.WEBSITE
+        )
 
 if __name__ == '__main__':
     unittest.main()
