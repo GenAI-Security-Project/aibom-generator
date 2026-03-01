@@ -102,13 +102,18 @@ class FieldRegistryManager:
         
         for field_name, field_config in fields.items():
             jsonpath = field_config.get("jsonpath", "")
-            param_type = "AI" if "properties[" in jsonpath else "CDX"
+            param_type = "AITX" if "properties[" in jsonpath else "CDX"
+            missing_msg = field_config.get("validation_message", {}).get("missing", "")
+            is_gguf = "GGUF" in missing_msg
+
             classification[field_name] = {
                 "tier": field_config.get("tier", "supplementary"),
                 "weight": field_config.get("weight", 1),
                 "category": field_config.get("category", "unknown"),
                 "parameter_type": param_type,
-                "reference_urls": field_config.get("reference_urls", {})
+                "reference_urls": field_config.get("reference_urls", {}),
+                "jsonpath": jsonpath,
+                "is_gguf": is_gguf
             }
         
         self._field_classification = classification
@@ -151,7 +156,7 @@ class FieldRegistryManager:
                     "description": "Extensive documentation for maximum transparency",
                     "required_fields": ["bomFormat", "specVersion", "serialNumber", "version", "name", 
                                        "downloadLocation", "primaryPurpose", "suppliedBy",
-                                       "type", "purl", "description", "licenses", "hyperparameter", "limitation", 
+                                       "type", "purl", "description", "licenses", "hyperparameter", "technicalLimitations", 
                                        "energyConsumption", "safetyRiskAssessment", "typeOfModel"],
                     "minimum_score": 85
                 }

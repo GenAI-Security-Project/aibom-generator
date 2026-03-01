@@ -609,9 +609,9 @@ class AIBOMService:
         # intendedUse -> useCases
         if "intendedUse" in metadata:
              considerations["useCases"] = [metadata["intendedUse"]]
-        # limitations -> technicalLimitations
-        if "limitations" in metadata:
-             considerations["technicalLimitations"] = [metadata["limitations"]]
+        # technicalLimitations
+        if "technicalLimitations" in metadata:
+             considerations["technicalLimitations"] = [metadata["technicalLimitations"]]
         # ethicalConsiderations
         if "ethicalConsiderations" in metadata:
              considerations["ethicalConsiderations"] = [{"name": "Ethical Considerations", "description": metadata["ethicalConsiderations"]}]
@@ -660,7 +660,7 @@ class AIBOMService:
         # Basic Fields we've already mapped to structured homes
         mapped_fields = [
             "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
-            "limitations", "ethicalConsiderations", "datasets", "eval_results",
+            "technicalLimitations", "ethicalConsiderations", "datasets", "eval_results",
             "pipeline_tag", "name", "author", "license", "description",
             "commit", "bomFormat", "specVersion", "version", "licenses",
             "external_references", "tags", "library_name", "paper", "downloadLocation",

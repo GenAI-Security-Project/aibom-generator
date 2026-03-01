@@ -115,7 +115,7 @@ def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
         if "considerations" in model_card:
             considerations = model_card["considerations"]
             field_mappings = {
-                "limitation": ["technicalLimitations", "limitations"],
+                "technicalLimitations": ["technicalLimitations", "limitations"],
                 "safetyRiskAssessment": ["ethicalConsiderations", "safetyRiskAssessment"],
                 "energyConsumption": ["environmentalConsiderations", "energyConsumption"]
             }
@@ -273,33 +273,65 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
     field_checklist = {}
     field_types = {}
     field_reference_urls = {}
+    category_fields_list = {category: [] for category in max_scores.keys()}
 
     # Evaluate fields
     for field, classification in FIELD_CLASSIFICATION.items():
         tier = classification["tier"]
         category = classification["category"]
+        is_gguf = classification.get("is_gguf", False)
+        jsonpath = classification.get("jsonpath", "")
         
         # Ensure category exists in tracking, else fallback or skip? 
         # Ideally FIELD_CLASSIFICATION only contains known categories.
         if category not in fields_by_category:
             fields_by_category[category] = {"total": 0, "present": 0}
-            # Note: if it's a new category not in max_scores, it won't contribute to score unless we adjust max_scores
-        
-        fields_by_category[category]["total"] += 1
+            category_fields_list[category] = []
         
         is_present = check_field_with_enhanced_results(aibom, field, extraction_results)
         
+        if not is_gguf or is_present:
+            fields_by_category[category]["total"] += 1
+            
+            display_path = jsonpath.replace("$.components[0].", "")
+            if display_path.startswith("$."): display_path = display_path[2:]
+            
+            tier_display = {"critical": "Critical", "important": "Important", "supplementary": "Supplementary"}.get(tier, "Unknown")
+            
+            category_fields_list[category].append({
+                "name": field,
+                "tier": tier_display,
+                "path": display_path
+            })
+            
         if is_present:
             fields_by_category[category]["present"] += 1
         else:
-            if tier in missing_fields:
-                missing_fields[tier].append(field)
+            if not is_gguf:
+                if tier in missing_fields:
+                    missing_fields[tier].append(field)
                 
         importance_indicator = "★★★" if tier == "critical" else "★★" if tier == "important" else "★"
         field_checklist[field] = f"{'✔' if is_present else '✘'} {importance_indicator}"
         field_types[field] = classification.get("parameter_type", "CDX")
-        field_reference_urls[field] = classification.get("reference_urls", {})
-
+        ref_urls = classification.get("reference_urls", {})
+        selected_url = ""
+        if isinstance(ref_urls, dict):
+            spec_version = aibom.get("specVersion", "1.6")
+            if spec_version == "1.7" and "cyclonedx_1.7" in ref_urls:
+                selected_url = ref_urls["cyclonedx_1.7"]
+            elif "cyclonedx_1.6" in ref_urls:
+                selected_url = ref_urls["cyclonedx_1.6"]
+                if spec_version == "1.7" and "cyclonedx.org/docs/1.6" in selected_url:
+                    selected_url = selected_url.replace("1.6", "1.7")
+            elif "genai_aibom_taxonomy" in ref_urls:
+                selected_url = ref_urls["genai_aibom_taxonomy"]
+            elif "spdx_3.1" in ref_urls:
+                selected_url = ref_urls["spdx_3.1"]
+        elif isinstance(ref_urls, str):
+            selected_url = ref_urls
+            
+        field_reference_urls[field] = selected_url
     # Calculate category scores
     category_details = {}
     category_scores = {}
@@ -355,6 +387,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "field_types": field_types,
         "reference_urls": field_reference_urls,
         "missing_fields": missing_fields,
+        "category_fields_list": category_fields_list,
         "completeness_profile": determine_completeness_profile(aibom, final_score),
         "penalty_applied": penalty_factor < 1.0,
         "penalty_reason": " and ".join(penalty_reasons) if penalty_reasons else None,

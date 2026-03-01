@@ -75,7 +75,7 @@
           "description",
           "licenses",
           "hyperparameter",
-          "limitation",
+          "technicalLimitations",
           "energyConsumption",
           "safetyRiskAssessment",
           "typeOfModel"
@@ -911,7 +911,7 @@
         "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
-    "limitation": {
+    "technicalLimitations": {
       "tier": "important",
       "weight": 2.0,
       "category": "component_model_card",
@@ -921,7 +921,7 @@
         "location": "$.component.modelCard.considerations.technicalLimitations",
         "rule": "include_if_available",
         "source_fields": [
-          "limitation",
+          "technicalLimitations",
           "limitations",
           "known_issues"
         ],
@@ -936,8 +936,8 @@
         "category_contribution": 0.067
       },
       "validation_message": {
-        "missing": "Missing field: limitation - limitations information helpful for safety",
-        "recommendation": "Add known limitations of the model"
+        "missing": "Missing field: technicalLimitations - limitations information helpful for safety",
+        "recommendation": "Add known technical limitations of the model"
       },
       "reference_urls": {
         "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_technicalLimitations",
@@ -1348,7 +1348,7 @@
     "downloadLocation": {
       "tier": "important",
       "weight": 3.0,
-      "category": "component_basic",
+      "category": "external_references",
       "description": "URL to download the model",
       "jsonpath": "$.components[0].externalReferences[?(@.type=='distribution' || @.type=='website')].url",
       "aibom_generation": {

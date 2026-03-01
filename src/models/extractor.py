@@ -541,7 +541,7 @@ class EnhancedExtractor:
             'licenses': 'license', # Fix: Handle plural key
             'datasets': 'datasets',
             'energyConsumption': 'energy',
-            'limitation': 'limitations',
+            'technicalLimitations': 'limitations',
             'safetyRiskAssessment': 'safety',
             'model_type': 'model_type'
         }
