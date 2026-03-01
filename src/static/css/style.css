@@ -181,7 +181,7 @@ button:disabled {
     justify-content: center;
     padding: 0 16px;
     height: 38px;
-    background-color: #3b4252;
+    background: linear-gradient(135deg, rgb(66, 92, 187), rgb(116, 142, 237));
     color: #ffffff !important;
     font-weight: 600;
     border-radius: 19px;
@@ -192,14 +192,14 @@ button:disabled {
     font-family: inherit;
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(66, 92, 187, 0.3);
 }
 
 .generate-another-btn:hover {
-    background-color: #434c5e;
+    background: linear-gradient(135deg, rgb(86, 112, 207), rgb(136, 162, 255));
     color: #ffffff !important;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 8px rgba(66, 92, 187, 0.4);
 }
 
 /* Content Sections */
@@ -1017,11 +1017,15 @@ th {
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .download-section h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
+    margin: 0;
 }
 
 .download-buttons {
@@ -1030,10 +1034,30 @@ th {
 }
 
 .download-buttons button {
-    padding: 8px 16px;
-    font-size: 14px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    height: 32px;
+    background-color: #64748b;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 16px;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    text-decoration: none !important;
+    gap: 8px;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.download-buttons button:hover {
+    background-color: #94a3b8;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .completeness-profile {
@@ -1045,16 +1069,23 @@ th {
 }
 
 .profile-badge {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 16px;
     color: white;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 14px;
     margin-right: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
 .profile-basic {
-    background-color: #ff9800;
+    background: linear-gradient(135deg, rgb(255, 140, 0), rgb(255, 180, 50));
+    box-shadow: 0 2px 4px rgba(255, 140, 0, 0.3);
 }
 
 .profile-standard {

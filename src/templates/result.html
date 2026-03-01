@@ -33,24 +33,16 @@
             </div>
             <div class="aibom-property">
                 <span class="property-name">SBOM Format:</span>
-                <span class="property-value"><a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard"
-                        target="_blank">{{ aibom.bomFormat }} {{ aibom.specVersion }}</a></span>
+                <span class="property-value">
+                    <a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard" target="_blank">{{
+                        aibom.bomFormat }} {{ aibom.specVersion }}</a>,
+                    <a href="https://cyclonedx.org/docs/1.7/json/#components_items_modelCard" target="_blank">{{
+                        aibom.bomFormat }} 1.7</a>
+                </span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Serial Number:</span>
                 <span class="property-value">{{ aibom.serialNumber }}</span>
-            </div>
-        </div>
-
-        <!-- Download Section -->
-        <div class="download-section">
-            <h3>💾&nbsp;&nbsp;Download your AIBOM</h3>
-            <div class="download-buttons">
-                <button
-                    onclick="downloadJSON(AIBOM_CDX_JSON_1_6, FILENAME_BASE + '_aibom_1_6.json')">📥&nbsp;&nbsp;CycloneDX
-                    1.6</button>
-                <button onclick="downloadJSON(AIBOM_CDX_JSON_1_7, FILENAME_BASE + '_aibom_1_7.json')"
-                    class="btn-secondary">📥&nbsp;&nbsp;CycloneDX 1.7</button>
             </div>
         </div>
 
@@ -71,18 +63,40 @@
         {% set score_label = 'Poor' %}
         {% endif %}
 
-        <!-- Completeness Profile -->
-        {% if completeness_score.completeness_profile %}
-        <div class="completeness-profile {{ score_class }}-border">
-            <h3>📊&nbsp;&nbsp;Completeness Assessment</h3>
-            <div>
-                <span class="profile-badge profile-{{ completeness_score.completeness_profile.name|lower }}">
-                    {{ completeness_score.completeness_profile.name }}
-                </span>
-                <span>{{ completeness_score.completeness_profile.description }}</span>
+        <!-- Completeness Profile & Download Section -->
+        <div class="completeness-profile {{ score_class }}-border"
+            style="display: flex; flex-wrap: wrap; gap: 0; align-items: center;">
+            <div class="completeness-left"
+                style="flex: 1 1 50%; min-width: 300px; padding-right: 20px; box-sizing: border-box;">
+                {% if completeness_score.completeness_profile %}
+                <h3 style="margin-top:0; margin-bottom:15px;">📊&nbsp;&nbsp;Completeness Assessment</h3>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <span class="profile-badge profile-{{ completeness_score.completeness_profile.name|lower }}">
+                        {{ completeness_score.completeness_profile.name }}
+                    </span>
+                    <span>{{ completeness_score.completeness_profile.description }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="completeness-right" style="flex: 1 1 50%; min-width: 300px; box-sizing: border-box;">
+                <div class="download-section-inner">
+                    <h3 style="margin-top:0; margin-bottom:15px;">💾&nbsp;&nbsp;Download your AIBOM</h3>
+                    <div class="download-buttons" style="display: flex; gap: 10px;">
+                        <button onclick="downloadJSON(AIBOM_CDX_JSON_1_6, FILENAME_BASE + '_aibom_1_6.json')">
+                            <img src="{{ static_root|default('/static') }}/images/cdx.webp" alt="CycloneDX Logo"
+                                width="16" height="16" style="filter: brightness(0) invert(1);">
+                            CycloneDX 1.6
+                        </button>
+                        <button onclick="downloadJSON(AIBOM_CDX_JSON_1_7, FILENAME_BASE + '_aibom_1_7.json')">
+                            <img src="{{ static_root|default('/static') }}/images/cdx.webp" alt="CycloneDX Logo"
+                                width="16" height="16" style="filter: brightness(0) invert(1);">
+                            CycloneDX 1.7
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
 
         <!-- Tabbed Content -->
         <div class="aibom-viewer">
