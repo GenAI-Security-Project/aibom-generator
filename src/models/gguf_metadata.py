@@ -363,7 +363,7 @@ def fetch_gguf_metadata_from_url(
                     raise
 
                 if exc.required_bytes:
-                    needed = exc.required_bytes + 1024
+                    needed = max(exc.required_bytes + 2 * 1024 * 1024, len(buffer) * 2)
                 else:
                     needed = len(buffer) * 2
 
