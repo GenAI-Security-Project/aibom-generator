@@ -5,6 +5,7 @@ from ..models.service import AIBOMService
 from ..models.scoring import calculate_completeness_score
 from ..models.scoring import calculate_completeness_score
 from ..config import OUTPUT_DIR, TEMPLATES_DIR
+from ..utils.formatter import export_aibom
 import os
 import shutil
 
@@ -32,72 +33,67 @@ class CLIController:
         reports = []
         generated_aiboms = {} 
         
-        for spec_version in versions_to_generate:
-            print(f"  - Generating CycloneDX {spec_version}...")
-            try:
-                aibom = self.service.generate_aibom(
-                    model_id, 
-                    include_inference=include_inference, 
-                    enable_summarization=enable_summarization,
-                    spec_version=spec_version,
-                    metadata_overrides={
-                        "name": name,
-                        "version": version,
-                        "manufacturer": manufacturer
-                    }
-                )
-                report = self.service.get_enhancement_report()
-                
-                # Determine output filename
-                current_output_file = output_file
-                if not current_output_file:
-                    normalized_id = self.service._normalise_model_id(model_id)
-                    import os
-                    os.makedirs("sboms", exist_ok=True)
-                    suffix = f"_{spec_version.replace('.', '_')}"
-                    current_output_file = os.path.join("sboms", f"{normalized_id.replace('/', '_')}_ai_sbom{suffix}.json")
-                elif spec_version != "1.6":
-                     import os
-                     base, ext = os.path.splitext(current_output_file)
-                     current_output_file = f"{base}_{spec_version.replace('.', '_')}{ext}"
-
-                with open(current_output_file, 'w') as f:
-                    json.dump(aibom, f, indent=2)
-                
-                # Check for validation results in report (populated by scoring mechanism)
-                validation_data = report.get("final_score", {}).get("validation", {})
-                is_valid = validation_data.get("valid", True) # Default to true if not found to avoid noise? Or False?
-                # Actually, scoring.py populates this.
-                validation_errors = [i["message"] for i in validation_data.get("issues", [])]
-                
-                # Ensure schema_validation key exists for our report structure
-                if "schema_validation" not in report:
-                    report["schema_validation"] = {}
-                report["schema_validation"]["valid"] = is_valid
-                report["schema_validation"]["errors"] = validation_errors
-                report["schema_validation"]["error_count"] = len(validation_errors)
-                report["output_file"] = current_output_file
-                report["spec_version"] = spec_version
-                reports.append(report)
-                generated_aiboms[spec_version] = aibom
-
-            except Exception as e:
-                logger.error(f"Failed to generate {spec_version} SBOM: {e}")
-                print(f"  ❌ Failed to generate {spec_version}: {e}")
-
-        # Summary and HTML Report (using 1.6 as primary)
-        if reports:
-            # Find primary report (1.6)
-            primary_report = next((r for r in reports if r.get("spec_version") == "1.6"), reports[0])
-            primary_aibom = generated_aiboms.get(primary_report["spec_version"])
-            output_file_primary = primary_report.get("output_file")
+        print(f"  - Generating AIBOM model data...")
+        try:
+            primary_aibom = self.service.generate_aibom(
+                model_id, 
+                include_inference=include_inference, 
+                enable_summarization=enable_summarization,
+                metadata_overrides={
+                    "name": name,
+                    "version": version,
+                    "manufacturer": manufacturer
+                }
+            )
+            primary_report = self.service.get_enhancement_report()
             
-            # Generate HTML for primary only
+            # Formatted AIBOM Strings
+            json_1_6 = export_aibom(primary_aibom, bom_type="cyclonedx", spec_version="1.6")
+            json_1_7 = export_aibom(primary_aibom, bom_type="cyclonedx", spec_version="1.7")
+
+            # Determine output filenames
+            normalized_id = self.service._normalise_model_id(model_id)
+            os.makedirs("sboms", exist_ok=True)
+            
+            output_file_1_6 = output_file
+            if not output_file_1_6:
+                output_file_1_6 = os.path.join("sboms", f"{normalized_id.replace('/', '_')}_ai_sbom_1_6.json")
+            
+            base, ext = os.path.splitext(output_file_1_6)
+            output_file_1_7 = f"{base.replace('_1_6', '')}_1_7{ext}" if '_1_6' in base else f"{base}_1_7{ext}"
+
+            with open(output_file_1_6, 'w') as f:
+                f.write(json_1_6)
+            with open(output_file_1_7, 'w') as f:
+                f.write(json_1_7)
+            
+            # Check for validation results
+            validation_data = primary_report.get("final_score", {}).get("validation", {})
+            is_valid = validation_data.get("valid", True)
+            validation_errors = [i["message"] for i in validation_data.get("issues", [])]
+            
+            if "schema_validation" not in primary_report:
+                primary_report["schema_validation"] = {}
+            primary_report["schema_validation"]["valid"] = is_valid
+            primary_report["schema_validation"]["errors"] = validation_errors
+            primary_report["schema_validation"]["error_count"] = len(validation_errors)
+
+            reports = [
+                {"spec_version": "1.6", "output_file": output_file_1_6, "schema_validation": primary_report["schema_validation"]},
+                {"spec_version": "1.7", "output_file": output_file_1_7, "schema_validation": primary_report["schema_validation"]}
+            ]
+            output_file_primary = output_file_1_6
+
+        except Exception as e:
+            logger.error(f"Failed to generate SBOM: {e}", exc_info=True)
+            print(f"  ❌ Failed to generate SBOM: {e}")
+            reports = []
+
+        if reports:
             if output_file_primary:
                 try:
                     from jinja2 import Environment, FileSystemLoader, select_autoescape
                     from ..config import TEMPLATES_DIR
-                    import os
                     
                     env = Environment(
                         loader=FileSystemLoader(TEMPLATES_DIR),
@@ -111,7 +107,6 @@ class CLIController:
 
                     # Pre-serialize to preserve order
                     components_json = json.dumps(primary_aibom.get("components", []), indent=2)
-                    aibom_json = json.dumps(primary_aibom, indent=2)
 
                     context = {
                         "request": None,
@@ -119,7 +114,8 @@ class CLIController:
                         "download_url": "#",
                         "aibom": primary_aibom,
                         "components_json": components_json,
-                        "aibom_json": aibom_json,
+                        "aibom_cdx_json_1_6": json_1_6,
+                        "aibom_cdx_json_1_7": json_1_7,
                         "raw_aibom": primary_aibom,
                         "model_id": self.service._normalise_model_id(model_id),
                         "sbom_count": 0,
