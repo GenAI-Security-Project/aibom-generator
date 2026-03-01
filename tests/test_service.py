@@ -52,8 +52,12 @@ class TestService(unittest.TestCase):
         
         # Check components section (ML model)
         ml_cmp = aibom["components"][0]
-        # Hash "123456" is less than 8 chars, so it remains "123456"
-        # Let's use a longer hash to test truncation
+        self.assertIn("pkg:huggingface/owner/model@123456", ml_cmp["bom-ref"])
+        self.assertEqual(ml_cmp["purl"], ml_cmp["bom-ref"])
+
+        # Check dependency links use matching purls
+        self.assertIn("pkg:generic/owner/model@123456", aibom["dependencies"][0]["ref"])
+        self.assertIn("pkg:huggingface/owner/model@123456", aibom["dependencies"][0]["dependsOn"][0])
         
     @patch("src.models.service.calculate_completeness_score")
     @patch("src.models.service.EnhancedExtractor")
@@ -103,6 +107,21 @@ class TestService(unittest.TestCase):
         inputs, outputs = self.service._infer_io_formats("unknown-task")
         self.assertEqual(inputs, [])
         self.assertEqual(outputs, [])
+
+    def test_generate_purl_huggingface_default(self):
+        """Test _generate_purl with default huggingface type"""
+        purl = self.service._generate_purl("owner/model", "1.0")
+        self.assertEqual(purl, "pkg:huggingface/owner/model@1.0")
+    
+    def test_generate_purl_generic_type(self):
+        """Test _generate_purl with generic type"""
+        purl = self.service._generate_purl("owner/model", "1.0", purl_type="generic")
+        self.assertEqual(purl, "pkg:generic/owner/model@1.0")
+    
+    def test_generate_purl_no_namespace(self):
+        """Test _generate_purl without namespace"""
+        purl = self.service._generate_purl("model", "1.0")
+        self.assertEqual(purl, "pkg:huggingface/model@1.0")
 
 if __name__ == '__main__':
     unittest.main()

@@ -13,11 +13,7 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
 3. **Set up your environment**:
 
    ```bash
-   # Using Docker (recommended)
-   docker build -t aibom .
-   docker run -p 7860:7860 aibom
-
-   # Or local Python setup
+   # Local Python setup
    pip install -r requirements.txt
    ```
 
@@ -159,14 +155,7 @@ pytest tests/test_validation.py -v
 
 ## Building and Running
 
-### Docker (Recommended)
-
-```bash
-docker build -t aibom .
-docker run -p 7860:7860 aibom
-```
-
-### Local Development
+### Local Development (Recommended)
 
 ```bash
 pip install -r requirements.txt
