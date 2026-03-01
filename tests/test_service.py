@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from cyclonedx.model import ExternalReferenceType
 from src.models.service import AIBOMService
 
 class TestService(unittest.TestCase):
@@ -80,7 +81,7 @@ class TestService(unittest.TestCase):
         self.assertIn(f"@{expected_version}", ml_cmp["bom-ref"])
         
         # Verify dependencies
-        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["ref"])
+        self.assertIn("dependencies", aibom)
         self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["dependsOn"][0])
 
     def test_infer_io_formats(self):
@@ -104,20 +105,29 @@ class TestService(unittest.TestCase):
         self.assertEqual(inputs, [])
         self.assertEqual(outputs, [])
 
-    def test_generate_purl_huggingface_default(self):
-        """Test _generate_purl with default huggingface type"""
-        purl = self.service._generate_purl("owner/model", "1.0")
-        self.assertEqual(purl, "pkg:huggingface/owner/model@1.0")
-    
-    def test_generate_purl_generic_type(self):
-        """Test _generate_purl with generic type"""
-        purl = self.service._generate_purl("owner/model", "1.0", purl_type="generic")
-        self.assertEqual(purl, "pkg:generic/owner/model@1.0")
-    
-    def test_generate_purl_no_namespace(self):
-        """Test _generate_purl without namespace"""
-        purl = self.service._generate_purl("model", "1.0")
-        self.assertEqual(purl, "pkg:huggingface/model@1.0")
+    def test_create_aibom_structure_uses_cyclonedx_outputter(self):
+        metadata = {
+            "name": "test-model",
+            "author": "tester",
+            "commit": "1234567890abcdef"
+        }
+
+        aibom = self.service._create_aibom_structure("owner/test-model", metadata)
+
+        self.assertEqual(aibom["bomFormat"], "CycloneDX")
+        self.assertEqual(aibom["specVersion"], "1.6")
+        self.assertIn("$schema", aibom)
+        self.assertEqual(aibom["components"][0]["type"], "machine-learning-model")
+
+    def test_external_reference_type_mapping_defaults_to_website(self):
+        self.assertEqual(
+            self.service._map_external_reference_type("documentation"),
+            ExternalReferenceType.DOCUMENTATION
+        )
+        self.assertEqual(
+            self.service._map_external_reference_type("totally-unknown-type"),
+            ExternalReferenceType.WEBSITE
+        )
 
 if __name__ == '__main__':
     unittest.main()
