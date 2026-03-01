@@ -37,7 +37,7 @@ class TestService(unittest.TestCase):
     def test_generate_aibom_purl_encoding(self, mock_extractor_cls, mock_score):
         # Setup
         mock_extractor = mock_extractor_cls.return_value
-        mock_extractor.extract_metadata.return_value = {"name": "test-model", "author": "tester"}
+        mock_extractor.extract_metadata.return_value = {"name": "test-model", "author": "tester", "commit": "123456"}
         mock_extractor.extraction_results = {}
         mock_score.return_value = {"total_score": 50}
         
@@ -48,12 +48,12 @@ class TestService(unittest.TestCase):
         aibom = self.service.generate_aibom(model_id)
         
         # Verify PURL encoding (slash should be / now, case preserved)
-        # Expected: pkg:huggingface/owner/model@12345678 (truncated hash)
-        
-        # Check components section (ML model)
+        # Expected: pkg:huggingface/owner/model@123456
         ml_cmp = aibom["components"][0]
-        # Hash "123456" is less than 8 chars, so it remains "123456"
-        # Let's use a longer hash to test truncation
+        
+        self.assertEqual(ml_cmp["version"], "123456")
+        self.assertIn("pkg:huggingface/owner/model@123456", ml_cmp["purl"])
+        self.assertIn("pkg:huggingface/owner/model@123456", ml_cmp["bom-ref"])
         
     @patch("src.models.service.calculate_completeness_score")
     @patch("src.models.service.EnhancedExtractor")
