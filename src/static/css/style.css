@@ -884,15 +884,17 @@ th {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1;
+    background: linear-gradient(135deg, #334155, #475569);
+    color: #ffffff;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(51, 65, 85, 0.3);
 }
 
 .footer-social-icons a:hover {
-    background-color: #38bdf8;
-    color: #fff;
+    background: linear-gradient(135deg, #475569, #64748b);
+    color: #ffffff;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(51, 65, 85, 0.4);
 }
 
 .footer-btn-share {
@@ -901,8 +903,8 @@ th {
     justify-content: center;
     padding: 0 16px;
     height: 36px;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1 !important;
+    background: linear-gradient(135deg, #334155, #475569);
+    color: #ffffff !important;
     font-weight: 500;
     border-radius: 18px;
     font-size: 14px;
@@ -915,12 +917,14 @@ th {
     font-family: inherit;
     cursor: pointer;
     border: none;
+    box-shadow: 0 2px 4px rgba(51, 65, 85, 0.3);
 }
 
 .footer-btn-share:hover {
-    background-color: #38bdf8;
-    color: #fff !important;
+    background: linear-gradient(135deg, #475569, #64748b);
+    color: #ffffff !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(51, 65, 85, 0.4);
 }
 
 .footer-modern-bottom {
