@@ -154,24 +154,34 @@ class AIBOMService:
         metadata = extractor.extract_metadata(model_id, model_info, model_card, enable_summarization=enable_summarization)
         self.extraction_results = extractor.extraction_results
         return metadata
-
-    def _generate_hf_purl(self, model_id: str, version: str) -> str:
-        """Helper to generate consistent Hugging Face PURLs"""
-        parts = model_id.split("/")
-        if len(parts) > 1:
-            group = parts[0]
-            name = "/".join(parts[1:])
-        else:
-            group = None
-            name = model_id
+    
+    def _generate_purl(self, model_id: str, version: str, purl_type: str = "huggingface") -> str:
+        """Generate PURL using packageurl-python library
+        
+        Args:
+            model_id: Model identifier (e.g., "owner/model" or "model")
+            version: Version string
+            purl_type: PURL type (default: "huggingface", also supports "generic")
             
-        return PackageURL(type='huggingface', namespace=group, name=name, version=version).to_string()
+        Returns:
+            PURL string in format pkg:type/namespace/name@version
+        """
+        parts = model_id.split("/", 1)
+        namespace = parts[0] if len(parts) == 2 else None
+        name = parts[1] if len(parts) == 2 else parts[0]
+        purl = PackageURL(type=purl_type, namespace=namespace, name=name, version=version)
+        return purl.to_string()
+
+    def _get_tool_purl(self) -> str:
+        """Get PURL for OWASP AIBOM Generator tool"""
+        purl = PackageURL(type="generic", namespace="owasp-genai", name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION)
+        return purl.to_string()
 
     def _get_tool_metadata(self) -> Dict[str, Any]:
         """Generate the standardized tool metadata for the AIBOM Generator"""
         return {
             "components": [{
-                "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION).to_string(),
+                "bom-ref": self._get_tool_purl(),
                 "type": "application",
                 "name": AIBOM_GEN_NAME,
                 "version": AIBOM_GEN_VERSION,
@@ -181,7 +191,8 @@ class AIBOMService:
 
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
-        hf_purl = self._generate_hf_purl(model_id, "1.0")
+        hf_purl = self._generate_purl(model_id, "1.0")
+        metadata_purl = self._generate_purl(model_id, "1.0", purl_type="generic")
         
         return {
             "bomFormat": "CycloneDX",
@@ -192,7 +203,7 @@ class AIBOMService:
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
                 "tools": self._get_tool_metadata(),
                 "component": {
-                    "bom-ref": PackageURL(type='generic', name=model_id, version="1.0").to_string(),
+                    "bom-ref": metadata_purl,
                     "type": "application",
                     "name": model_id.split("/")[-1],
                     "version": "1.0"
@@ -263,9 +274,8 @@ class AIBOMService:
             "components": [self._create_component_section(model_id, metadata)],
             "dependencies": [
                 {
-                    "ref": PackageURL(type='generic', name=model_id, version=version).to_string(),
-                    # Must match the component PURL format
-                    "dependsOn": [self._generate_hf_purl(model_id, version)]
+                    "ref": self._generate_purl(model_id, version, purl_type="generic"),
+                    "dependsOn": [self._generate_purl(model_id, version)]
                 }
             ]
         }
@@ -289,12 +299,10 @@ class AIBOMService:
         comp_mfr = overrides.get("manufacturer") or default_mfr
         
         # Normalize for PURL (replace spaces with - or similar if needed, but minimal change is best)
-        # PURL: pkg:generic/namespace/name@version
-        # namespace = manufacturer
         purl_ns = comp_mfr.replace(" ", "-") # simplistic sanitation
         purl_name = comp_name.replace(" ", "-")
-        purl = PackageURL(type='generic', namespace=purl_ns, name=purl_name, version=comp_version).to_string()
-        
+        purl = PackageURL(type="generic", namespace=purl_ns, name=purl_name, version=comp_version).to_string()
+
         tools = {"tools": self._get_tool_metadata()}
         
         authors = []
@@ -326,12 +334,8 @@ class AIBOMService:
         name = parts[1] if len(parts) > 1 else parts[0]
         full_commit = metadata.get("commit")
         version = full_commit[:8] if full_commit else "1.0"
-        
-        # PURL Construction: pkg:huggingface/<group>/<name>@<version>
-        # Ensure group and name are URL encoded, separated by /, and preserve case
-        
-        purl = PackageURL(type='huggingface', namespace=group if group else None, name=name, version=version).to_string()
-            
+        purl = self._generate_purl(model_id, version)
+
         component = {
             "bom-ref": purl,
             "type": "machine-learning-model",

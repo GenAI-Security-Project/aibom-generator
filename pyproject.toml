@@ -18,7 +18,6 @@ classifiers = [
 ]
 dependencies = [
     "beautifulsoup4>=4.11.0",
-    "cyclonedx-python-lib>=4.0.0",
     "datasets>=2.0.0",
     "fastapi>=0.104.0",
     "flask>=2.3.0",
@@ -28,11 +27,8 @@ dependencies = [
     "jinja2>=3.0.0",
     "jsonschema>=4.17.0",
     "license-expression>=30.4.4",
-    "nltk>=3.8.0",
     "packageurl-python>=0.11.1",
     "pydantic>=2.4.0",
-    "python-dateutil>=2.8.0",
-    "python-dotenv>=1.0.0",
     "python-multipart",
     "PyYAML>=6.0.1",
     "requests>=2.31.0",
