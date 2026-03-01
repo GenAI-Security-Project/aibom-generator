@@ -13,23 +13,11 @@
     <div class="container">
 
         <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <a href="https://genai.owasp.org/" target="_blank">
-                    <img src="/static/images/genai_security_project_logo.webp" alt="OWASP GenAI Security Project logo">
-                </a>
-                <div class="header-content">
-                    <h1>AIBOM Generator</h1>
-                </div>
-            </div>
-            <div class="header-right">
-                <a href="/" class="generate-another-btn">🚀 Generate Another AIBOM</a>
-            </div>
-        </div>
+        {% include 'includes/header.html' %}
 
         <!-- Error message -->
         <div class="error-message">
-            <h2>❌ Error Generating AIBOM</h2>
+            <h2>❌&nbsp;&nbsp;Error Generating AIBOM</h2>
         </div>
 
         <!-- Try Again Button -->
@@ -47,71 +35,15 @@
 
         <!-- Common Solutions -->
         <div class="content-section">
-            <h2>💡 Common Solutions</h2>
+            <h2>💡&nbsp;&nbsp;Common Solutions</h2>
             <p><strong>Model not found:</strong> Check that the model ID follows <code>owner/model-name</code> format
                 and exists on Hugging Face.</p>
             <p><strong>Access issues:</strong> Some models require an access token or may be private.</p>
             <p><strong>Temporary issues:</strong> Try again if there were connectivity or Hugging Face API hiccups.</p>
         </div>
 
-        <!-- New Footer Wrapper containing all footer contents -->
-        <div class="footer-wrapper">
-            <div class="footer-widgets">
-                <!-- Column 1: Brand -->
-                <div class="footer-widget brand-col">
-                    <a href="https://genai.owasp.org/" target="_blank">
-                        <!-- Default to index image relative path if not rendered with static_root -->
-                        <img src="{% if static_root %}{{ static_root }}{% else %}/static{% endif %}/images/genai_security_project_logo.webp"
-                            alt="OWASP GenAI Security Project logo" style="height: 50px; margin-bottom: 15px;">
-                    </a>
-                    <p style="font-size: 14px; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">OWASP GenAI
-                        Security Project</p>
-                    <p style="font-size: 13px;">Follow us for updates:<br>
-                        <a href="https://www.linkedin.com/company/owasp-aibom/" target="_blank"
-                            rel="noopener noreferrer" style="color: #3498db;">@OWASP GenAI Security
-                            Project - AIBOM Initiative</a>
-                    </p>
-                </div>
-
-                <!-- Column 2: Links -->
-                <div class="footer-widget links-col">
-                    <h4>OWASP GenAI</h4>
-                    <ul class="footer-links">
-                        <li><a href="https://github.com/GenAI-Security-Project/aibom-generator" target="_blank">GitHub
-                                Repository</a></li>
-                        <li><a href="https://github.com/GenAI-Security-Project/aibom-generator/issues"
-                                target="_blank">Report Issue</a></li>
-                        <li><a href="https://genai.owasp.org/" target="_blank">OWASP GenAI</a></li>
-                    </ul>
-                </div>
-
-                <!-- Column 3: Help -->
-                <div class="footer-widget help-col">
-                    <h4>🛠️ Need Help or Found an Issue?</h4>
-                    <p style="font-size: 13px;">If you encountered any problems, found a bug, or have suggestions for
-                        improvement, we'd love to hear from you!</p>
-                </div>
-
-                <!-- Column 4: Spread the Word -->
-                <div class="footer-widget spread-col">
-                    <h4>🗣️ Help Us Spread the Word</h4>
-                    <p style="font-size: 13px;">If you find this tool useful, share it with your network! <br><a
-                            href="https://genai.owasp.org/" target="_blank" rel="noopener noreferrer"
-                            style="color: #3498db;">https://genai.owasp.org/</a></p>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://huggingface.co/spaces/GenAISecurityProject/OWASP-AIBOM-Generator"
-                        target="_blank" rel="noopener noreferrer" class="social-share-btn-footer">
-                        🔗 Share on LinkedIn
-                    </a>
-                </div>
-            </div>
-
-            <div class="footer-bottom">
-                <div class="sbom-count" style="margin-bottom: 5px; color: #7f8c8d;">🚀 Generated AIBOMs using this tool:
-                    <strong>{{ sbom_count if sbom_count else 'N/A' }}</strong>
-                </div>
-                <p style="margin: 0;">© 2026 OWASP GenAI Security Project - AIBOM Initiative</p>
-            </div>
-        </div>
+        <!-- Modern Footer -->
+        {% include 'includes/footer.html' %}
 
     </div>
 </body>

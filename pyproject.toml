@@ -20,6 +20,9 @@ dependencies = [
     "beautifulsoup4>=4.11.0",
     "datasets>=2.0.0",
     "fastapi>=0.104.0",
+    "flask>=2.3.0",
+    "gunicorn>=21.2.0",
+    "httpx>=0.25.0",
     "huggingface_hub>=0.19.0",
     "jinja2>=3.0.0",
     "jsonschema>=4.17.0",
@@ -40,7 +43,8 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
-    "ruff"
+    "ruff",
+    "gguf>=0.6.0"
 ]
 
 [project.scripts]
@@ -63,4 +67,9 @@ testpaths = [
 ]
 pythonpath = [
     "."
+]
+
+[dependency-groups]
+dev = [
+    "gguf>=0.6.0",
 ]
