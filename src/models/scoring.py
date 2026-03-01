@@ -2,6 +2,7 @@
 import logging
 import re
 import os
+import json
 from typing import Dict, List, Optional, Any, Union
 from enum import Enum
 from .registry import get_field_registry_manager
@@ -30,16 +31,44 @@ except Exception as e:
     VALIDATION_MESSAGES = {}
     SCORING_WEIGHTS = {}
 
+# Load SPDX licenses
+try:
+    schema_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas", "spdx.schema.json")
+    with open(schema_path, "r", encoding="utf-8") as f:
+        _spdx_schema = json.load(f)
+        SPDX_LICENSES = set(_spdx_schema.get("enum", []))
+    logger.info(f"✅ SPDX licenses schema loaded: {len(SPDX_LICENSES)} licenses")
+except Exception as e:
+    logger.error(f"❌ Failed to load SPDX schema: {e}")
+    SPDX_LICENSES = {"MIT", "Apache-2.0", "GPL-3.0-only", "GPL-2.0-only", "LGPL-3.0-only",
+                     "BSD-3-Clause", "BSD-2-Clause", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0",
+                     "Unlicense", "NONE"}
+
+# Build JSON Schema Registry
+JSON_SCHEMA_REGISTRY = None
+try:
+    from referencing import Registry, Resource
+    registry = Registry()
+    schemas_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas")
+    if os.path.exists(schemas_dir):
+        for filename in os.listdir(schemas_dir):
+            if filename.endswith(".json"):
+                with open(os.path.join(schemas_dir, filename), "r", encoding="utf-8") as schema_file:
+                    schema_data = json.load(schema_file)
+                    resource = Resource.from_contents(schema_data)
+                    schema_id = schema_data.get("$id", "")
+                    if schema_id:
+                        registry = registry.with_resource(uri=schema_id, resource=resource)
+                    registry = registry.with_resource(uri=filename, resource=resource)
+        JSON_SCHEMA_REGISTRY = registry
+        logger.info("✅ JSON Schema Registry loaded for local ref resolution")
+except Exception as e:
+    logger.error(f"❌ Failed to build JSON Schema Registry: {e}")
 
 def validate_spdx(license_entry):
-    spdx_licenses = [
-        "MIT", "Apache-2.0", "GPL-3.0-only", "GPL-2.0-only", "LGPL-3.0-only",
-        "BSD-3-Clause", "BSD-2-Clause", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0",
-        "Unlicense", "NONE"
-    ]
     if isinstance(license_entry, list):
-        return all(lic in spdx_licenses for lic in license_entry)
-    return license_entry in spdx_licenses
+        return all(lic in SPDX_LICENSES for lic in license_entry)
+    return license_entry in SPDX_LICENSES
 
 def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
     """
@@ -86,7 +115,7 @@ def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
         if "considerations" in model_card:
             considerations = model_card["considerations"]
             field_mappings = {
-                "limitation": ["technicalLimitations", "limitations"],
+                "technicalLimitations": ["technicalLimitations", "limitations"],
                 "safetyRiskAssessment": ["ethicalConsiderations", "safetyRiskAssessment"],
                 "energyConsumption": ["environmentalConsiderations", "energyConsumption"]
             }
@@ -243,32 +272,66 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
     fields_by_category = {category: {"total": 0, "present": 0} for category in max_scores.keys()}
     field_checklist = {}
     field_types = {}
+    field_reference_urls = {}
+    category_fields_list = {category: [] for category in max_scores.keys()}
 
     # Evaluate fields
     for field, classification in FIELD_CLASSIFICATION.items():
         tier = classification["tier"]
         category = classification["category"]
+        is_gguf = classification.get("is_gguf", False)
+        jsonpath = classification.get("jsonpath", "")
         
         # Ensure category exists in tracking, else fallback or skip? 
         # Ideally FIELD_CLASSIFICATION only contains known categories.
         if category not in fields_by_category:
             fields_by_category[category] = {"total": 0, "present": 0}
-            # Note: if it's a new category not in max_scores, it won't contribute to score unless we adjust max_scores
-        
-        fields_by_category[category]["total"] += 1
+            category_fields_list[category] = []
         
         is_present = check_field_with_enhanced_results(aibom, field, extraction_results)
         
+        if not is_gguf or is_present:
+            fields_by_category[category]["total"] += 1
+            
+            display_path = jsonpath.replace("$.components[0].", "")
+            if display_path.startswith("$."): display_path = display_path[2:]
+            
+            tier_display = {"critical": "Critical", "important": "Important", "supplementary": "Supplementary"}.get(tier, "Unknown")
+            
+            category_fields_list[category].append({
+                "name": field,
+                "tier": tier_display,
+                "path": display_path
+            })
+            
         if is_present:
             fields_by_category[category]["present"] += 1
         else:
-            if tier in missing_fields:
-                missing_fields[tier].append(field)
+            if not is_gguf:
+                if tier in missing_fields:
+                    missing_fields[tier].append(field)
                 
         importance_indicator = "★★★" if tier == "critical" else "★★" if tier == "important" else "★"
         field_checklist[field] = f"{'✔' if is_present else '✘'} {importance_indicator}"
         field_types[field] = classification.get("parameter_type", "CDX")
-
+        ref_urls = classification.get("reference_urls", {})
+        selected_url = ""
+        if isinstance(ref_urls, dict):
+            spec_version = aibom.get("specVersion", "1.6")
+            if spec_version == "1.7" and "cyclonedx_1.7" in ref_urls:
+                selected_url = ref_urls["cyclonedx_1.7"]
+            elif "cyclonedx_1.6" in ref_urls:
+                selected_url = ref_urls["cyclonedx_1.6"]
+                if spec_version == "1.7" and "cyclonedx.org/docs/1.6" in selected_url:
+                    selected_url = selected_url.replace("1.6", "1.7")
+            elif "genai_aibom_taxonomy" in ref_urls:
+                selected_url = ref_urls["genai_aibom_taxonomy"]
+            elif "spdx_3.1" in ref_urls:
+                selected_url = ref_urls["spdx_3.1"]
+        elif isinstance(ref_urls, str):
+            selected_url = ref_urls
+            
+        field_reference_urls[field] = selected_url
     # Calculate category scores
     category_details = {}
     category_scores = {}
@@ -322,7 +385,9 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "max_scores": max_scores,
         "field_checklist": field_checklist,
         "field_types": field_types,
+        "reference_urls": field_reference_urls,
         "missing_fields": missing_fields,
+        "category_fields_list": category_fields_list,
         "completeness_profile": determine_completeness_profile(aibom, final_score),
         "penalty_applied": penalty_factor < 1.0,
         "penalty_reason": " and ".join(penalty_reasons) if penalty_reasons else None,
@@ -363,9 +428,12 @@ def validate_aibom(aibom: Dict[str, Any]) -> Dict[str, Any]:
         schema_path = os.path.join(os.path.dirname(__file__), '..', 'schemas', schema_file)
         
         if os.path.exists(schema_path):
-            with open(schema_path, 'r') as f:
+            with open(schema_path, 'r', encoding="utf-8") as f:
                 schema = json.load(f)
-            jsonschema.validate(instance=aibom, schema=schema)
+            if JSON_SCHEMA_REGISTRY is not None:
+                jsonschema.validate(instance=aibom, schema=schema, registry=JSON_SCHEMA_REGISTRY)
+            else:
+                jsonschema.validate(instance=aibom, schema=schema)
         else:
              # If schema missing, warn but don't fail hard
              issues.append({"severity": "warning", "message": f"Schema file not found: {schema_file}, skipping strict validation."})

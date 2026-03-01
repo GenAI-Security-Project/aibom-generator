@@ -10,6 +10,7 @@ PyYAML>=6.0.1
 flask>=2.3.0
 gunicorn>=21.2.0
 cyclonedx-python-lib>=11.6.0
+packageurl-python>=0.17.6
 python-multipart
 jinja2>=3.0.0
 datasets>=2.0.0
@@ -18,9 +19,9 @@ nltk>=3.8.0
 python-dateutil>=2.8.0
 jsonschema>=4.17.0
 sentencepiece>=0.1.99
-packageurl-python>=0.11.1
 
 # Test dependencies
 pytest>=7.0.0
 pytest-mock>=3.10.0
 pytest-cov>=4.0.0
+gguf>=0.6.0

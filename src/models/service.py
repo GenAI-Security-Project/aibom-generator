@@ -20,6 +20,7 @@ from huggingface_hub import HfApi, ModelCard
 from huggingface_hub.repocard_data import EvalResult
 
 from .extractor import EnhancedExtractor
+from .model_file_extractors import ModelFileExtractor, default_extractors
 from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
 from .schemas import AIBOMResponse, EnhancementReport
@@ -41,6 +42,7 @@ class AIBOMService:
         inference_model_url: Optional[str] = None,
         use_inference: bool = True,
         use_best_practices: bool = True,
+        model_file_extractors: Optional[List[ModelFileExtractor]] = None,
     ):
         self.hf_api = HfApi(token=hf_token)
         self.inference_model_url = inference_model_url
@@ -48,6 +50,10 @@ class AIBOMService:
         self.use_best_practices = use_best_practices
         self.enhancement_report = None
         self.extraction_results = {}
+        self.model_file_extractors = (
+            model_file_extractors if model_file_extractors is not None
+            else default_extractors()
+        )
         
         # Initialize registry manager
         try:
@@ -147,7 +153,7 @@ class AIBOMService:
 
     def _extract_metadata(self, model_id: str, model_info: Dict[str, Any], model_card: Optional[ModelCard], enable_summarization: bool = False) -> Dict[str, Any]:
         """Wrapper around EnhancedExtractor"""
-        extractor = EnhancedExtractor(self.hf_api) # Pass hfapi instance
+        extractor = EnhancedExtractor(self.hf_api, model_file_extractors=self.model_file_extractors)
         # Ideally we reuse the registry manager
         if self.registry_manager:
             extractor.registry_manager = self.registry_manager
@@ -156,24 +162,34 @@ class AIBOMService:
         metadata = extractor.extract_metadata(model_id, model_info, model_card, enable_summarization=enable_summarization)
         self.extraction_results = extractor.extraction_results
         return metadata
-
-    def _generate_hf_purl(self, model_id: str, version: str) -> str:
-        """Helper to generate consistent Hugging Face PURLs"""
-        parts = model_id.split("/")
-        if len(parts) > 1:
-            group = parts[0]
-            name = "/".join(parts[1:])
-        else:
-            group = None
-            name = model_id
+    
+    def _generate_purl(self, model_id: str, version: str, purl_type: str = "huggingface") -> str:
+        """Generate PURL using packageurl-python library
+        
+        Args:
+            model_id: Model identifier (e.g., "owner/model" or "model")
+            version: Version string
+            purl_type: PURL type (default: "huggingface", also supports "generic")
             
-        return PackageURL(type='huggingface', namespace=group, name=name, version=version).to_string()
+        Returns:
+            PURL string in format pkg:type/namespace/name@version
+        """
+        parts = model_id.split("/", 1)
+        namespace = parts[0] if len(parts) == 2 else None
+        name = parts[1] if len(parts) == 2 else parts[0]
+        purl = PackageURL(type=purl_type, namespace=namespace, name=name, version=version)
+        return purl.to_string()
+
+    def _get_tool_purl(self) -> str:
+        """Get PURL for OWASP AIBOM Generator tool"""
+        purl = PackageURL(type="generic", namespace="owasp-genai", name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION)
+        return purl.to_string()
 
     def _get_tool_metadata(self) -> Dict[str, Any]:
         """Generate the standardized tool metadata for the AIBOM Generator"""
         return {
             "components": [{
-                "bom-ref": PackageURL(type='generic', namespace='owasp-genai', name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION).to_string(),
+                "bom-ref": self._get_tool_purl(),
                 "type": "application",
                 "name": AIBOM_GEN_NAME,
                 "version": AIBOM_GEN_VERSION,
@@ -378,12 +394,10 @@ class AIBOMService:
         comp_mfr = overrides.get("manufacturer") or default_mfr
         
         # Normalize for PURL (replace spaces with - or similar if needed, but minimal change is best)
-        # PURL: pkg:generic/namespace/name@version
-        # namespace = manufacturer
         purl_ns = comp_mfr.replace(" ", "-") # simplistic sanitation
         purl_name = comp_name.replace(" ", "-")
-        purl = PackageURL(type='generic', namespace=purl_ns, name=purl_name, version=comp_version).to_string()
-        
+        purl = PackageURL(type="generic", namespace=purl_ns, name=purl_name, version=comp_version).to_string()
+
         tools = {"tools": self._get_tool_metadata()}
         
         authors = []
@@ -415,12 +429,8 @@ class AIBOMService:
         name = parts[1] if len(parts) > 1 else parts[0]
         full_commit = metadata.get("commit")
         version = full_commit[:8] if full_commit else "1.0"
-        
-        # PURL Construction: pkg:huggingface/<group>/<name>@<version>
-        # Ensure group and name are URL encoded, separated by /, and preserve case
-        
-        purl = PackageURL(type='huggingface', namespace=group if group else None, name=name, version=version).to_string()
-            
+        purl = self._generate_purl(model_id, version)
+
         component = {
             "bom-ref": purl,
             "type": "machine-learning-model",
@@ -567,12 +577,12 @@ class AIBOMService:
         return authors, manufacturer, supplier
 
     def _process_technical_properties(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract technical properties from metadata."""
         tech_props = []
-        for field in ["model_type", "tokenizer_class", "architectures", "library_name"]:
+        for field in ["model_type", "architectures", "library_name"]:
             if field in metadata:
                 val = metadata[field]
-                if isinstance(val, list): val = ", ".join(val)
+                if isinstance(val, list):
+                    val = ", ".join(val)
                 tech_props.append({"name": field, "value": str(val)})
         return tech_props
 
@@ -698,9 +708,9 @@ class AIBOMService:
         # intendedUse -> useCases
         if "intendedUse" in metadata:
              considerations["useCases"] = [metadata["intendedUse"]]
-        # limitations -> technicalLimitations
-        if "limitations" in metadata:
-             considerations["technicalLimitations"] = [metadata["limitations"]]
+        # technicalLimitations
+        if "technicalLimitations" in metadata:
+             considerations["technicalLimitations"] = [metadata["technicalLimitations"]]
         # ethicalConsiderations
         if "ethicalConsiderations" in metadata:
              considerations["ethicalConsiderations"] = [{"name": "Ethical Considerations", "description": metadata["ethicalConsiderations"]}]
@@ -708,16 +718,53 @@ class AIBOMService:
         if considerations:
             section["considerations"] = considerations
 
-        # 4. Properties (Generic Bag for leftovers)
+        # 4. Properties (GGUF & Taxonomy + Leftovers)
         props = []
-        # Fields we've already mapped to structured homes
+        
+        taxonomy_modelcard_mapping = {
+            "hyperparameter": "hyperparameter",
+            "vocab_size": "vocabSize",
+            "tokenizer_class": "tokenizerClass",
+            "context_length": "contextLength",
+            "embedding_length": "embeddingLength",
+            "block_count": "blockCount",
+            "attention_head_count": "attentionHeadCount",
+            "attention_head_count_kv": "attentionHeadCountKV",
+            "feed_forward_length": "feedForwardLength",
+            "rope_dimension_count": "ropeDimensionCount",
+            "quantization_version": "quantizationVersion",
+            "quantization_file_type": "quantizationFileType",
+            "modelExplainability": "modelCardExplainability"
+        }
+        
+        taxonomy_mapped_keys = list(taxonomy_modelcard_mapping.keys())
+        
+        for p_key, p_name in taxonomy_modelcard_mapping.items():
+            if p_key in metadata:
+                val = metadata[p_key]
+                if p_key == "hyperparameter" and isinstance(val, dict):
+                    props.append({"name": f"genai:aibom:modelcard:{p_name}", "value": json.dumps(val)})
+                elif val is not None:
+                    props.append({"name": f"genai:aibom:modelcard:{p_name}", "value": str(val)})
+        
+        # Quantization dict handling
+        if "quantization" in metadata and isinstance(metadata["quantization"], dict):
+            q_dict = metadata["quantization"]
+            if "version" in q_dict:
+                props.append({"name": "genai:aibom:modelcard:quantizationVersion", "value": str(q_dict["version"])})
+            if "file_type" in q_dict:
+                props.append({"name": "genai:aibom:modelcard:quantizationFileType", "value": str(q_dict["file_type"])})
+            taxonomy_mapped_keys.append("quantization")
+
+        # Basic Fields we've already mapped to structured homes
         mapped_fields = [
-            "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse", 
-            "limitations", "ethicalConsiderations", "datasets", "eval_results", 
-            "pipeline_tag", "name", "author", "license", "description", 
-            "commit", "bomFormat", "specVersion", "version", "licenses", 
-            "external_references", "tags", "library_name", "paper", "downloadLocation"
-        ]
+            "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
+            "technicalLimitations", "ethicalConsiderations", "datasets", "eval_results",
+            "pipeline_tag", "name", "author", "license", "description",
+            "commit", "bomFormat", "specVersion", "version", "licenses",
+            "external_references", "tags", "library_name", "paper", "downloadLocation",
+            "gguf_filename", "gguf_license", "model_type", "architectures"
+        ] + taxonomy_mapped_keys
         
         for k, v in metadata.items():
             if k not in mapped_fields and v is not None:
