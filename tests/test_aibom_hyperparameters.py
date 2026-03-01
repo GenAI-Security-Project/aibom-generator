@@ -11,10 +11,9 @@ class TestHyperparametersAppearInAIBOM:
         fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_GGUF_METADATA)
         service = AIBOMService(model_file_extractors=[fake])
         aibom = service.generate_aibom("owner/model")
-        props = aibom["components"][0]["properties"]
+        props = aibom["components"][0]["modelCard"]["properties"]
         prop_names = [p["name"] for p in props]
-        assert "hyperparameter:context_length" in prop_names
-        assert "hyperparameter:block_count" in prop_names
+        assert "genai:aibom:modelcard:hyperparameter" in prop_names
 
 
 class TestQuantizationAppearsInAIBOM:
@@ -25,10 +24,10 @@ class TestQuantizationAppearsInAIBOM:
         fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_GGUF_METADATA)
         service = AIBOMService(model_file_extractors=[fake])
         aibom = service.generate_aibom("owner/model")
-        props = aibom["components"][0]["properties"]
+        props = aibom["components"][0]["modelCard"]["properties"]
         prop_names = [p["name"] for p in props]
-        assert "quantization:version" in prop_names
-        assert "quantization:file_type" in prop_names
+        assert "genai:aibom:modelcard:quantizationVersion" in prop_names
+        assert "genai:aibom:modelcard:quantizationFileType" in prop_names
 
 
 class TestAIBOMWithoutModelFileData:
@@ -39,6 +38,6 @@ class TestAIBOMWithoutModelFileData:
         fake = FakeModelFileExtractor(can=False)
         service = AIBOMService(model_file_extractors=[fake])
         aibom = service.generate_aibom("owner/model")
-        props = aibom["components"][0].get("properties", [])
+        props = aibom["components"][0].get("modelCard", {}).get("properties", [])
         prop_names = [p["name"] for p in props]
-        assert not any(name.startswith("hyperparameter:") for name in prop_names)
+        assert not any(name == "genai:aibom:modelcard:hyperparameter" for name in prop_names)

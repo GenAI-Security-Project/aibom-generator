@@ -107,7 +107,8 @@ class FieldRegistryManager:
                 "tier": field_config.get("tier", "supplementary"),
                 "weight": field_config.get("weight", 1),
                 "category": field_config.get("category", "unknown"),
-                "parameter_type": param_type
+                "parameter_type": param_type,
+                "reference_urls": field_config.get("reference_urls", {})
             }
         
         self._field_classification = classification

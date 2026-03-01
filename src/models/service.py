@@ -479,33 +479,12 @@ class AIBOMService:
 
     def _process_technical_properties(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         tech_props = []
-        for field in ["model_type", "tokenizer_class", "architectures", "library_name"]:
+        for field in ["model_type", "architectures", "library_name"]:
             if field in metadata:
                 val = metadata[field]
                 if isinstance(val, list):
                     val = ", ".join(val)
                 tech_props.append({"name": field, "value": str(val)})
-
-        if "hyperparameter" in metadata and isinstance(metadata["hyperparameter"], dict):
-            for param_name, param_value in metadata["hyperparameter"].items():
-                if param_value is not None:
-                    tech_props.append({
-                        "name": f"hyperparameter:{param_name}",
-                        "value": str(param_value),
-                    })
-
-        if "quantization" in metadata and isinstance(metadata["quantization"], dict):
-            for q_name, q_value in metadata["quantization"].items():
-                if q_value is not None:
-                    tech_props.append({
-                        "name": f"quantization:{q_name}",
-                        "value": str(q_value),
-                    })
-
-        for scalar_field in ["context_length", "vocab_size"]:
-            if scalar_field in metadata and metadata[scalar_field] is not None:
-                tech_props.append({"name": scalar_field, "value": str(metadata[scalar_field])})
-
         return tech_props
 
     def _process_external_references(self, model_id: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -640,18 +619,53 @@ class AIBOMService:
         if considerations:
             section["considerations"] = considerations
 
-        # 4. Properties (Generic Bag for leftovers)
+        # 4. Properties (GGUF & Taxonomy + Leftovers)
         props = []
-        # Fields we've already mapped to structured homes
+        
+        taxonomy_modelcard_mapping = {
+            "hyperparameter": "hyperparameter",
+            "vocab_size": "vocabSize",
+            "tokenizer_class": "tokenizerClass",
+            "context_length": "contextLength",
+            "embedding_length": "embeddingLength",
+            "block_count": "blockCount",
+            "attention_head_count": "attentionHeadCount",
+            "attention_head_count_kv": "attentionHeadCountKV",
+            "feed_forward_length": "feedForwardLength",
+            "rope_dimension_count": "ropeDimensionCount",
+            "quantization_version": "quantizationVersion",
+            "quantization_file_type": "quantizationFileType",
+            "modelExplainability": "modelCardExplainability"
+        }
+        
+        taxonomy_mapped_keys = list(taxonomy_modelcard_mapping.keys())
+        
+        for p_key, p_name in taxonomy_modelcard_mapping.items():
+            if p_key in metadata:
+                val = metadata[p_key]
+                if p_key == "hyperparameter" and isinstance(val, dict):
+                    props.append({"name": f"genai:aibom:modelcard:{p_name}", "value": json.dumps(val)})
+                elif val is not None:
+                    props.append({"name": f"genai:aibom:modelcard:{p_name}", "value": str(val)})
+        
+        # Quantization dict handling
+        if "quantization" in metadata and isinstance(metadata["quantization"], dict):
+            q_dict = metadata["quantization"]
+            if "version" in q_dict:
+                props.append({"name": "genai:aibom:modelcard:quantizationVersion", "value": str(q_dict["version"])})
+            if "file_type" in q_dict:
+                props.append({"name": "genai:aibom:modelcard:quantizationFileType", "value": str(q_dict["file_type"])})
+            taxonomy_mapped_keys.append("quantization")
+
+        # Basic Fields we've already mapped to structured homes
         mapped_fields = [
             "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
             "limitations", "ethicalConsiderations", "datasets", "eval_results",
             "pipeline_tag", "name", "author", "license", "description",
             "commit", "bomFormat", "specVersion", "version", "licenses",
             "external_references", "tags", "library_name", "paper", "downloadLocation",
-            "hyperparameter", "quantization", "context_length", "vocab_size",
-            "gguf_filename", "gguf_license",
-        ]
+            "gguf_filename", "gguf_license", "model_type", "architectures"
+        ] + taxonomy_mapped_keys
         
         for k, v in metadata.items():
             if k not in mapped_fields and v is not None:

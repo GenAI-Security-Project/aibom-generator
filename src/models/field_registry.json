@@ -139,6 +139,11 @@
       "validation_message": {
         "missing": "Missing critical field: bomFormat - essential for SBOM identification",
         "recommendation": "Ensure bomFormat is set to 'CycloneDX'"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#bomFormat",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#bomFormat",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/core/"
       }
     },
     "datasets": {
@@ -169,6 +174,11 @@
       "validation_message": {
         "missing": "Missing field: datasets - training data information important for transparency",
         "recommendation": "Add information about the datasets used to train the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_modelParameters_datasets",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_modelParameters_datasets",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/dataset/"
       }
     },
     "paper": {
@@ -204,6 +214,11 @@
       "validation_message": {
         "missing": "No research paper link found",
         "recommendation": "Add ArXiv tag or paper link to model card"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_externalReferences",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_externalReferences",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "vcs": {
@@ -240,6 +255,11 @@
       "validation_message": {
         "missing": "No VCS link found",
         "recommendation": "Add repository link to model card"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_externalReferences",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_externalReferences",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "website": {
@@ -276,6 +296,11 @@
       "validation_message": {
         "missing": "No website link found",
         "recommendation": "Add website link to model card"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_externalReferences",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_externalReferences",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "specVersion": {
@@ -305,6 +330,11 @@
       "validation_message": {
         "missing": "Missing critical field: specVersion - required for CycloneDX compliance",
         "recommendation": "Set specVersion to '1.6' for CycloneDX 1.6 compliance"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#specVersion",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#specVersion",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/core/"
       }
     },
     "serialNumber": {
@@ -334,6 +364,11 @@
       "validation_message": {
         "missing": "Missing critical field: serialNumber - unique identifier required",
         "recommendation": "Generate a UUID for the SBOM instance"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#serialNumber",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#serialNumber",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/core/"
       }
     },
     "version": {
@@ -363,6 +398,11 @@
       "validation_message": {
         "missing": "Missing critical field: version - document version required",
         "recommendation": "Set version to 1 for initial SBOM generation"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#version",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#version",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/core/"
       }
     },
     "primaryPurpose": {
@@ -393,6 +433,11 @@
       "validation_message": {
         "missing": "Missing critical field: primaryPurpose - essential for understanding model intent",
         "recommendation": "Add the primary task or purpose of the AI model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_modelParameters_approach",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_modelParameters_approach",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "suppliedBy": {
@@ -423,6 +468,11 @@
       "validation_message": {
         "missing": "Missing critical field: suppliedBy - supplier identification required",
         "recommendation": "Add the organization or individual who provided the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_supplier",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_supplier",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/"
       }
     },
     "standardCompliance": {
@@ -451,6 +501,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: standardCompliance - compliance information helpful",
         "recommendation": "Add any relevant standards or regulations the model complies with"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-standardCompliance",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "external_references": {
@@ -480,6 +534,11 @@
       "validation_message": {
         "missing": "Missing supplementary field: external_references - additional references helpful",
         "recommendation": "Add links to papers, documentation, or other resources"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_externalReferences",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_externalReferences",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "domain": {
@@ -509,6 +568,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: domain - application domain helpful for context",
         "recommendation": "Add the domain or field where this model is typically applied"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-domain",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "autonomyType": {
@@ -537,6 +600,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: autonomyType - autonomy level information helpful",
         "recommendation": "Add information about the level of human oversight required"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-autonomyType",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "name": {
@@ -567,6 +634,11 @@
       "validation_message": {
         "missing": "Missing critical field: name - essential for model identification",
         "recommendation": "Add a descriptive name for the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_name",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_name",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/"
       }
     },
     "type": {
@@ -596,6 +668,11 @@
       "validation_message": {
         "missing": "Missing field: type - component type classification needed",
         "recommendation": "Set type to 'machine-learning-model' for AI models"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_type",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_type",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/"
       }
     },
     "component_version": {
@@ -625,6 +702,11 @@
       "validation_message": {
         "missing": "Missing field: version - component version needed",
         "recommendation": "Set an appropriate version for the component"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_version",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_version",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/"
       }
     },
     "purl": {
@@ -654,6 +736,11 @@
       "validation_message": {
         "missing": "Missing field: purl - package URL for identification",
         "recommendation": "Add a Package URL (PURL) for the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_purl",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_purl",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/Package/"
       }
     },
     "description": {
@@ -683,6 +770,11 @@
       "validation_message": {
         "missing": "Missing field: description - model description helpful for understanding",
         "recommendation": "Add a clear description of what the model does"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_description",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_description",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/software/"
       }
     },
     "licenses": {
@@ -712,6 +804,11 @@
       "validation_message": {
         "missing": "Missing field: licenses - license information important for compliance",
         "recommendation": "Add license information for the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_licenses",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_licenses",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/simple_licensing/"
       }
     },
     "ethicalConsiderations": {
@@ -741,6 +838,11 @@
       "validation_message": {
         "missing": "Missing field: ethicalConsiderations - ethical information is critical",
         "recommendation": "Add ethical considerations or fairness assessments"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_ethicalConsiderations",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_ethicalConsiderations",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "energyConsumption": {
@@ -769,6 +871,11 @@
       "validation_message": {
         "missing": "Missing field: energyConsumption - energy usage information helpful for sustainability",
         "recommendation": "Add information about the model's energy consumption"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "hyperparameter": {
@@ -776,7 +883,7 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Key hyperparameters of the model architecture",
-      "jsonpath": "$.components[0].properties[?(@.name=~'hyperparameter:.*')]",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:hyperparameter')].value",
       "aibom_generation": {
         "location": "$.metadata.properties",
         "rule": "include_if_available",
@@ -798,6 +905,10 @@
       "validation_message": {
         "missing": "Missing field: hyperparameter - training configuration helpful for reproducibility",
         "recommendation": "Add key hyperparameters used during model training"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-hyperparameter",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "limitation": {
@@ -827,6 +938,11 @@
       "validation_message": {
         "missing": "Missing field: limitation - limitations information helpful for safety",
         "recommendation": "Add known limitations of the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_technicalLimitations",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_technicalLimitations",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "safetyRiskAssessment": {
@@ -856,6 +972,10 @@
       "validation_message": {
         "missing": "Missing field: safetyRiskAssessment - safety assessment important for responsible deployment",
         "recommendation": "Add safety and risk assessment information"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-safetyRiskAssessment",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "intendedUse": {
@@ -885,6 +1005,11 @@
       "validation_message": {
         "missing": "Missing field: intendedUse - intended use information helpful for context",
         "recommendation": "Add intended use cases for the model"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_useCases",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_useCases",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "typeOfModel": {
@@ -914,6 +1039,11 @@
       "validation_message": {
         "missing": "Missing field: typeOfModel - model architecture information helpful",
         "recommendation": "Add the type or architecture of the model (e.g., Transformer, CNN)"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_modelParameters_approach",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_modelParameters_approach",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "modelExplainability": {
@@ -921,7 +1051,7 @@
       "weight": 1.0,
       "category": "component_model_card",
       "description": "Information about model explainability",
-      "jsonpath": "$.metadata.properties[?(@.name=='modelExplainability')].value",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:modelCardExplainability')].value",
       "aibom_generation": {
         "location": "$.metadata.properties",
         "rule": "include_if_available",
@@ -943,6 +1073,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: modelExplainability - explainability information helpful for transparency",
         "recommendation": "Add information about model explainability or interpretability features"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-modelExplainability",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "energyQuantity": {
@@ -971,6 +1105,11 @@
       "validation_message": {
         "missing": "Missing supplementary field: energyQuantity - quantitative energy data helpful for sustainability metrics",
         "recommendation": "Add specific energy consumption quantities"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions_items_activityEnergyCost_value",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions_items_activityEnergyCost_value",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "energyUnit": {
@@ -999,6 +1138,11 @@
       "validation_message": {
         "missing": "Missing supplementary field: energyUnit - energy measurement unit helpful for standardization",
         "recommendation": "Add the unit of measurement for energy consumption (e.g., kWh, Joules)"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions_items_activityEnergyCost_unit",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_environmentalConsiderations_energyConsumptions_items_activityEnergyCost_unit",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "informationAboutTraining": {
@@ -1028,6 +1172,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: informationAboutTraining - training details helpful for understanding model development",
         "recommendation": "Add information about the training process and methodology"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-informationAboutTraining",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "informationAboutApplication": {
@@ -1057,6 +1205,11 @@
       "validation_message": {
         "missing": "Missing supplementary field: informationAboutApplication - application guidance helpful for proper usage",
         "recommendation": "Add information about intended applications and use cases"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_considerations_useCases",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_considerations_useCases",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "metric": {
@@ -1086,6 +1239,11 @@
       "validation_message": {
         "missing": "Missing supplementary field: metric - performance metrics helpful for evaluation",
         "recommendation": "Add performance metrics and evaluation results"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_modelCard_quantitativeAnalysis_performanceMetrics",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_modelCard_quantitativeAnalysis_performanceMetrics",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
       }
     },
     "metricDecisionThreshold": {
@@ -1115,6 +1273,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: metricDecisionThreshold - decision thresholds helpful for operational guidance",
         "recommendation": "Add decision thresholds for performance metrics"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-metricDecisionThreshold",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "modelDataPreprocessing": {
@@ -1144,6 +1306,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: modelDataPreprocessing - preprocessing details helpful for reproducibility",
         "recommendation": "Add information about data preprocessing steps"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-modelDataPreprocessing",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "useSensitivePersonalInformation": {
@@ -1173,6 +1339,10 @@
       "validation_message": {
         "missing": "Missing supplementary field: useSensitivePersonalInformation - privacy information important for compliance",
         "recommendation": "Add information about use of sensitive or personal data"
+      },
+      "reference_urls": {
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/model/AI/Classes/AIPackage/#AI-useSensitivePersonalInformation",
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     },
     "downloadLocation": {
@@ -1203,6 +1373,341 @@
       "validation_message": {
         "missing": "Missing field: downloadLocation - model download URL required",
         "recommendation": "Add a URL where the model can be downloaded"
+      },
+      "reference_urls": {
+        "cyclonedx_1.6": "https://cyclonedx.org/docs/1.6/json/#components_items_externalReferences",
+        "cyclonedx_1.7": "https://cyclonedx.org/docs/1.7/json/#components_items_externalReferences",
+        "spdx_3.1": "https://spdx.github.io/spdx-spec/v3.1-RC1/ai/"
+      }
+    },
+    "vocab_size": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Expected size of the model's vocabulary",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:vocabSize')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "vocab_size"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: vocab_size - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Vocabulary Size"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "tokenizer_class": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "The specific tokenizer class or method used",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:tokenizerClass')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "tokenizer_class"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: tokenizer_class - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Tokenizer Class"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "context_length": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Maximum context length or sequence length supported",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:contextLength')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "context_length"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: context_length - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Context Length"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "embedding_length": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Vector length of the token embeddings",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:embeddingLength')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "embedding_length"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: embedding_length - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Embedding Length"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "block_count": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Number of transformer blocks or layers",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:blockCount')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "block_count"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: block_count - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Block Count"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "attention_head_count": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Number of attention heads in the model",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:attentionHeadCount')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "attention_head_count"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: attention_head_count - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Attention Head Count"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "attention_head_count_kv": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Number of Key-Value attention heads",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:attentionHeadCountKV')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "attention_head_count_kv"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: attention_head_count_kv - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Attention Head Count KV"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "feed_forward_length": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Dimensionality of the feed-forward network",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:feedForwardLength')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "feed_forward_length"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: feed_forward_length - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Feed Forward Length"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "rope_dimension_count": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Number of dimensions for Rotary Position Embedding (RoPE)",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:ropeDimensionCount')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "rope_dimension_count"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: rope_dimension_count - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add RoPE Dimension Count"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "quantization_version": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Version or specification identifier of the quantization format",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:quantizationVersion')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "quantization_version"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: quantization_version - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Quantization Version"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
+      }
+    },
+    "quantization_file_type": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Enum or integer identifier for the quantization bit-precision (e.g. Q4_K_M)",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='genai:aibom:modelcard:quantizationFileType')].value",
+      "aibom_generation": {
+        "location": "$.components[0].properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "quantization_file_type"
+        ],
+        "validation": "optional",
+        "data_type": "integer"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: quantization_file_type - GGUF model properties helpful for reproducibility",
+        "recommendation": "Add Quantization File Type"
+      },
+      "reference_urls": {
+        "genai_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy"
       }
     }
   }

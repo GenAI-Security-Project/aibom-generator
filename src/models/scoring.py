@@ -272,6 +272,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
     fields_by_category = {category: {"total": 0, "present": 0} for category in max_scores.keys()}
     field_checklist = {}
     field_types = {}
+    field_reference_urls = {}
 
     # Evaluate fields
     for field, classification in FIELD_CLASSIFICATION.items():
@@ -297,6 +298,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         importance_indicator = "★★★" if tier == "critical" else "★★" if tier == "important" else "★"
         field_checklist[field] = f"{'✔' if is_present else '✘'} {importance_indicator}"
         field_types[field] = classification.get("parameter_type", "CDX")
+        field_reference_urls[field] = classification.get("reference_urls", {})
 
     # Calculate category scores
     category_details = {}
@@ -351,6 +353,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "max_scores": max_scores,
         "field_checklist": field_checklist,
         "field_types": field_types,
+        "reference_urls": field_reference_urls,
         "missing_fields": missing_fields,
         "completeness_profile": determine_completeness_profile(aibom, final_score),
         "penalty_applied": penalty_factor < 1.0,

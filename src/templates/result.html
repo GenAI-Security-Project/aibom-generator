@@ -164,8 +164,9 @@
                     {% set quant_props = [] %}
                     {% if aibom.components[0].properties %}
                     {% for prop in aibom.components[0].properties %}
-                        {% if prop.name.startswith('hyperparameter:') %}{% if hp_props.append(prop) %}{% endif %}{% endif %}
-                        {% if prop.name.startswith('quantization:') %}{% if quant_props.append(prop) %}{% endif %}{% endif %}
+                    {% if prop.name.startswith('hyperparameter:') %}{% if hp_props.append(prop) %}{% endif %}{% endif %}
+                    {% if prop.name.startswith('quantization:') %}{% if quant_props.append(prop) %}{% endif %}{% endif
+                    %}
                     {% endfor %}
                     {% endif %}
                     {% if hp_props %}
@@ -173,7 +174,8 @@
                         <span class="property-name">Hyperparameters:</span>
                         <span class="property-value">
                             {% for prop in hp_props %}
-                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value }}</span>
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value
+                                }}</span>
                             {% endfor %}
                         </span>
                     </div>
@@ -183,7 +185,8 @@
                         <span class="property-name">Quantization:</span>
                         <span class="property-value">
                             {% for prop in quant_props %}
-                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value }}</span>
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value
+                                }}</span>
                             {% endfor %}
                         </span>
                     </div>
@@ -288,8 +291,16 @@
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-critical"></span> Critical</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -350,8 +361,16 @@
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -416,8 +435,16 @@
                                         {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -449,11 +476,11 @@
                             </thead>
                             <tbody>
                                 {% set model_card_fields = [
+                                ('limitation', 'Important'),
+                                ('typeOfModel', 'Important'),
                                 ('energyConsumption', 'Important'),
                                 ('hyperparameter', 'Important'),
-                                ('limitation', 'Important'),
                                 ('safetyRiskAssessment', 'Important'),
-                                ('typeOfModel', 'Important'),
                                 ('modelExplainability', 'Supplementary'),
                                 ('energyQuantity', 'Supplementary'),
                                 ('energyUnit', 'Supplementary'),
@@ -491,7 +518,16 @@
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -550,8 +586,16 @@
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

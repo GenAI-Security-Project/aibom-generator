@@ -20,6 +20,8 @@ def main():
 
     if args.test:
         test_models = [
+            "unsloth/Qwen3.5-35B-A3B-GGUF",
+            "LocoreMind/LocoOperator-4B",
             "Qwen/Qwen3.5-397B-A17B",
             "nvidia/personaplex-7b-v1",
             "Nanbeige/Nanbeige4.1-3B",
