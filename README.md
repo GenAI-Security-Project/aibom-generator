@@ -37,7 +37,7 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 
 ### 1. Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 Or, if you prefer [uv](https://docs.astral.sh/uv/) for faster dependency management:
