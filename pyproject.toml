@@ -18,6 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "beautifulsoup4>=4.11.0",
+    "cyclonedx-python-lib>=11.6.0",
     "datasets>=2.0.0",
     "fastapi>=0.104.0",
     "flask>=2.3.0",
