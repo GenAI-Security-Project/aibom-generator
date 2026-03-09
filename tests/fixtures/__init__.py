@@ -1,7 +1,7 @@
 import hashlib
 import os
 import tempfile
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from gguf import GGUFWriter
 
@@ -135,3 +135,68 @@ def get_full_gguf_bytes() -> bytes:
         quantization_version=2,
         file_type=7,
     )
+
+
+def build_safetensors_fixture(
+    *,
+    vocab_size: int = 256,
+    hidden_size: int = 64,
+    num_layers: int = 2,
+    intermediate_size: int = 128,
+    num_attention_heads: int = 4,
+    num_kv_heads: int = 2,
+    model_type: str = "llama",
+) -> Tuple[bytes, dict]:
+    """Build a real safetensors file + matching config.json dict.
+
+    Returns (safetensors_bytes, config_dict) for testing the full
+    extraction pipeline against actual binary data.
+    """
+    import torch
+    from safetensors.torch import save
+
+    head_dim = hidden_size // num_attention_heads
+    tensors = {}
+    tensors["model.embed_tokens.weight"] = torch.zeros(
+        vocab_size, hidden_size, dtype=torch.bfloat16
+    )
+    for layer_idx in range(num_layers):
+        prefix = f"model.layers.{layer_idx}"
+        tensors[f"{prefix}.self_attn.q_proj.weight"] = torch.zeros(
+            hidden_size, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.self_attn.k_proj.weight"] = torch.zeros(
+            num_kv_heads * head_dim, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.self_attn.v_proj.weight"] = torch.zeros(
+            num_kv_heads * head_dim, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.self_attn.o_proj.weight"] = torch.zeros(
+            hidden_size, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.mlp.gate_proj.weight"] = torch.zeros(
+            intermediate_size, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.mlp.up_proj.weight"] = torch.zeros(
+            intermediate_size, hidden_size, dtype=torch.bfloat16
+        )
+        tensors[f"{prefix}.mlp.down_proj.weight"] = torch.zeros(
+            hidden_size, intermediate_size, dtype=torch.bfloat16
+        )
+    tensors["model.norm.weight"] = torch.zeros(hidden_size, dtype=torch.bfloat16)
+    tensors["lm_head.weight"] = torch.zeros(
+        vocab_size, hidden_size, dtype=torch.bfloat16
+    )
+
+    safetensors_bytes = save(tensors)
+    config = {
+        "model_type": model_type,
+        "num_hidden_layers": num_layers,
+        "hidden_size": hidden_size,
+        "intermediate_size": intermediate_size,
+        "num_attention_heads": num_attention_heads,
+        "num_key_value_heads": num_kv_heads,
+        "max_position_embeddings": 2048,
+        "vocab_size": vocab_size,
+    }
+    return safetensors_bytes, config
