@@ -10,6 +10,7 @@ __pycache__/
 .env
 venv/
 .venv/
+.venv-*/
 env/
 dist/
 build/
