@@ -1,6 +1,9 @@
 import argparse
+import logging
 import sys
 from .controllers.cli_controller import CLIController
+
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="OWASP AIBOM Generator CLI")
@@ -13,9 +16,12 @@ def main():
     parser.add_argument("--name", "-n", help="Component name in metadata")
     parser.add_argument("--version", "-v", help="Component version in metadata")
     parser.add_argument("--manufacturer", "-m", help="Component manufacturer/supplier in metadata")
-    
+
     args = parser.parse_args()
-    
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
     controller = CLIController()
 
     if args.test:
@@ -36,22 +42,22 @@ def main():
             "CIRCL/vulnerability-severity-classification-roberta-base"
         ]
         
-        print(f"Running test mode against {len(test_models)} models...")
+        logger.info("Running test mode against %d models...", len(test_models))
         for model in test_models:
-            print(f"\n{'='*50}\nTesting model: {model}\n{'='*50}")
+            logger.info("Testing model: %s", model)
             try:
                 controller.generate(
                     model_id=model,
                     output_file=args.output,
                     include_inference=args.inference,
-                    enable_summarization=True,  # Ensure summarization is on for testing description 
+                    enable_summarization=True,  # Ensure summarization is on for testing description
                     verbose=args.verbose,
                     name=args.name,
                     version=args.version,
                     manufacturer=args.manufacturer
                 )
             except Exception as e:
-                print(f"Error testing {model}: {e}")
+                logger.error("Error testing %s: %s", model, e)
         sys.exit(0)
     
     if not args.model_id:
