@@ -44,7 +44,9 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
     "ruff",
-    "gguf>=0.6.0"
+    "gguf>=0.6.0",
+    "pre-commit>=3.0.0",
+    "bandit[toml]>=1.7.0"
 ]
 
 [project.scripts]
@@ -68,6 +70,31 @@ testpaths = [
 pythonpath = [
     "."
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]  # allow assert in tests
 
 [dependency-groups]
 dev = [
