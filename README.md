@@ -40,6 +40,11 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 pip install -r requirements.txt
 ```
 
+Or, if you prefer [uv](https://docs.astral.sh/uv/) for faster dependency management:
+```bash
+uv sync
+```
+
 ### 2. Run Web Application
 Start the local server at `http://localhost:8000`:
 ```bash

@@ -5,37 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIBOM Generated</title>
-    <link rel="stylesheet" href="{{ static_root|default('/static') }}/css/style.css">
+    <link rel="stylesheet" href="{{ static_root|default('/static') }}/css/style.css?v=2.0">
 
 </head>
 
 <body>
     <div class="container">
         <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <a href="https://genai.owasp.org/" target="_blank">
-                    <img src="{{ static_root|default('/static') }}/images/genai_security_project_logo.webp"
-                        alt="OWASP GenAI Security Project logo">
-                </a>
-                <div class="header-content">
-                    <h1>AIBOM Generator</h1>
-                </div>
-            </div>
-            <div class="header-right">
-                <!-- <a href="https://owasp-aibom-generator.genaisecruityproject.hf.space/" class="generate-another-btn">🚀 Generate Another AIBOM</a> -->
-                <a href="/" class="generate-another-btn">🚀 Generate Another AIBOM</a>
-            </div>
-        </div>
+        {% include 'includes/header.html' %}
 
         <!-- Success Message
         <div class="success-message">
-            <h2>✅ AIBOM is Generated Successfully for <span class="model-name">{{ model_id }}</span></h2>
+            <h2>✅&nbsp;&nbsp;AIBOM is Generated Successfully for <span class="model-name">{{ model_id }}</span></h2>
         </div>  -->
 
         <!-- Key Information -->
         <div class="key-info">
-            <h3>📋 AIBOM Summary</h3>
+            <h3>📋&nbsp;&nbsp;AIBOM Summary</h3>
             <div class="aibom-property">
                 <span class="property-name">Model:</span>
                 <span class="property-value"><a href="https://huggingface.co/{{ model_id }}" target="_blank">{{ model_id
@@ -47,8 +33,12 @@
             </div>
             <div class="aibom-property">
                 <span class="property-name">SBOM Format:</span>
-                <span class="property-value"><a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard"
-                        target="_blank">{{ aibom.bomFormat }} {{ aibom.specVersion }}</a></span>
+                <span class="property-value">
+                    <a href="https://cyclonedx.org/docs/1.6/json/#components_items_modelCard" target="_blank">{{
+                        aibom.bomFormat }} {{ aibom.specVersion }}</a>,
+                    <a href="https://cyclonedx.org/docs/1.7/json/#components_items_modelCard" target="_blank">{{
+                        aibom.bomFormat }} 1.7</a>
+                </span>
             </div>
             <div class="aibom-property">
                 <span class="property-name">Serial Number:</span>
@@ -56,24 +46,57 @@
             </div>
         </div>
 
-        <!-- Download Section -->
-        <div class="download-section">
-            <p><strong>Download your AIBOM:</strong></p>
-            <button onclick="downloadJSON(AIBOM_JSON, FILENAME_BASE + '_aibom_1_6.json')">📥 CycloneDX 1.6</button>
-        </div>
+        <!-- Calculate Shared Score State -->
+        {% set score_percent = (completeness_score.total_score if completeness_score.total_score != 'Undefined' else 0)
+        | float %}
+        {% if score_percent >= 90 %}
+        {% set score_class = 'progress-excellent' %}
+        {% set score_label = 'Excellent' %}
+        {% elif score_percent >= 70 %}
+        {% set score_class = 'progress-good' %}
+        {% set score_label = 'Good' %}
+        {% elif score_percent >= 50 %}
+        {% set score_class = 'progress-fair' %}
+        {% set score_label = 'Fair' %}
+        {% else %}
+        {% set score_class = 'progress-poor' %}
+        {% set score_label = 'Poor' %}
+        {% endif %}
 
-        <!-- Completeness Profile -->
-        {% if completeness_score.completeness_profile %}
-        <div class="completeness-profile">
-            <h3>📊 Completeness Assessment</h3>
-            <div>
-                <span class="profile-badge profile-{{ completeness_score.completeness_profile.name|lower }}">
-                    {{ completeness_score.completeness_profile.name }}
-                </span>
-                <span>{{ completeness_score.completeness_profile.description }}</span>
+        <!-- Completeness Profile & Download Section -->
+        <div class="completeness-profile {{ score_class }}-border"
+            style="display: flex; flex-wrap: wrap; gap: 0; align-items: center;">
+            <div class="completeness-left"
+                style="flex: 1 1 50%; min-width: 300px; padding-right: 20px; box-sizing: border-box;">
+                {% if completeness_score.completeness_profile %}
+                <h3 style="margin-top:0; margin-bottom:15px;">📊&nbsp;&nbsp;Completeness Assessment</h3>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <span class="profile-badge profile-{{ completeness_score.completeness_profile.name|lower }}">
+                        {{ completeness_score.completeness_profile.name }}
+                    </span>
+                    <span>{{ completeness_score.completeness_profile.description }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="completeness-right" style="flex: 1 1 50%; min-width: 300px; box-sizing: border-box;">
+                <div class="download-section-inner">
+                    <h3 style="margin-top:0; margin-bottom:15px;">💾&nbsp;&nbsp;Download your AIBOM</h3>
+                    <div class="download-buttons" style="display: flex; gap: 10px;">
+                        <button onclick="downloadJSON(AIBOM_CDX_JSON_1_6, FILENAME_BASE + '_aibom_1_6.json')">
+                            <img src="{{ static_root|default('/static') }}/images/cdx.webp" alt="CycloneDX Logo"
+                                width="16" height="16" style="filter: brightness(0) invert(1);">
+                            CycloneDX 1.6
+                        </button>
+                        <button onclick="downloadJSON(AIBOM_CDX_JSON_1_7, FILENAME_BASE + '_aibom_1_7.json')">
+                            <img src="{{ static_root|default('/static') }}/images/cdx.webp" alt="CycloneDX Logo"
+                                width="16" height="16" style="filter: brightness(0) invert(1);">
+                            CycloneDX 1.7
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
 
         <!-- Tabbed Content -->
         <div class="aibom-viewer">
@@ -87,7 +110,7 @@
             <!-- Human-Friendly View Tab -->
             <div id="human-view" class="tab-content active">
                 <div class="aibom-section">
-                    <h4>🤖 AI Model Information</h4>
+                    <h4>🤖&nbsp;&nbsp;AI Model Information</h4>
                     <div class="aibom-property">
                         <span class="property-name">Name:</span>
                         <span class="property-value">
@@ -135,7 +158,7 @@
 
                 {% if aibom.components and aibom.components[0].modelCard %}
                 <div class="aibom-section">
-                    <h4>📊 Model Card</h4>
+                    <h4>📊&nbsp;&nbsp;Model Card</h4>
                     {% if aibom.components[0].modelCard.modelParameters %}
                     <div class="aibom-property">
                         <span class="property-name">Architecture:</span>
@@ -160,12 +183,43 @@
                         </span>
                     </div>
                     {% endif %}
+                    {% set hp_props = [] %}
+                    {% set quant_props = [] %}
+                    {% if aibom.components[0].properties %}
+                    {% for prop in aibom.components[0].properties %}
+                    {% if prop.name.startswith('hyperparameter:') %}{% if hp_props.append(prop) %}{% endif %}{% endif %}
+                    {% if prop.name.startswith('quantization:') %}{% if quant_props.append(prop) %}{% endif %}{% endif
+                    %}
+                    {% endfor %}
+                    {% endif %}
+                    {% if hp_props %}
+                    <div class="aibom-property">
+                        <span class="property-name">Hyperparameters:</span>
+                        <span class="property-value">
+                            {% for prop in hp_props %}
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value
+                                }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if quant_props %}
+                    <div class="aibom-property">
+                        <span class="property-name">Quantization:</span>
+                        <span class="property-value">
+                            {% for prop in quant_props %}
+                            <span class="tag">{{ prop.name.split(':')[1] | replace('_', ' ') | title }}: {{ prop.value
+                                }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
                 {% if aibom.externalReferences %}
                 <div class="aibom-section">
-                    <h4>🔗 External References</h4>
+                    <h4>🔗&nbsp;&nbsp;External References</h4>
                     {% for ref in aibom.externalReferences %}
                     <div class="aibom-property">
                         <span class="property-name">{{ ref.type|title }}:</span>
@@ -176,7 +230,7 @@
                 {% endif %}
 
                 <div class="aibom-section">
-                    <h4>🛠️ Generation Metadata</h4>
+                    <h4>🛠️&nbsp;&nbsp;Generation Metadata</h4>
                     <div class="aibom-property">
                         <span class="property-name">Generated by:</span>
                         <span class="property-value">{{ aibom.metadata.tools.components[0].name if aibom.metadata.tools
@@ -186,9 +240,15 @@
                         <span class="property-name">Timestamp:</span>
                         <span class="property-value">{{ aibom.metadata.timestamp }}</span>
                     </div>
-                    {% if aibom.metadata.component %}
+                    {% if aibom.components and aibom.components[0].purl %}
                     <div class="aibom-property">
-                        <span class="property-name">Component Ref:</span>
+                        <span class="property-name">Component PURL:</span>
+                        <span class="property-value"><a href="https://huggingface.co/{{ model_id }}" target="_blank">{{
+                                aibom.components[0].purl }}</a></span>
+                    </div>
+                    {% elif aibom.metadata.component %}
+                    <div class="aibom-property">
+                        <span class="property-name">Component PURL:</span>
                         <span class="property-value">{{ aibom.metadata.component['bom-ref'] }}</span>
                     </div>
                     {% endif %}
@@ -261,7 +321,16 @@
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-critical"></span> Critical</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -322,8 +391,17 @@
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -388,8 +466,17 @@
                                         {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -420,23 +507,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set model_card_fields = [
-                                ('energyConsumption', 'Important'),
-                                ('hyperparameter', 'Important'),
-                                ('limitation', 'Important'),
-                                ('safetyRiskAssessment', 'Important'),
-                                ('typeOfModel', 'Important'),
-                                ('modelExplainability', 'Supplementary'),
-                                ('energyQuantity', 'Supplementary'),
-                                ('energyUnit', 'Supplementary'),
-                                ('informationAboutTraining', 'Supplementary'),
-                                ('informationAboutApplication', 'Supplementary'),
-                                ('metric', 'Supplementary'),
-                                ('metricDecisionThreshold', 'Supplementary'),
-                                ('modelDataPreprocessing', 'Supplementary'),
-                                ('useSensitivePersonalInformation', 'Supplementary')
-                                ] %}
-                                {% for field, tier in model_card_fields %}
+                                {% set model_card_fields = completeness_score.category_fields_list.component_model_card
+                                if completeness_score and completeness_score.category_fields_list else [] %}
+                                {% for field_item in model_card_fields %}
+                                {% set field = field_item.name %}
+                                {% set tier = field_item.tier %}
                                 <tr>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
@@ -448,22 +523,22 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        {% if field == 'typeOfModel' %}
-                                        $.components[0].modelCard.modelParameters.modelArchitecture
-                                        {% elif field in ['safetyRiskAssessment', 'modelExplainability',
-                                        'energyConsumption', 'energyQuantity', 'energyUnit', 'hyperparameter'] %}
-                                        $.components[0].modelCard.properties[name="{{ field }}"]
-                                        {% elif field == 'limitation' %}
-                                        $.components[0].modelCard.considerations.technicalLimitations
-                                        {% else %}
-                                        $.components[0].modelCard.{{ field }}
-                                        {% endif %}
+                                        {{ field_item.path }}
                                         {% else %}
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -494,12 +569,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set external_ref_fields = [
-                                ('downloadLocation', 'Critical'),
-                                ('vcs', 'Supplementary'),
-                                ('website', 'Supplementary')
-                                ] %}
-                                {% for field, tier in external_ref_fields %}
+                                {% set external_ref_fields = completeness_score.category_fields_list.external_references
+                                if completeness_score and completeness_score.category_fields_list else [] %}
+                                {% for field_item in external_ref_fields %}
+                                {% set field = field_item.name %}
+                                {% set tier = field_item.tier %}
                                 <tr>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
@@ -511,19 +585,22 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        {% if field == 'downloadLocation' %}
-                                        $.externalReferences[type="distribution"]
-                                        {% elif field == 'vcs' %}
-                                        $.externalReferences[type="vcs"]
-                                        {% elif field == 'website' %}
-                                        $.externalReferences[type="website"]
-                                        {% endif %}
+                                        {{ field_item.path }}
                                         {% else %}
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-{{ tier.lower() }}"></span> {{ tier }}</td>
-                                    <td>{{ completeness_score.field_types.get(field, 'Unknown') }}</td>
+                                    <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
+                                    <td>
+                                        {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
+                                        {% set f_url = completeness_score.reference_urls.get(field, '') if
+                                        completeness_score.reference_urls else '' %}
+                                        {% if f_url %}
+                                        <a href="{{ f_url }}" target="_blank">{{ f_type }}</a>
+                                        {% else %}
+                                        {{ f_type }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -549,7 +626,7 @@
             <!-- Score Report Tab -->
             <div id="score-view" class="tab-content">
                 <div class="content-section">
-                    <h3>📊 Completeness Score Report</h3>
+                    <h3>📊&nbsp;&nbsp;Completeness Score Report</h3>
 
                     <!-- Total Score Display -->
                     <div class="total-score-container">
@@ -557,22 +634,6 @@
                             "Undefined" else 0)|round(1) }}/100</div>
                         <div class="total-progress">
                             <div class="progress-container">
-                                {% set score_percent = (completeness_score.total_score if completeness_score.total_score
-                                != 'Undefined' else 0) | float %}
-                                {% if score_percent >= 90 %}
-                                {% set score_class = 'progress-excellent' %}
-                                {% set score_label = 'Excellent' %}
-                                {% elif score_percent >= 70 %}
-                                {% set score_class = 'progress-good' %}
-                                {% set score_label = 'Good' %}
-                                {% elif score_percent >= 50 %}
-                                {% set score_class = 'progress-fair' %}
-                                {% set score_label = 'Fair' %}
-                                {% else %}
-                                {% set score_class = 'progress-poor' %}
-                                {% set score_label = 'Poor' %}
-                                {% endif %}
-
                                 <div class="progress-bar {{ score_class }}"
                                     style="width: {{ score_percent|round|int }}%">
                                     {{ score_percent|int }}% {{ score_label }}
@@ -761,71 +822,21 @@
         <!-- JSON View Tab -->
         <div id="json-view" class="tab-content">
             <div class="content-section">
-                <h3>📄 Raw JSON View</h3>
+                <h3>📄&nbsp;&nbsp;Raw JSON View</h3>
                 <p>This is the complete AIBOM components array in CycloneDX JSON format:</p>
                 <div class="json-view">
                     <pre>{{ components_json }}</pre>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- New Footer Wrapper containing all footer contents -->
-    <div class="footer-wrapper">
-        <div class="footer-widgets">
-            <!-- Column 1: Brand -->
-            <div class="footer-widget brand-col">
-                <a href="https://genai.owasp.org/" target="_blank">
-                    <!-- Default to index image relative path if not rendered with static_root -->
-                    <img src="{% if static_root %}{{ static_root }}{% else %}/static{% endif %}/images/genai_security_project_logo.webp"
-                        alt="OWASP GenAI Security Project logo" style="height: 50px; margin-bottom: 15px;">
-                </a>
-                <p style="font-size: 13px;">Follow us for updates:<br>
-                    <a href="https://www.linkedin.com/company/owasp-aibom/" target="_blank" rel="noopener noreferrer"
-                        style="color: #3498db;">@OWASP GenAI Security Project - AIBOM Initiative</a>
-                </p>
-            </div>
-
-            <!-- Column 2: Links -->
-            <div class="footer-widget links-col">
-                <h4>OWASP GenAI</h4>
-                <ul class="footer-links">
-                    <li><a href="https://github.com/GenAI-Security-Project/aibom-generator" target="_blank">GitHub
-                            Repository</a></li>
-                    <li><a href="https://github.com/GenAI-Security-Project/aibom-generator/issues"
-                            target="_blank">Report Issue</a></li>
-                </ul>
-            </div>
-
-            <!-- Column 3: Help -->
-            <div class="footer-widget help-col">
-                <h4>🛠️ Need Help or Found an Issue?</h4>
-                <p style="font-size: 13px;">If you encountered any problems, found a bug, or have suggestions for
-                    improvement, we'd love to hear from you!</p>
-            </div>
-
-            <!-- Column 4: Spread the Word -->
-            <div class="footer-widget spread-col">
-                <h4>🗣️ Help Us Spread the Word</h4>
-                <p style="font-size: 13px;">If you find this tool useful, share it with your network!</p>
-                <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://huggingface.co/spaces/GenAISecurityProject/OWASP-AIBOM-Generator"
-                    target="_blank" rel="noopener noreferrer" class="social-share-btn-footer">
-                    🔗 Share on LinkedIn
-                </a>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <div class="sbom-count" style="margin-bottom: 5px; color: #7f8c8d;">🚀 Generated AIBOMs using this tool:
-                <strong>{{ sbom_count if sbom_count else 'N/A' }}</strong>
-            </div>
-            <p style="margin: 0;">© 2026 OWASP GenAI Security Project - AIBOM Initiative</p>
-        </div>
-    </div>
+        <!-- Modern Footer -->
+        {% include 'includes/footer.html' %}
     </div>
 
     <script>
-        const AIBOM_JSON = {{ aibom_json| safe }};
+        const AIBOM_CDX_JSON_1_6 = {{ aibom_cdx_json_1_6 | safe }};
+        const AIBOM_CDX_JSON_1_7 = {{ aibom_cdx_json_1_7 | safe }};
         const FILENAME_BASE = "{{ model_id|replace('/', '_') }}";
     </script>
     <script src="{{ static_root|default('/static') }}/js/script.js"></script>

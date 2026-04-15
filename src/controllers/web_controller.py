@@ -14,9 +14,9 @@ from huggingface_hub.utils import RepositoryNotFoundError
 
 from ..models.service import AIBOMService
 from ..models.scoring import calculate_completeness_score
-from ..config import TEMPLATES_DIR, OUTPUT_DIR, RECAPTCHA_SITE_KEY
 from ..utils.analytics import log_sbom_generation, get_sbom_count
-from ..utils.captcha import verify_recaptcha
+from ..utils.formatter import export_aibom
+from ..config import TEMPLATES_DIR, OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +50,7 @@ def is_valid_hf_input(input_str: str) -> bool:
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request, 
-        "sbom_count": get_sbom_count(),
-        "recaptcha_site_key": RECAPTCHA_SITE_KEY
+        "sbom_count": get_sbom_count()
     })
 
 @router.get("/status")
@@ -63,17 +62,8 @@ async def generate_form(
     request: Request,
     model_id: str = Form(...),
     include_inference: bool = Form(False),
-    use_best_practices: bool = Form(True),
-    g_recaptcha_response: Optional[str] = Form(None)
+    use_best_practices: bool = Form(True)
 ):
-    # Verify CAPTCHA
-    if not verify_recaptcha(g_recaptcha_response):
-        return templates.TemplateResponse("error.html", {
-            "request": request, 
-            "error": "Security verification failed.",
-            "sbom_count": get_sbom_count()
-        })
-
     # Security: Validate BEFORE sanitizing to prevent bypass attacks
     # (e.g., <script>org/model</script> → &lt;script&gt;org/model&lt;/script&gt; could slip through)
     if not is_valid_hf_input(model_id):
@@ -123,13 +113,21 @@ async def generate_form(
         # Save file (non-blocking I/O)
         filename = f"{normalized_id.replace('/', '_')}_ai_sbom_1_6.json"
         filepath = os.path.join(OUTPUT_DIR, filename)
+        filepath_1_7 = os.path.join(OUTPUT_DIR, f"{normalized_id.replace('/', '_')}_ai_sbom_1_7.json")
         
         def _save_task():
-            with open(filepath, "w") as f:
-                json.dump(aibom, f, indent=2)
-            log_sbom_generation(sanitized_model_id)
+            # Generate Formatted JSON strings
+            json_1_6 = export_aibom(aibom, bom_type="cyclonedx", spec_version="1.6")
+            json_1_7 = export_aibom(aibom, bom_type="cyclonedx", spec_version="1.7")
             
-        await loop.run_in_executor(None, _save_task)
+            with open(filepath, "w") as f:
+                f.write(json_1_6)
+            with open(filepath_1_7, "w") as f:
+                f.write(json_1_7)
+            log_sbom_generation(sanitized_model_id)
+            return json_1_6, json_1_7
+            
+        json_1_6, json_1_7 = await loop.run_in_executor(None, _save_task)
         
         # Extract score
         completeness_score = None
@@ -146,7 +144,8 @@ async def generate_form(
             "filename": filename,
             "download_url": f"/output/{filename}",
             "aibom": aibom,
-            "aibom_json": json.dumps(aibom, indent=2),
+            "aibom_cdx_json_1_6": json_1_6,
+            "aibom_cdx_json_1_7": json_1_7,
             "components_json": json.dumps(aibom.get("components", []), indent=2),
             "model_id": normalized_id,
             "sbom_count": get_sbom_count(),

@@ -1,40 +1,5 @@
 // OWASP AIBOM Generator - Common Scripts
 
-/* === reCAPTCHA Handling (Index Page) === */
-function onSubmit(token) {
-    if (!token) {
-        console.error("reCAPTCHA token is missing.");
-        return;
-    }
-
-    console.log("reCAPTCHA callback executed with token.");
-
-    // Set the token in the hidden input
-    var tokenInput = document.getElementById('g-recaptcha-response');
-    if (tokenInput) {
-        tokenInput.value = token;
-        console.log("Token set in input.");
-    } else {
-        console.error("g-recaptcha-response input not found.");
-        return;
-    }
-
-    // Disable button and change text
-    var button = document.getElementById('generate-button');
-    if (button) {
-        button.disabled = true;
-        button.textContent = 'Generating...';
-    }
-
-    // Submit the form
-    console.log("Submitting form");
-    var form = document.getElementById('sbom-form');
-    if (form) {
-        form.submit();
-    } else {
-        console.error("Form sbom-form not found.");
-    }
-}
 
 // Add Enter key support for form submission (Index Page)
 document.addEventListener('DOMContentLoaded', function () {

@@ -22,6 +22,9 @@ def main():
         test_models = [
             "Qwen/Qwen3.5-397B-A17B",
             "nvidia/personaplex-7b-v1",
+            "meta-llama/Llama-2-7b-chat-hf",
+            "unsloth/Qwen3.5-35B-A3B-GGUF",
+            "LocoreMind/LocoOperator-4B",
             "Nanbeige/Nanbeige4.1-3B",
             "zai-org/GLM-5",
             "MiniMaxAI/MiniMax-M2.5",
