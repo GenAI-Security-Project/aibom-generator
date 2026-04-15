@@ -37,15 +37,10 @@ charset-normalizer==3.4.7
 click==8.3.2
     # via
     #   flask
-    #   nltk
     #   typer
     #   uvicorn
-cyclonedx-python-lib==11.7.0
-    # via owasp-aibom-generator (pyproject.toml)
 datasets==4.8.4
     # via owasp-aibom-generator (pyproject.toml)
-defusedxml==0.7.1
-    # via py-serializable
 dill==0.4.1
     # via
     #   datasets
@@ -80,6 +75,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via
+    #   owasp-aibom-generator (pyproject.toml)
     #   datasets
     #   huggingface-hub
 huggingface-hub==1.10.2
@@ -101,16 +97,12 @@ jinja2==3.1.6
     #   owasp-aibom-generator (pyproject.toml)
     #   flask
     #   torch
-joblib==1.5.3
-    # via nltk
 jsonschema==4.26.0
     # via owasp-aibom-generator (pyproject.toml)
 jsonschema-specifications==2025.9.1
     # via jsonschema
 license-expression==30.4.4
-    # via
-    #   owasp-aibom-generator (pyproject.toml)
-    #   cyclonedx-python-lib
+    # via owasp-aibom-generator (pyproject.toml)
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -130,17 +122,13 @@ multiprocess==0.70.19
     # via datasets
 networkx==3.6.1
     # via torch
-nltk==3.9.4
-    # via owasp-aibom-generator (pyproject.toml)
 numpy==2.4.4
     # via
     #   datasets
     #   pandas
     #   transformers
 packageurl-python==0.17.6
-    # via
-    #   owasp-aibom-generator (pyproject.toml)
-    #   cyclonedx-python-lib
+    # via owasp-aibom-generator (pyproject.toml)
 packaging==26.1
     # via
     #   datasets
@@ -153,8 +141,6 @@ propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
-py-serializable==2.1.0
-    # via cyclonedx-python-lib
 pyarrow==23.0.1
     # via datasets
 pydantic==2.13.0
@@ -166,11 +152,7 @@ pydantic-core==2.46.0
 pygments==2.20.0
     # via rich
 python-dateutil==2.9.0.post0
-    # via
-    #   owasp-aibom-generator (pyproject.toml)
-    #   pandas
-python-dotenv==1.2.2
-    # via owasp-aibom-generator (pyproject.toml)
+    # via pandas
 python-multipart==0.0.26
     # via owasp-aibom-generator (pyproject.toml)
 pyyaml==6.0.3
@@ -184,9 +166,7 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-specifications
 regex==2026.4.4
-    # via
-    #   nltk
-    #   transformers
+    # via transformers
 requests==2.33.1
     # via
     #   owasp-aibom-generator (pyproject.toml)
@@ -207,8 +187,6 @@ shellingham==1.5.4
     # via typer
 six==1.17.0
     # via python-dateutil
-sortedcontainers==2.4.0
-    # via cyclonedx-python-lib
 soupsieve==2.8.3
     # via beautifulsoup4
 starlette==1.0.0
@@ -223,7 +201,6 @@ tqdm==4.67.3
     # via
     #   datasets
     #   huggingface-hub
-    #   nltk
     #   transformers
 transformers==5.5.4
     # via owasp-aibom-generator (pyproject.toml)
@@ -233,11 +210,15 @@ typer==0.24.1
     #   transformers
 typing-extensions==4.15.0
     # via
+    #   aiosignal
+    #   anyio
     #   beautifulsoup4
     #   fastapi
     #   huggingface-hub
     #   pydantic
     #   pydantic-core
+    #   referencing
+    #   starlette
     #   torch
     #   typing-inspection
 typing-inspection==0.4.2
