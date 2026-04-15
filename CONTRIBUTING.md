@@ -127,6 +127,7 @@ aibom-generator/
 │   ├── schemas/              # JSON schemas (CycloneDX, SPDX)
 │   └── templates/            # HTML templates
 ├── tests/                    # Unit and integration tests
+└── requirements.txt
 └── pyproject.toml
 ```
 
@@ -166,6 +167,19 @@ python -m uvicorn src.main:app --reload --port 7860
 # Or use CLI
 python -m src.cli --model_id "microsoft/DialoGPT-medium"
 ```
+
+## Updating Dependencies
+
+`pyproject.toml` is the source of truth for all dependencies. `requirements.txt` is a generated artifact derived from it and must be kept in sync.
+
+After adding or removing a dependency in `pyproject.toml`, regenerate `requirements.txt` and sync the lock file:
+
+```bash
+uv pip compile pyproject.toml -o requirements.txt
+uv lock
+```
+
+Commit `pyproject.toml`, `requirements.txt`, and `uv.lock` together.
 
 ## Areas Welcoming Contributions
 

@@ -37,7 +37,7 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 
 ### 1. Install Dependencies
 ```bash
-pip install .
+pip install -r requirements.txt
 ```
 
 ### 2. Run Web Application
