@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from cyclonedx.model import ExternalReferenceType
 from src.models.service import AIBOMService
 
 class TestService(unittest.TestCase):
@@ -79,8 +80,8 @@ class TestService(unittest.TestCase):
         self.assertIn(f"@{expected_version}", ml_cmp["purl"])
         self.assertIn(f"@{expected_version}", ml_cmp["bom-ref"])
         
-        # Verify dependencies
-        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["ref"])
+        # Verify dependency graph: metadata component (ref) → dependsOn → model component
+        # Only the dependsOn entry contains the model's versioned PURL
         self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["dependsOn"][0])
 
     def test_infer_io_formats(self):
