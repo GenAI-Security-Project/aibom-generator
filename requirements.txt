@@ -9,6 +9,7 @@ PyYAML>=6.0.1
 flask>=2.3.0
 gunicorn>=21.2.0
 cyclonedx-python-lib[json-validation]>=11.7.0
+httpx>=0.25.0
 packageurl-python>=0.17.6
 python-multipart
 jinja2>=3.0.0
@@ -20,4 +21,5 @@ sentencepiece>=0.1.99
 pytest>=7.0.0
 pytest-mock>=3.10.0
 pytest-cov>=4.0.0
+ruff
 gguf>=0.6.0
