@@ -3,32 +3,33 @@ import json
 import uuid
 import datetime
 import logging
-import re
-from typing import Dict, Optional, Any, List, Union
+from typing import Dict, Optional, Any, List
 from urllib.parse import urlparse
 from packageurl import PackageURL
 from cyclonedx.model import ExternalReference, ExternalReferenceType, Property, XsUri
-from cyclonedx.model.bom import Bom, BomMetaData, Tool
+from cyclonedx.model.bom import Bom, BomMetaData
+from cyclonedx.model.tool import ToolRepository
 from cyclonedx.model.bom_ref import BomRef
 from cyclonedx.model.component import Component, ComponentType
 from cyclonedx.model.contact import OrganizationalContact, OrganizationalEntity
 from cyclonedx.model.dependency import Dependency
-from cyclonedx.model.license import DisjunctiveLicense
+from cyclonedx.model.license import DisjunctiveLicense, LicenseExpression
+from cyclonedx.contrib.license.factories import LicenseFactory as _CdxLicenseFactory
 from cyclonedx.output.json import JsonV1Dot6
 
 from huggingface_hub import HfApi, ModelCard
-from huggingface_hub.repocard_data import EvalResult
 
 from .extractor import EnhancedExtractor
 from .model_file_extractors import ModelFileExtractor, default_extractors
 from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
-from .schemas import AIBOMResponse, EnhancementReport
-from ..utils.validation import validate_aibom, get_validation_summary
-from ..utils.license_utils import normalize_license_id, get_license_url, is_valid_spdx_license_id
+from ..utils.validation import validate_aibom
+from ..utils.license_utils import normalize_license_id, get_license_url
 from ..config import AIBOM_GEN_VERSION, AIBOM_GEN_NAME
 
 logger = logging.getLogger(__name__)
+_license_factory = _CdxLicenseFactory()
+
 
 class AIBOMService:
     """
@@ -199,14 +200,21 @@ class AIBOMService:
 
     def _create_minimal_aibom(self, model_id: str, spec_version: str = "1.6") -> Dict[str, Any]:
         """Create a minimal valid AIBOM structure in case of errors"""
-        hf_purl = self._generate_hf_purl(model_id, "1.0")
+        hf_purl = self._generate_purl(model_id, "1.0")
 
         bom = Bom()
         bom.serial_number = uuid.uuid4()
         bom.version = 1
         bom.metadata = BomMetaData(
             timestamp=datetime.datetime.now(datetime.timezone.utc),
-            tools=[Tool(vendor="OWASP GenAI Security Project", name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION)],
+            tools=ToolRepository(components=[
+                Component(
+                    name=AIBOM_GEN_NAME,
+                    type=ComponentType.APPLICATION,
+                    version=AIBOM_GEN_VERSION,
+                    manufacturer=OrganizationalEntity(name="OWASP GenAI Security Project")
+                )
+            ]),
             component=Component(
                 name=model_id.split("/")[-1],
                 type=ComponentType.APPLICATION,
@@ -291,7 +299,7 @@ class AIBOMService:
         )
 
         aibom = json.loads(JsonV1Dot6(bom).output_as_string())
-        aibom["metadata"]["component"]["description"] = metadata_section["component"].get("description")
+        # modelCard is injected manually because cyclonedx-python-lib does not yet implement
         if component_section.get("modelCard"):
             aibom["components"][0]["modelCard"] = component_section["modelCard"]
         return aibom
@@ -300,7 +308,14 @@ class AIBOMService:
         metadata_component = metadata_section["component"]
         return BomMetaData(
             timestamp=datetime.datetime.now(datetime.timezone.utc),
-            tools=[Tool(vendor="OWASP GenAI Security Project", name=AIBOM_GEN_NAME, version=AIBOM_GEN_VERSION)],
+            tools=ToolRepository(components=[
+                Component(
+                    name=AIBOM_GEN_NAME,
+                    type=ComponentType.APPLICATION,
+                    version=AIBOM_GEN_VERSION,
+                    manufacturer=OrganizationalEntity(name="OWASP GenAI Security Project")
+                )
+            ]),
             component=Component(
                 name=metadata_component["name"],
                 type=ComponentType.APPLICATION,
@@ -493,45 +508,48 @@ class AIBOMService:
     def _process_licenses(self, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Process and normalize license information."""
         raw_license = metadata.get("licenses") or metadata.get("license")
-        
-        # 1. No license provided -> Return empty list (no license in SBOM)
+
         if not raw_license:
             return []
 
-        # Handle list input
         if isinstance(raw_license, list):
-            if len(raw_license) > 0:
+            if raw_license:
                 raw_license = raw_license[0]
             else:
                 return []
-        
+
         if not isinstance(raw_license, str) or not raw_license.strip():
-             return []
-
-        norm_license = normalize_license_id(raw_license)
-        
-        # Skip NOASSERTION or 'other' explicitly
-        if norm_license == "NOASSERTION" or (norm_license and norm_license.lower() == "other"):
             return []
-            
-        if norm_license:
-            # 1. Strict SPDX validation
-            if not is_valid_spdx_license_id(norm_license):
-                lic_data = {"name": norm_license}
-                # Try to find a known URL (e.g. for Nvidia license)
-                known_url = get_license_url(norm_license, fallback=False)
-                if known_url:
-                    lic_data["url"] = known_url
-                return [{"license": lic_data}]
 
-            # 2. Valid SPDX ID
-            return [{"license": {"id": norm_license}}]
-            
-        # Fallback if normalization fails, use name unless generic
-        if raw_license.lower() not in ["other", "unknown", "noassertion"]:
-             return [{"license": {"name": raw_license}}]
-             
-        return []
+        # Normalize using our mapping table + cyclonedx fixup_id
+        norm_license = normalize_license_id(raw_license) or raw_license.strip()
+
+        # Skip generic / placeholder values that LicenseFactory would wrap as custom names
+        if norm_license.lower() in {"noassertion", "other", "unknown", "none"}:
+            return []
+
+        try:
+            license_obj = _license_factory.make_from_string(norm_license)
+        except Exception:
+            license_obj = None
+
+        if isinstance(license_obj, LicenseExpression):
+            # Compound SPDX expression e.g. "MIT AND Apache-2.0"
+            return [{"expression": norm_license}]
+
+        if isinstance(license_obj, DisjunctiveLicense):
+            if license_obj.id:
+                # Valid SPDX simple ID
+                return [{"license": {"id": str(license_obj.id)}}]
+            # Custom / non-SPDX name — attach a URL when we know one
+            lic_data: Dict[str, Any] = {"name": norm_license}
+            known_url = get_license_url(norm_license, fallback=False)
+            if known_url:
+                lic_data["url"] = known_url
+            return [{"license": lic_data}]
+
+        # Factory returned nothing useful — use the raw string as a name
+        return [{"license": {"name": norm_license}}]
 
     def _process_authors_and_suppliers(self, metadata: Dict[str, Any], group: str) -> tuple:
         """
