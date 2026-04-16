@@ -119,6 +119,12 @@ class TestService(unittest.TestCase):
         self.assertIn("$schema", aibom)
         self.assertEqual(aibom["components"][0]["type"], "machine-learning-model")
 
+    def test_create_minimal_aibom(self):
+        aibom = self.service._create_minimal_aibom("owner/model")
+        self.assertEqual(aibom["bomFormat"], "CycloneDX")
+        self.assertEqual(aibom["specVersion"], "1.6")
+        self.assertEqual(aibom["components"][0]["type"], "machine-learning-model")
+
     def test_external_reference_type_mapping_defaults_to_website(self):
         self.assertEqual(
             self.service._map_external_reference_type("documentation"),
@@ -128,6 +134,81 @@ class TestService(unittest.TestCase):
             self.service._map_external_reference_type("totally-unknown-type"),
             ExternalReferenceType.WEBSITE
         )
+
+
+class TestProcessLicenses(unittest.TestCase):
+    def setUp(self):
+        self.service = AIBOMService(hf_token="fake_token")
+
+    # --- empty / missing inputs ---
+    def test_no_license_returns_empty(self):
+        self.assertEqual(self.service._process_licenses({}), [])
+
+    def test_empty_string_returns_empty(self):
+        self.assertEqual(self.service._process_licenses({"license": ""}), [])
+
+    def test_empty_list_returns_empty(self):
+        self.assertEqual(self.service._process_licenses({"license": []}), [])
+
+    # --- placeholder / generic values are skipped ---
+    def test_noassertion_skipped(self):
+        self.assertEqual(self.service._process_licenses({"license": "NOASSERTION"}), [])
+
+    def test_other_skipped(self):
+        self.assertEqual(self.service._process_licenses({"license": "other"}), [])
+
+    def test_unknown_skipped(self):
+        self.assertEqual(self.service._process_licenses({"license": "unknown"}), [])
+
+    def test_none_value_skipped(self):
+        self.assertEqual(self.service._process_licenses({"license": "none"}), [])
+
+    # --- valid SPDX simple IDs ---
+    def test_valid_spdx_id_produces_id_field(self):
+        result = self.service._process_licenses({"license": "MIT"})
+        self.assertEqual(result, [{"license": {"id": "MIT"}}])
+
+    def test_lowercase_spdx_id_normalized(self):
+        result = self.service._process_licenses({"license": "apache-2.0"})
+        self.assertEqual(result, [{"license": {"id": "Apache-2.0"}}])
+
+    def test_multi_word_alias_normalized(self):
+        result = self.service._process_licenses({"license": "apache license 2.0"})
+        self.assertEqual(result, [{"license": {"id": "Apache-2.0"}}])
+
+    # --- list input: first element used ---
+    def test_list_license_uses_first_element(self):
+        result = self.service._process_licenses({"license": ["MIT", "Apache-2.0"]})
+        self.assertEqual(result, [{"license": {"id": "MIT"}}])
+
+    # --- licenses key takes precedence over license ---
+    def test_licenses_key_used(self):
+        result = self.service._process_licenses({"licenses": "MIT"})
+        self.assertEqual(result, [{"license": {"id": "MIT"}}])
+
+    # --- compound SPDX expression ---
+    def test_compound_expression_produces_expression_field(self):
+        result = self.service._process_licenses({"license": "MIT AND Apache-2.0"})
+        self.assertEqual(len(result), 1)
+        self.assertIn("expression", result[0])
+        self.assertEqual(result[0]["expression"], "MIT AND Apache-2.0")
+
+    # --- custom / non-SPDX name ---
+    def test_custom_name_produces_name_field(self):
+        result = self.service._process_licenses({"license": "nvidia-open-model-license"})
+        self.assertEqual(len(result), 1)
+        self.assertIn("license", result[0])
+        lic = result[0]["license"]
+        # nvidia-open-model-license is not a valid SPDX id → name field
+        self.assertIn("name", lic)
+
+    def test_custom_name_with_known_url_includes_url(self):
+        result = self.service._process_licenses({"license": "nvidia open model license agreement"})
+        self.assertEqual(len(result), 1)
+        lic = result[0]["license"]
+        self.assertIn("url", lic)
+        self.assertIn("nvidia.com", lic["url"])
+
 
 if __name__ == '__main__':
     unittest.main()

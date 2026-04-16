@@ -5,19 +5,15 @@ fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.4.0
 requests>=2.31.0
-python-dotenv>=1.0.0
 PyYAML>=6.0.1
 flask>=2.3.0
 gunicorn>=21.2.0
-cyclonedx-python-lib>=11.6.0
+cyclonedx-python-lib>=11.7.0
 packageurl-python>=0.17.6
 python-multipart
 jinja2>=3.0.0
 datasets>=2.0.0
 beautifulsoup4>=4.11.0
-nltk>=3.8.0
-python-dateutil>=2.8.0
-jsonschema>=4.17.0
 sentencepiece>=0.1.99
 
 # Test dependencies
