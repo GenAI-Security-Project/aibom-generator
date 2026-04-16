@@ -2,11 +2,7 @@
 
 import logging
 import re
-import yaml
-import json
 from typing import Dict, Any, Optional, List, Union
-from enum import Enum
-from urllib.parse import urlparse, urljoin
 
 from huggingface_hub import HfApi, ModelCard, hf_hub_download
 from huggingface_hub.utils import RepositoryNotFoundError, EntryNotFoundError
@@ -14,6 +10,7 @@ from huggingface_hub.utils import RepositoryNotFoundError, EntryNotFoundError
 from .schemas import DataSource, ConfidenceLevel, ExtractionResult
 from .registry import get_field_registry_manager
 from .model_file_extractors import ModelFileExtractor, default_extractors
+from ..utils.license_utils import LICENSE_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -23,24 +20,6 @@ class EnhancedExtractor:
     from the JSON registry (field_registry.json) without requiring code changes.
     """
     
-    # SPDX mappings for common licences
-    LICENSE_MAPPINGS = {
-        "mit": "MIT",
-        "mit license": "MIT",
-        "apache license version 2.0": "Apache-2.0",
-        "apache license 2.0": "Apache-2.0",
-        "apache 2.0": "Apache-2.0",
-        "apache license, version 2.0": "Apache-2.0",
-        "bsd 3-clause": "BSD-3-Clause",
-        "bsd-3-clause": "BSD-3-Clause",
-        "bsd 2-clause": "BSD-2-Clause",
-        "bsd-2-clause": "BSD-2-Clause",
-        "gnu general public license v3": "GPL-3.0-only",
-        "gplv3": "GPL-3.0-only",
-        "gnu general public license v2": "GPL-2.0-only",
-        "gplv2": "GPL-2.0-only",
-    }
-
     def __init__(self, hf_api: Optional[HfApi] = None):
         """
         Initialize the enhanced extractor with registry integration.
@@ -158,7 +137,7 @@ class EnhancedExtractor:
                 file_path = hf_hub_download(repo_id=model_id, filename=filename)
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     snippet = f.read(4096).lower()
-                for header, spdx_id in self.LICENSE_MAPPINGS.items():
+                for header, spdx_id in LICENSE_MAPPING.items():
                     if header in snippet:
                         return spdx_id
             except (RepositoryNotFoundError, EntryNotFoundError):
