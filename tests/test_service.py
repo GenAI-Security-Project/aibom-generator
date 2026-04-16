@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from cyclonedx.model import ExternalReferenceType
 from src.models.service import AIBOMService
 
 class TestService(unittest.TestCase):
@@ -81,7 +80,7 @@ class TestService(unittest.TestCase):
         self.assertIn(f"@{expected_version}", ml_cmp["bom-ref"])
         
         # Verify dependencies
-        self.assertIn("dependencies", aibom)
+        self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["ref"])
         self.assertIn(f"@{expected_version}", aibom["dependencies"][0]["dependsOn"][0])
 
     def test_infer_io_formats(self):

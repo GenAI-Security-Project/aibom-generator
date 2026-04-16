@@ -8,7 +8,7 @@ requests>=2.31.0
 PyYAML>=6.0.1
 flask>=2.3.0
 gunicorn>=21.2.0
-cyclonedx-python-lib>=11.7.0
+cyclonedx-python-lib[json-validation]>=11.7.0
 packageurl-python>=0.17.6
 python-multipart
 jinja2>=3.0.0

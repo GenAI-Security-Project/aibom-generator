@@ -282,21 +282,21 @@ class AIBOMService:
         full_commit = metadata.get("commit")
         version = full_commit[:8] if full_commit else "1.0"
         
-        metadata_section = self._create_metadata_section(model_id, metadata, overrides=metadata_overrides)
-        component_section = self._create_component_section(model_id, metadata)
-
-        bom = Bom()
-        bom.serial_number = uuid.uuid4()
-        bom.version = 1
-        bom.metadata = self._build_cyclonedx_metadata(metadata_section)
-        model_component = self._build_cyclonedx_component(component_section)
-        bom.components.add(model_component)
-        bom.dependencies.add(
-            Dependency(
-                ref=BomRef(metadata_section["component"]["bom-ref"]),
-                dependencies=[Dependency(ref=model_component.bom_ref)]
-            )
-        )
+        aibom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": spec_version,
+            "serialNumber": f"urn:uuid:{str(uuid.uuid4())}",
+            "version": 1,
+            "metadata": self._create_metadata_section(model_id, metadata, overrides=metadata_overrides),
+            "components": [self._create_component_section(model_id, metadata)],
+            "dependencies": [
+                {
+                    "ref": self._generate_purl(model_id, version, purl_type="generic"),
+                    "dependsOn": [self._generate_purl(model_id, version)]
+                }
+            ]
+        }
+        
 
         aibom = json.loads(JsonV1Dot6(bom).output_as_string())
         # modelCard is injected manually because cyclonedx-python-lib does not yet implement
