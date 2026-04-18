@@ -4,14 +4,14 @@ CycloneDX 1.6 Schema Validation for AIBOM Generator.
 This module provides validation of generated AIBOMs against the official
 CycloneDX 1.6 JSON schema to ensure compliance and interoperability.
 """
+
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Make sure to handle requests import if it's not a core dependency (it is in my project)
 import requests
-import jsonschema
 from jsonschema import Draft7Validator, ValidationError
 from referencing import Registry, Resource
 
@@ -25,7 +25,7 @@ SCHEMA_CACHE_DIR = Path(__file__).parent.parent / "schemas"
 SCHEMA_CACHE_FILE = SCHEMA_CACHE_DIR / "bom-1.6.schema.json"
 
 # Global schema cache
-_cached_schema: Optional[Dict[str, Any]] = None
+_cached_schema: dict[str, Any] | None = None
 
 
 def _ensure_cache_dir() -> None:
@@ -33,20 +33,20 @@ def _ensure_cache_dir() -> None:
     SCHEMA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _load_schema_from_cache() -> Optional[Dict[str, Any]]:
+def _load_schema_from_cache() -> dict[str, Any] | None:
     """Load schema from local cache if available."""
     if SCHEMA_CACHE_FILE.exists():
         try:
-            with open(SCHEMA_CACHE_FILE, "r", encoding="utf-8") as f:
+            with open(SCHEMA_CACHE_FILE, encoding="utf-8") as f:
                 schema = json.load(f)
                 logger.debug("Loaded CycloneDX 1.6 schema from cache")
                 return schema
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning("Failed to load cached schema: %s", e)
     return None
 
 
-def _download_schema() -> Optional[Dict[str, Any]]:
+def _download_schema() -> dict[str, Any] | None:
     """Download the CycloneDX 1.6 schema from the official repository."""
     try:
         logger.info("Downloading CycloneDX 1.6 schema from %s", CYCLONEDX_1_6_SCHEMA_URL)
@@ -64,12 +64,12 @@ def _download_schema() -> Optional[Dict[str, Any]]:
     except requests.RequestException as e:
         logger.error("Failed to download CycloneDX schema: %s", e)
         return None
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         logger.error("Failed to parse or cache schema: %s", e)
         return None
 
 
-def load_schema(force_download: bool = False) -> Optional[Dict[str, Any]]:
+def load_schema(force_download: bool = False) -> dict[str, Any] | None:
     """
     Load the CycloneDX 1.6 JSON schema.
 
@@ -108,7 +108,7 @@ def _format_validation_error(error: ValidationError) -> str:
     return f"[{path}] {error.message}"
 
 
-def validate_aibom(aibom: Dict[str, Any], strict: bool = False) -> Tuple[bool, List[str]]:
+def validate_aibom(aibom: dict[str, Any], strict: bool = False) -> tuple[bool, list[str]]:
     """
     Validate an AIBOM against the CycloneDX 1.6 schema.
 
@@ -126,13 +126,13 @@ def validate_aibom(aibom: Dict[str, Any], strict: bool = False) -> Tuple[bool, L
     if schema is None:
         logger.warning("Could not load CycloneDX schema - skipping validation")
         return True, ["Schema unavailable"]
-    
+
     # Load SPDX schema for reference resolution
     spdx_path = SCHEMA_CACHE_DIR / "spdx.schema.json"
     registry = Registry()
     if spdx_path.exists():
         try:
-            with open(spdx_path, "r", encoding="utf-8") as f:
+            with open(spdx_path, encoding="utf-8") as f:
                 spdx_schema = json.load(f)
             resource = Resource.from_contents(spdx_schema)
             registry = registry.with_resource(uri="spdx.schema.json", resource=resource)
@@ -141,18 +141,19 @@ def validate_aibom(aibom: Dict[str, Any], strict: bool = False) -> Tuple[bool, L
 
     validator = Draft7Validator(schema, registry=registry)
     errors = sorted(validator.iter_errors(aibom), key=lambda e: e.path)
-    
+
     if not errors:
         return True, []
-        
+
     error_messages = [_format_validation_error(e) for e in errors]
     return False, error_messages
 
-def get_validation_summary(aibom: Dict[str, Any]) -> Dict[str, Any]:
+
+def get_validation_summary(aibom: dict[str, Any]) -> dict[str, Any]:
     """Get a summary of schema validation results."""
     is_valid, errors = validate_aibom(aibom)
     return {
         "valid": is_valid,
         "error_count": len(errors),
-        "errors": errors[:10] if not is_valid else [] # Limit to first 10
+        "errors": errors[:10] if not is_valid else [],  # Limit to first 10
     }

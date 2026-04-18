@@ -1,7 +1,6 @@
 import hashlib
 import os
 import tempfile
-from typing import Dict, Optional
 
 from gguf import GGUFWriter
 
@@ -30,21 +29,21 @@ def build_gguf_bytes(
     *,
     architecture: str = "test-arch",
     model_name: str = "test-model",
-    chat_template: Optional[str] = None,
-    context_length: Optional[int] = None,
-    embedding_length: Optional[int] = None,
-    block_count: Optional[int] = None,
-    head_count: Optional[int] = None,
-    head_count_kv: Optional[int] = None,
-    feed_forward_length: Optional[int] = None,
-    rope_dimension_count: Optional[int] = None,
-    quantization_version: Optional[int] = None,
-    file_type: Optional[int] = None,
-    tokenizer_model: Optional[str] = None,
-    description: Optional[str] = None,
-    author: Optional[str] = None,
-    license: Optional[str] = None,
-    extra_kv: Optional[Dict[str, tuple]] = None,
+    chat_template: str | None = None,
+    context_length: int | None = None,
+    embedding_length: int | None = None,
+    block_count: int | None = None,
+    head_count: int | None = None,
+    head_count_kv: int | None = None,
+    feed_forward_length: int | None = None,
+    rope_dimension_count: int | None = None,
+    quantization_version: int | None = None,
+    file_type: int | None = None,
+    tokenizer_model: str | None = None,
+    description: str | None = None,
+    author: str | None = None,
+    license: str | None = None,
+    extra_kv: dict[str, tuple] | None = None,
 ) -> bytes:
     """Build a valid GGUF binary using the canonical gguf package.
 
