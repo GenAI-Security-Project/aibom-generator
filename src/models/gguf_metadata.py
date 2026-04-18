@@ -6,10 +6,10 @@ It uses HTTP range requests to fetch only the header portion (typically 2-8MB)
 of potentially multi-GB model files.
 """
 
-import struct
 import logging
-from typing import Dict, Any, Optional, List, OrderedDict
+import struct
 from collections import OrderedDict as OrderedDictType
+from typing import Any
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
@@ -30,18 +30,21 @@ _STRUCT_FLOAT64 = struct.Struct("<d")
 
 class GGUFParseError(Exception):
     """Base exception for GGUF parsing errors."""
+
     pass
 
 
 class BufferUnderrunError(GGUFParseError):
     """Raised when buffer doesn't contain enough data to parse."""
-    def __init__(self, message: str = "buffer underrun", *, required_bytes: Optional[int] = None):
+
+    def __init__(self, message: str = "buffer underrun", *, required_bytes: int | None = None):
         super().__init__(message)
         self.required_bytes = required_bytes
 
 
 class InvalidMagicError(GGUFParseError):
     """Raised when file doesn't have valid GGUF magic number."""
+
     pass
 
 
@@ -69,7 +72,7 @@ class GGUFMetadata:
         version: int,
         tensor_count: int,
         kv_count: int,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         header_length: int,
         filename: str = "",
     ):
@@ -87,23 +90,23 @@ class GGUFModelInfo:
     def __init__(
         self,
         filename: str,
-        architecture: Optional[str] = None,
-        name: Optional[str] = None,
-        quantization_version: Optional[int] = None,
-        file_type: Optional[int] = None,
-        tokenizer_model: Optional[str] = None,
-        vocab_size: Optional[int] = None,
-        context_length: Optional[int] = None,
-        embedding_length: Optional[int] = None,
-        block_count: Optional[int] = None,
-        attention_head_count: Optional[int] = None,
-        attention_head_count_kv: Optional[int] = None,
-        feed_forward_length: Optional[int] = None,
-        rope_dimension_count: Optional[int] = None,
-        description: Optional[str] = None,
-        license: Optional[str] = None,
-        author: Optional[str] = None,
-        raw_metadata: Optional[Dict[str, Any]] = None,
+        architecture: str | None = None,
+        name: str | None = None,
+        quantization_version: int | None = None,
+        file_type: int | None = None,
+        tokenizer_model: str | None = None,
+        vocab_size: int | None = None,
+        context_length: int | None = None,
+        embedding_length: int | None = None,
+        block_count: int | None = None,
+        attention_head_count: int | None = None,
+        attention_head_count_kv: int | None = None,
+        feed_forward_length: int | None = None,
+        rope_dimension_count: int | None = None,
+        description: str | None = None,
+        license: str | None = None,
+        author: str | None = None,
+        raw_metadata: dict[str, Any] | None = None,
     ):
         self.filename = filename
         self.architecture = architecture
@@ -142,14 +145,14 @@ class _ByteReader:
         if self._offset + size > len(self._view):
             raise BufferUnderrunError(
                 f"need {size} bytes at offset {self._offset}, but only {len(self._view) - self._offset} available",
-                required_bytes=self._offset + size
+                required_bytes=self._offset + size,
             )
 
     def read(self, size: int) -> memoryview:
         self._require(size)
         start = self._offset
         self._offset += size
-        return self._view[start:self._offset]
+        return self._view[start : self._offset]
 
     def read_uint8(self) -> int:
         return _STRUCT_UINT8.unpack_from(self.read(_STRUCT_UINT8.size))[0]
@@ -257,7 +260,7 @@ def parse_gguf_metadata(buffer: bytes, filename: str = "") -> GGUFMetadata:
         kv_count=kv_count,
         metadata=metadata,
         header_length=reader.offset,
-        filename=filename
+        filename=filename,
     )
 
 
@@ -266,7 +269,7 @@ def extract_model_info(gguf_metadata: GGUFMetadata) -> GGUFModelInfo:
     meta = gguf_metadata.metadata
     arch = meta.get("general.architecture", "")
 
-    def get_arch_key(suffix: str) -> Optional[Any]:
+    def get_arch_key(suffix: str) -> Any | None:
         if arch:
             val = meta.get(f"{arch}.{suffix}")
             if val is not None:
@@ -291,7 +294,7 @@ def extract_model_info(gguf_metadata: GGUFMetadata) -> GGUFModelInfo:
         description=meta.get("general.description"),
         license=meta.get("general.license"),
         author=meta.get("general.author"),
-        raw_metadata=dict(meta)
+        raw_metadata=dict(meta),
     )
 
 
@@ -313,7 +316,7 @@ def fetch_gguf_metadata_from_url(
     url: str,
     filename: str = "",
     *,
-    hf_token: Optional[str] = None,
+    hf_token: str | None = None,
     initial_request_size: int = 8 * 1024 * 1024,
     max_request_size: int = 64 * 1024 * 1024,
     timeout: float = 60.0,
@@ -322,7 +325,7 @@ def fetch_gguf_metadata_from_url(
     try:
         import httpx
     except ImportError:
-        raise ImportError("httpx is required for remote GGUF fetching. Install with: pip install httpx")
+        raise ImportError("httpx is required for remote GGUF fetching. Install with: pip install httpx") from None
 
     headers = {
         "User-Agent": "OWASP-AIBOM-Generator/1.0",
@@ -349,7 +352,7 @@ def fetch_gguf_metadata_from_url(
         range_header = f"bytes=0-{request_size - 1}"
         request_headers = {**headers, "Range": range_header}
 
-        logger.info(f"Fetching first {request_size // (1024*1024)}MB of GGUF metadata...")
+        logger.info(f"Fetching first {request_size // (1024 * 1024)}MB of GGUF metadata...")
         response = client.get(actual_url, headers=request_headers)
         response.raise_for_status()
         buffer.extend(response.content)
@@ -370,7 +373,7 @@ def fetch_gguf_metadata_from_url(
                 additional_size = min(needed - len(buffer), max_request_size - len(buffer))
 
                 if additional_size <= 0 or len(buffer) >= max_request_size:
-                    raise GGUFParseError(f"unable to parse metadata within {max_request_size} bytes")
+                    raise GGUFParseError(f"unable to parse metadata within {max_request_size} bytes") from None
 
                 logger.info(f"Need more data (retry {retry + 1}), fetching additional {additional_size // 1024}KB...")
 
@@ -383,41 +386,26 @@ def fetch_gguf_metadata_from_url(
 
 
 def fetch_gguf_metadata_from_repo(
-    repo_id: str,
-    filename: str,
-    *,
-    revision: str = "main",
-    hf_token: Optional[str] = None,
-    **kwargs
+    repo_id: str, filename: str, *, revision: str = "main", hf_token: str | None = None, **kwargs
 ) -> GGUFModelInfo:
     """Fetch and extract AIBOM-relevant metadata from a GGUF file in a HuggingFace repo."""
     url = build_huggingface_url(repo_id, filename, revision)
     logger.info(f"Fetching GGUF metadata from {repo_id}/{filename}")
 
-    gguf_metadata = fetch_gguf_metadata_from_url(
-        url,
-        filename=filename,
-        hf_token=hf_token,
-        **kwargs
-    )
+    gguf_metadata = fetch_gguf_metadata_from_url(url, filename=filename, hf_token=hf_token, **kwargs)
 
     return extract_model_info(gguf_metadata)
 
 
-def list_gguf_files(repo_id: str, hf_token: Optional[str] = None) -> List[str]:
+def list_gguf_files(repo_id: str, hf_token: str | None = None) -> list[str]:
     """List GGUF files in a HuggingFace repository."""
     from huggingface_hub import list_repo_files
 
     files = list_repo_files(repo_id, token=hf_token)
-    return [f for f in files if f.endswith('.gguf')]
+    return [f for f in files if f.endswith(".gguf")]
 
 
-def extract_all_gguf_metadata(
-    repo_id: str,
-    *,
-    hf_token: Optional[str] = None,
-    **kwargs
-) -> List[GGUFModelInfo]:
+def extract_all_gguf_metadata(repo_id: str, *, hf_token: str | None = None, **kwargs) -> list[GGUFModelInfo]:
     """Extract metadata from all GGUF files in a repository."""
     gguf_files = list_gguf_files(repo_id, hf_token)
 
@@ -430,12 +418,7 @@ def extract_all_gguf_metadata(
     results = []
     for filename in gguf_files:
         try:
-            info = fetch_gguf_metadata_from_repo(
-                repo_id,
-                filename,
-                hf_token=hf_token,
-                **kwargs
-            )
+            info = fetch_gguf_metadata_from_repo(repo_id, filename, hf_token=hf_token, **kwargs)
             results.append(info)
             logger.info(f"  {filename}: architecture={info.architecture}")
         except Exception as e:
@@ -444,7 +427,7 @@ def extract_all_gguf_metadata(
     return results
 
 
-def _map_core_fields(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+def _map_core_fields(gguf_info: GGUFModelInfo) -> dict[str, Any]:
     """Map basic model identity and tokenizer fields."""
     metadata = {}
 
@@ -469,7 +452,7 @@ def _map_core_fields(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     return metadata
 
 
-def _map_supplementary_fields(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+def _map_supplementary_fields(gguf_info: GGUFModelInfo) -> dict[str, Any]:
     """Map optional descriptive fields from GGUF."""
     metadata = {}
 
@@ -485,7 +468,7 @@ def _map_supplementary_fields(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     return metadata
 
 
-def _map_quantization(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+def _map_quantization(gguf_info: GGUFModelInfo) -> dict[str, Any]:
     """Map quantization metadata."""
     quantization = {}
 
@@ -497,7 +480,7 @@ def _map_quantization(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     return {"quantization": quantization} if quantization else {}
 
 
-def _map_hyperparameters(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+def _map_hyperparameters(gguf_info: GGUFModelInfo) -> dict[str, Any]:
     """Map inference-shape hyperparameters."""
     hyperparams = {}
 
@@ -519,7 +502,7 @@ def _map_hyperparameters(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     return {"hyperparameter": hyperparams} if hyperparams else {}
 
 
-def map_to_metadata(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+def map_to_metadata(gguf_info: GGUFModelInfo) -> dict[str, Any]:
     metadata = _map_core_fields(gguf_info)
     metadata |= _map_supplementary_fields(gguf_info)
     metadata |= _map_quantization(gguf_info)

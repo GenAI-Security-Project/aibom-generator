@@ -1,11 +1,11 @@
 # 🤖 OWASP GenAI Security Project - AIBOM Generator
 
-This is the official GitHub repository for the **OWASP AIBOM Generator** — an open-source tool for generating **AI Bills of Materials (AIBOMs)** in [CycloneDX](https://cyclonedx.org) format.  
+This is the official GitHub repository for the **OWASP AIBOM Generator** — an open-source tool for generating **AI Bills of Materials (AIBOMs)** in [CycloneDX](https://cyclonedx.org) format.
 The tool is also listed in the official **[CycloneDX Tool Center](https://cyclonedx.org/tool-center/)**.
 
-🚀 **Try the tool live:**  
-👉 https://owasp-genai-aibom.org  
-🔖 Bookmark and share: https://owasp-genai-aibom.org 
+🚀 **Try the tool live:**
+👉 https://owasp-genai-aibom.org
+🔖 Bookmark and share: https://owasp-genai-aibom.org
 
 🌐 OWASP AIBOM Initiative: [genai.owasp.org](https://genai.owasp.org/)
 
@@ -16,19 +16,19 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 
 ## 📦 What It Does
 
-- Extracts metadata from models hosted on Hugging Face 🤗  
-- Generates an **AIBOM** (AI Bill of Materials) in CycloneDX 1.6 JSON format  
-- Calculates **AIBOM completeness scoring** with recommendations  
-- Supports metadata extraction from model cards, configurations, and repository files  
+- Extracts metadata from models hosted on Hugging Face 🤗
+- Generates an **AIBOM** (AI Bill of Materials) in CycloneDX 1.6 JSON format
+- Calculates **AIBOM completeness scoring** with recommendations
+- Supports metadata extraction from model cards, configurations, and repository files
 
 ---
 
 ## 🛠 Features
 
-- Human-readable AIBOM viewer  
-- JSON download  
-- Completeness scoring & improvement tips  
-- API endpoints for automation  
+- Human-readable AIBOM viewer
+- JSON download
+- Completeness scoring & improvement tips
+- API endpoints for automation
 - Standards-aligned generation (CycloneDX 1.6, compatible with SPDX AI Profile)
 
 ---
@@ -91,8 +91,23 @@ python3 -m src.cli google-bert/bert-base-uncased \
 
 We welcome contributions and feedback.
 
-➡ **Log an issue:**  
+➡ **Log an issue:**
 https://github.com/GenAI-Security-Project/aibom-generator/issues
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
+
+Quick setup for contributors:
+
+```bash
+pip install -e ".[dev]"
+pre-commit install
+```
+
+Pre-commit hooks enforce code quality (ruff, bandit, mypy, pyproject-fmt) automatically on every commit. CI also runs them on all PRs.
 
 ---
 

@@ -1,15 +1,14 @@
 import json
 import logging
-from typing import Optional
-from ..models.service import AIBOMService
-from ..models.scoring import calculate_completeness_score
-from ..models.scoring import calculate_completeness_score
-from ..config import OUTPUT_DIR, TEMPLATES_DIR
-from ..utils.formatter import export_aibom
 import os
 import shutil
 
+from ..models.scoring import calculate_completeness_score
+from ..models.service import AIBOMService
+from ..utils.formatter import export_aibom
+
 logger = logging.getLogger(__name__)
+
 
 class CLIController:
     def __init__(self):
@@ -21,32 +20,34 @@ class CLIController:
         """
         pass
 
-    def generate(self, model_id: str, output_file: Optional[str] = None, include_inference: bool = False, 
-                 enable_summarization: bool = False, verbose: bool = False,
-                 name: Optional[str] = None, version: Optional[str] = None, manufacturer: Optional[str] = None):
+    def generate(
+        self,
+        model_id: str,
+        output_file: str | None = None,
+        include_inference: bool = False,
+        enable_summarization: bool = False,
+        verbose: bool = False,
+        name: str | None = None,
+        version: str | None = None,
+        manufacturer: str | None = None,
+    ):
         if verbose:
             logging.getLogger().setLevel(logging.INFO)
-            
+
         print(f"Generating AIBOM for {model_id}...")
-        
-        versions_to_generate = ["1.6", "1.7"]
+
         reports = []
-        generated_aiboms = {} 
-        
-        print(f"  - Generating AIBOM model data...")
+
+        print("  - Generating AIBOM model data...")
         try:
             primary_aibom = self.service.generate_aibom(
-                model_id, 
-                include_inference=include_inference, 
+                model_id,
+                include_inference=include_inference,
                 enable_summarization=enable_summarization,
-                metadata_overrides={
-                    "name": name,
-                    "version": version,
-                    "manufacturer": manufacturer
-                }
+                metadata_overrides={"name": name or "", "version": version or "", "manufacturer": manufacturer or ""},
             )
             primary_report = self.service.get_enhancement_report()
-            
+
             # Formatted AIBOM Strings
             json_1_6 = export_aibom(primary_aibom, bom_type="cyclonedx", spec_version="1.6")
             json_1_7 = export_aibom(primary_aibom, bom_type="cyclonedx", spec_version="1.7")
@@ -54,24 +55,24 @@ class CLIController:
             # Determine output filenames
             normalized_id = self.service._normalise_model_id(model_id)
             os.makedirs("sboms", exist_ok=True)
-            
+
             output_file_1_6 = output_file
             if not output_file_1_6:
                 output_file_1_6 = os.path.join("sboms", f"{normalized_id.replace('/', '_')}_ai_sbom_1_6.json")
-            
-            base, ext = os.path.splitext(output_file_1_6)
-            output_file_1_7 = f"{base.replace('_1_6', '')}_1_7{ext}" if '_1_6' in base else f"{base}_1_7{ext}"
 
-            with open(output_file_1_6, 'w') as f:
+            base, ext = os.path.splitext(output_file_1_6)
+            output_file_1_7 = f"{base.replace('_1_6', '')}_1_7{ext}" if "_1_6" in base else f"{base}_1_7{ext}"
+
+            with open(output_file_1_6, "w") as f:
                 f.write(json_1_6)
-            with open(output_file_1_7, 'w') as f:
+            with open(output_file_1_7, "w") as f:
                 f.write(json_1_7)
-            
+
             # Check for validation results
             validation_data = primary_report.get("final_score", {}).get("validation", {})
             is_valid = validation_data.get("valid", True)
             validation_errors = [i["message"] for i in validation_data.get("issues", [])]
-            
+
             if "schema_validation" not in primary_report:
                 primary_report["schema_validation"] = {}
             primary_report["schema_validation"]["valid"] = is_valid
@@ -79,8 +80,16 @@ class CLIController:
             primary_report["schema_validation"]["error_count"] = len(validation_errors)
 
             reports = [
-                {"spec_version": "1.6", "output_file": output_file_1_6, "schema_validation": primary_report["schema_validation"]},
-                {"spec_version": "1.7", "output_file": output_file_1_7, "schema_validation": primary_report["schema_validation"]}
+                {
+                    "spec_version": "1.6",
+                    "output_file": output_file_1_6,
+                    "schema_validation": primary_report["schema_validation"],
+                },
+                {
+                    "spec_version": "1.7",
+                    "output_file": output_file_1_7,
+                    "schema_validation": primary_report["schema_validation"],
+                },
             ]
             output_file_primary = output_file_1_6
 
@@ -93,17 +102,17 @@ class CLIController:
             if output_file_primary:
                 try:
                     from jinja2 import Environment, FileSystemLoader, select_autoescape
+
                     from ..config import TEMPLATES_DIR
-                    
+
                     env = Environment(
-                        loader=FileSystemLoader(TEMPLATES_DIR),
-                        autoescape=select_autoescape(['html', 'xml'])
+                        loader=FileSystemLoader(TEMPLATES_DIR), autoescape=select_autoescape(["html", "xml"])
                     )
                     template = env.get_template("result.html")
-                    
+
                     completeness_score = primary_report.get("final_score")
                     if not completeness_score:
-                         completeness_score = calculate_completeness_score(primary_aibom)
+                        completeness_score = calculate_completeness_score(primary_aibom)
 
                     # Pre-serialize to preserve order
                     components_json = json.dumps(primary_aibom.get("components", []), indent=2)
@@ -122,14 +131,14 @@ class CLIController:
                         "completeness_score": completeness_score,
                         "enhancement_report": primary_report or {},
                         "result_file": "#",
-                        "static_root": "static" 
+                        "static_root": "static",
                     }
 
                     html_content = template.render(context)
                     html_output_file = output_file_primary.replace("_1_6.json", ".html").replace(".json", ".html")
                     with open(html_output_file, "w") as f:
                         f.write(html_content)
-                    
+
                     print(f"\n📄 HTML Report:\n   {html_output_file}")
 
                     # Copy static assets
@@ -139,11 +148,11 @@ class CLIController:
                         output_dir = os.path.dirname(html_output_file)
                         # src/static relative to CLI execution root or module
                         # Let's use absolute path relative to this file to be safe
-                        current_dir = os.path.dirname(os.path.abspath(__file__)) # src/controllers
-                        src_dir = os.path.dirname(current_dir) # src
+                        current_dir = os.path.dirname(os.path.abspath(__file__))  # src/controllers
+                        src_dir = os.path.dirname(current_dir)  # src
                         static_src = os.path.join(src_dir, "static")
                         static_dst = os.path.join(output_dir, "static")
-                        
+
                         if os.path.exists(static_src):
                             if os.path.exists(static_dst):
                                 shutil.rmtree(static_dst)
@@ -167,14 +176,14 @@ class CLIController:
                         comp = primary_aibom["components"][0]
                         if "licenses" in comp:
                             license_list = []
-                            for l in comp["licenses"]:
-                                lic = l.get("license", {})
+                            for lic_entry in comp["licenses"]:
+                                lic = lic_entry.get("license", {})
                                 val = lic.get("id") or lic.get("name")
                                 if val:
                                     license_list.append(val)
                             if license_list:
                                 print(f"\n⚖️ License:\n   {', '.join(license_list)}")
-                                
+
                 except Exception as e:
                     logger.warning(f"Failed to generate HTML report: {e}")
 
@@ -183,32 +192,36 @@ class CLIController:
                 spec = r.get("spec_version", "1.6")
                 print(f"\n✅ Successfully generated CycloneDX {spec} SBOM:")
                 print(f"   {r.get('output_file')}")
-                
+
                 if not r["schema_validation"]["valid"]:
                     print(f"⚠️  Schema Validation Errors ({spec}):")
                     for err in r["schema_validation"]["errors"]:
                         print(f"   - {err}")
                 else:
                     print(f"   - Schema Validation ({spec}): ✅ Valid")
-            
+
             # Display Detailed Score Summary (from primary)
             if primary_report and "final_score" in primary_report:
                 score = primary_report["final_score"]
-                t_score = score.get('total_score', 0)
-                formatted_t_score = int(t_score) if isinstance(t_score, (int, float)) and t_score == int(t_score) else t_score
+                t_score = score.get("total_score", 0)
+                formatted_t_score = (
+                    int(t_score) if isinstance(t_score, (int, float)) and t_score == int(t_score) else t_score
+                )
                 print(f"\n📊 Completeness Score: {formatted_t_score}/100")
-                
+
                 if "completeness_profile" in score:
                     profile = score["completeness_profile"]
                     print(f"   Profile: {profile.get('name')} - {profile.get('description')}")
-                
+
                 if "section_scores" in score:
                     print("\n📋 Section Breakdown:")
-                    
+
                     for section, s_score in score["section_scores"].items():
                         max_s = score.get("max_scores", {}).get(section, "?")
-                        formatted_s_score = int(s_score) if isinstance(s_score, (int, float)) and s_score == int(s_score) else s_score
+                        formatted_s_score = (
+                            int(s_score) if isinstance(s_score, (int, float)) and s_score == int(s_score) else s_score
+                        )
                         print(f"   - {section.replace('_', ' ').title()}: {formatted_s_score}/{max_s}")
 
         else:
-             print("\n❌ Failed to generate any SBOMs.")
+            print("\n❌ Failed to generate any SBOMs.")

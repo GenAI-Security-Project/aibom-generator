@@ -74,7 +74,7 @@ function downloadJSON(content, filename) {
 document.addEventListener('DOMContentLoaded', function () {
     var collapsibles = document.getElementsByClassName('collapsible');
     for (var i = 0; i < collapsibles.length; i++) {
-        // Remove existing onclick to avoid double firing if inline remains, 
+        // Remove existing onclick to avoid double firing if inline remains,
         // but cleaner to attach here if not attached inline.
         // However, HTML onclick="toggleCollapsible(this)" is common pattern.
         // If the HTML has onclick, we don't need addEventListener here unless we remove onclick from HTML.

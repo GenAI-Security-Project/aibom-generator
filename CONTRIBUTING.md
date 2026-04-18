@@ -13,8 +13,19 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
 3. **Set up your environment**:
 
    ```bash
-   # Local Python setup
-   pip install -r requirements.txt
+   pip install -e ".[dev]"
+   ```
+
+4. **Install pre-commit hooks**:
+
+   ```bash
+   pre-commit install
+   ```
+
+   Hooks run automatically on every `git commit`. To run them manually against all files:
+
+   ```bash
+   pre-commit run --all-files
    ```
 
 ## Development Workflow
@@ -66,9 +77,24 @@ type(scope): description
 
 ## Code Standards
 
+### Pre-commit Hooks
+
+This project uses [pre-commit](https://pre-commit.com) to enforce code quality automatically. The following hooks run on every commit:
+
+| Hook | Purpose |
+|------|---------|
+| `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-merge-conflict` | File hygiene |
+| `pyproject-fmt` | Normalizes and validates `pyproject.toml` |
+| `ruff` (check + format) | Linting and formatting (replaces flake8, isort, autopep8) |
+| `bandit` | Security vulnerability scanning |
+| `mypy` | Static type checking |
+| `uv-lock` + `uv-export` | Keeps `uv.lock` and `requirements.txt` in sync with `pyproject.toml` |
+
+If a hook fails, fix the reported issues and re-commit.
+
 ### Python Style
 
-- **Python 3.8+** compatibility required
+- **Python 3.11+** required
 - Follow existing patterns in the codebase
 - Use type hints for function signatures
 

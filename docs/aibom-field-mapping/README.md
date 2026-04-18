@@ -12,7 +12,7 @@ The goal of this document is to provide an overview on:
 - what each field means
 - whether and how each field is supported in each format
 
-This document intentionally avoids tool-specific implementation details.  
+This document intentionally avoids tool-specific implementation details.
 Those details live in a separate machine-readable mapping registry used by the generator.
 
 ---
