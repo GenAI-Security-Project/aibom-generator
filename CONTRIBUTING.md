@@ -14,7 +14,7 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
 
    ```bash
    # Local Python setup
-   pip install .[dev]
+   pip install -e ".[dev]"
    ```
 
 ## Development Workflow
@@ -142,7 +142,7 @@ aibom-generator/
 
 ```bash
 # Install test dependencies
-pip install .[dev]
+pip install -e ".[dev]"
 
 # Run all tests
 pytest
@@ -159,7 +159,7 @@ pytest tests/test_validation.py -v
 ### Local Development (Recommended)
 
 ```bash
-pip install .[dev]
+pip install -e ".[dev]"
 
 # Run API server
 python -m uvicorn src.main:app --reload --port 7860
