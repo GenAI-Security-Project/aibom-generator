@@ -85,6 +85,5 @@ app.include_router(web_router)
 
 if __name__ == "__main__":
     import uvicorn
-    # Print clear access URL to avoid 0.0.0.0 confusion
-    print("🚀 Application ready! Access it at: http://localhost:8000")
+    logger.info("Application ready! Access it at: http://localhost:8000")
     uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
