@@ -1,5 +1,6 @@
 
 
+import json
 import logging
 import re
 from typing import Dict, Any, Optional, List, Union
@@ -11,8 +12,17 @@ from .schemas import DataSource, ConfidenceLevel, ExtractionResult
 from .registry import get_field_registry_manager
 from .model_file_extractors import ModelFileExtractor, default_extractors
 from ..utils.license_utils import LICENSE_MAPPING
+from .config_parsing import parse_config as _parse_hparams_from_config
 
 logger = logging.getLogger(__name__)
+
+
+def _build_hyperparameters_from_config(config_data: dict) -> Optional[str]:
+    """Build hyperparameter JSON from config.json using llama.cpp key fallback chains."""
+    parsed = _parse_hparams_from_config(config_data)
+    hp = {k: v for k, v in parsed.items() if v is not None and k != "architecture"}
+    return json.dumps(hp) if hp else None
+
 
 class EnhancedExtractor:
     """
@@ -20,34 +30,6 @@ class EnhancedExtractor:
     from the JSON registry (field_registry.json) without requiring code changes.
     """
     
-    def __init__(self, hf_api: Optional[HfApi] = None):
-        """
-        Initialize the enhanced extractor with registry integration.
-        
-        Args:
-            hf_api: Optional HuggingFace API instance (will create if not provided)
-        """
-        self.hf_api = hf_api or HfApi()
-        self.extraction_results = {}
-        
-        # Initialize registry manager
-        try:
-            self.registry_manager = get_field_registry_manager()
-            logger.info("✅ Registry manager initialized successfully")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not initialize registry manager: {e}")
-            self.registry_manager = None
-        
-        # Load registry fields
-        self.registry_fields = {}
-        if self.registry_manager:
-            try:
-                self.registry_fields = self.registry_manager.get_field_definitions()
-                logger.info(f"✅ Loaded {len(self.registry_fields)} fields from registry")
-            except Exception as e:
-                logger.error(f"❌ Error loading registry fields: {e}")
-                self.registry_fields = {}
-        
     # Compiled regex patterns for text extraction
     # Moved to class level to avoid recompilation on every request
     PATTERNS = {
@@ -491,6 +473,13 @@ class EnhancedExtractor:
     
     def _try_config_extraction(self, field_name: str, context: Dict[str, Any]) -> Any:
         """Try to extract field from configuration files"""
+        # Hyperparameter extraction from config.json using llama.cpp key fallback chains
+        if field_name == "hyperparameter":
+            config_data = context.get("config_data")
+            if config_data:
+                return _build_hyperparameters_from_config(config_data)
+            return None
+
         # Config file mappings
         config_mappings = {
             'model_type': ('config_data', 'model_type'),
@@ -499,13 +488,13 @@ class EnhancedExtractor:
             'tokenizer_class': ('tokenizer_config', 'tokenizer_class'),
             'typeOfModel': ('config_data', 'model_type')
         }
-        
+
         if field_name in config_mappings:
             config_type, config_key = config_mappings[field_name]
             config_source = context.get(config_type)
             if config_source:
                 return config_source.get(config_key)
-        
+
         return None
     
     def _try_text_pattern_extraction(self, field_name: str, context: Dict[str, Any]) -> Any:

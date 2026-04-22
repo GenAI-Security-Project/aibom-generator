@@ -16,6 +16,7 @@ jinja2>=3.0.0
 datasets>=2.0.0
 beautifulsoup4>=4.11.0
 sentencepiece>=0.1.99
+safetensors>=0.4.0
 
 # Test dependencies
 pytest>=7.0.0
