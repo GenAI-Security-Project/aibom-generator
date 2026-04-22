@@ -1,6 +1,6 @@
 from src.models.extractor import EnhancedExtractor
 from tests.doubles import FakeModelFileExtractor, FailingModelFileExtractor
-from tests.conftest import SAMPLE_GGUF_METADATA
+from tests.conftest import SAMPLE_GGUF_METADATA, SAMPLE_SAFETENSORS_METADATA
 
 
 class TestGGUFBytesProduceMetadata:
@@ -41,7 +41,7 @@ class TestGGUFFileExtractorWithMockedAPI:
         from src.models.model_file_extractors import GGUFFileExtractor
 
         monkeypatch.setattr(
-            "huggingface_hub.list_repo_files",
+            "src.models.model_file_extractors.list_repo_files",
             lambda model_id, **kw: ["README.md", "model-q4.gguf"],
         )
         assert GGUFFileExtractor().can_extract("owner/model") is True
@@ -50,7 +50,7 @@ class TestGGUFFileExtractorWithMockedAPI:
         from src.models.model_file_extractors import GGUFFileExtractor
 
         monkeypatch.setattr(
-            "huggingface_hub.list_repo_files",
+            "src.models.model_file_extractors.list_repo_files",
             lambda model_id, **kw: ["README.md", "model.safetensors"],
         )
         assert GGUFFileExtractor().can_extract("owner/model") is False
@@ -61,14 +61,14 @@ class TestGGUFFileExtractorWithMockedAPI:
         def raise_error(*a, **kw):
             raise RuntimeError("network")
 
-        monkeypatch.setattr("huggingface_hub.list_repo_files", raise_error)
+        monkeypatch.setattr("src.models.model_file_extractors.list_repo_files", raise_error)
         assert GGUFFileExtractor().can_extract("owner/model") is False
 
     def test_extract_metadata_selects_first_gguf_file(self, monkeypatch, full_gguf_bytes):
         from src.models.model_file_extractors import GGUFFileExtractor
 
         monkeypatch.setattr(
-            "huggingface_hub.list_repo_files",
+            "src.models.model_file_extractors.list_repo_files",
             lambda model_id, **kw: ["a.gguf", "b.gguf"],
         )
         captured = {}
@@ -91,7 +91,7 @@ class TestGGUFFileExtractorWithMockedAPI:
         from src.models.model_file_extractors import GGUFFileExtractor
 
         monkeypatch.setattr(
-            "huggingface_hub.list_repo_files",
+            "src.models.model_file_extractors.list_repo_files",
             lambda model_id, **kw: ["model.gguf"],
         )
 
@@ -146,6 +146,55 @@ class TestModelWithoutModelFilesStillExtracts:
         extractor = EnhancedExtractor(model_file_extractors=[])
         metadata = extractor.extract_metadata(model_id, model_info, model_card)
         assert "hyperparameter" not in metadata
+
+
+class TestSafetensorsModelEnrichesExtractedMetadata:
+    """When a model has safetensors files, hyperparameters from config.json
+    + tensor info appear in the extracted metadata."""
+
+    def test_hyperparameters_present(
+        self, model_id, model_info, model_card, patch_extractor_io
+    ):
+        fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_SAFETENSORS_METADATA)
+        extractor = EnhancedExtractor(model_file_extractors=[fake])
+        metadata = extractor.extract_metadata(model_id, model_info, model_card)
+        assert metadata["hyperparameter"]["context_length"] == 131072
+        assert metadata["hyperparameter"]["block_count"] == 16
+        assert metadata["hyperparameter"]["embedding_length"] == 2048
+
+    def test_safetensors_total_parameters_present(
+        self, model_id, model_info, model_card, patch_extractor_io
+    ):
+        fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_SAFETENSORS_METADATA)
+        extractor = EnhancedExtractor(model_file_extractors=[fake])
+        metadata = extractor.extract_metadata(model_id, model_info, model_card)
+        assert metadata["safetensors_total_parameters"] == 1_235_814_400
+
+
+class TestSafetensorsExtractorSelectedOverGGUF:
+    """When both safetensors and GGUF extractors match, safetensors wins
+    (original source takes precedence over derived format)."""
+
+    def test_safetensors_first_in_default_order(
+        self, model_id, model_info, model_card, patch_extractor_io
+    ):
+        st_fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_SAFETENSORS_METADATA)
+        gguf_fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_GGUF_METADATA)
+        extractor = EnhancedExtractor(model_file_extractors=[st_fake, gguf_fake])
+        metadata = extractor.extract_metadata(model_id, model_info, model_card)
+        # Safetensors values should win — original source
+        assert metadata["hyperparameter"]["context_length"] == 131072  # safetensors value
+        assert "quantization" not in metadata
+
+    def test_gguf_used_when_safetensors_cannot_extract(
+        self, model_id, model_info, model_card, patch_extractor_io
+    ):
+        st_fake = FakeModelFileExtractor(can=False)
+        gguf_fake = FakeModelFileExtractor(can=True, metadata=SAMPLE_GGUF_METADATA)
+        extractor = EnhancedExtractor(model_file_extractors=[st_fake, gguf_fake])
+        metadata = extractor.extract_metadata(model_id, model_info, model_card)
+        assert metadata["hyperparameter"]["context_length"] == 4096  # GGUF value
+        assert "quantization" in metadata
 
 
 class TestModelFileMetadataTakesPrecedence:

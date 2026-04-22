@@ -1344,6 +1344,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "safetensors" },
     { name = "sentencepiece" },
     { name = "torch" },
     { name = "transformers" },
@@ -1362,6 +1363,10 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "gguf" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -1394,7 +1399,13 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "gguf", specifier = ">=0.6.0" }]
+dev = [
+    { name = "gguf", specifier = ">=0.6.0" },
+    { name = "pytest", specifier = ">=7.0.0" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
+    { name = "pytest-mock", specifier = ">=3.10.0" },
+    { name = "ruff" },
+]
 
 [[package]]
 name = "packageurl-python"

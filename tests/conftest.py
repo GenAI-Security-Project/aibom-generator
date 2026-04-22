@@ -22,6 +22,23 @@ SAMPLE_GGUF_METADATA = {
 }
 
 
+SAMPLE_SAFETENSORS_METADATA = {
+    "model_type": "llama",
+    "typeOfModel": "llama",
+    "vocab_size": 128256,
+    "context_length": 131072,
+    "hyperparameter": {
+        "context_length": 131072,
+        "embedding_length": 2048,
+        "block_count": 16,
+        "attention_head_count": 32,
+        "attention_head_count_kv": 8,
+        "feed_forward_length": 8192,
+    },
+    "safetensors_total_parameters": 1_235_814_400,
+}
+
+
 STUB_CONFIG = {"model_type": "llama", "architectures": ["LlamaForCausalLM"]}
 
 

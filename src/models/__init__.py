@@ -1,10 +1,10 @@
 from .schemas import (
-    DataSource, 
-    ConfidenceLevel, 
+    DataSource,
+    ConfidenceLevel,
     ExtractionResult,
-    GenerateRequest, 
-    BatchRequest, 
-    AIBOMResponse, 
+    GenerateRequest,
+    BatchRequest,
+    AIBOMResponse,
     EnhancementReport
 )
 from .registry import get_field_registry_manager
