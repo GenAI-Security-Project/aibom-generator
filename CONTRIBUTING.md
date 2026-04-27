@@ -14,7 +14,7 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
 
    ```bash
    # Local Python setup
-   pip install -r requirements.txt
+   pip install -e '.[dev]'
    ```
 
 ## Development Workflow
@@ -128,6 +128,7 @@ aibom-generator/
 │   └── templates/            # HTML templates
 ├── tests/                    # Unit and integration tests
 └── requirements.txt
+└── pyproject.toml
 ```
 
 ### Key Concepts
@@ -141,7 +142,7 @@ aibom-generator/
 
 ```bash
 # Install test dependencies
-pip install -r requirements.txt
+pip install -e '.[dev]'
 
 # Run all tests
 pytest
@@ -158,7 +159,7 @@ pytest tests/test_validation.py -v
 ### Local Development (Recommended)
 
 ```bash
-pip install -r requirements.txt
+pip install -e '.[dev]'
 
 # Run API server
 python -m uvicorn src.main:app --reload --port 7860
@@ -166,6 +167,19 @@ python -m uvicorn src.main:app --reload --port 7860
 # Or use CLI
 python -m src.cli --model_id "microsoft/DialoGPT-medium"
 ```
+
+## Updating Dependencies
+
+`pyproject.toml` is the source of truth for all dependencies. `requirements.txt` is a generated artifact derived from it and must be kept in sync.
+
+After adding or removing a dependency in `pyproject.toml`, regenerate `requirements.txt` and sync the lock file:
+
+```bash
+uv pip compile pyproject.toml -o requirements.txt
+uv lock
+```
+
+Commit `pyproject.toml`, `requirements.txt`, and `uv.lock` together.
 
 ## Areas Welcoming Contributions
 
