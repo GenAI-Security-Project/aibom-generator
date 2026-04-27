@@ -1,79 +1,108 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61", "wheel" ]
 
 [project]
 name = "owasp-aibom-generator"
 version = "1.0.2"
 description = "A comprehensive AI Bill of Materials (AIBOM) generation tool for Hugging Face models."
-authors = [
-    { name = "OWASP GenAI Security Project", email = "genai-security@owasp.org" }
-]
 readme = "README.md"
-requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
+authors = [ { name = "OWASP GenAI Security Project", email = "genai-security@owasp.org" } ]
+requires-python = ">=3.11"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
-    "Topic :: Security",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Security",
 ]
 dependencies = [
-    "beautifulsoup4>=4.11.0",
-    "cyclonedx-python-lib[json-validation]>=11.7.0",
-    "datasets>=2.0.0",
-    "fastapi>=0.104.0",
-    "flask>=2.3.0",
-    "gunicorn>=21.2.0",
-    "httpx>=0.25.0",
-    "huggingface_hub>=0.19.0",
-    "jinja2>=3.0.0",
-    "packageurl-python>=0.11.1",
-    "pydantic>=2.4.0",
-    "python-multipart",
-    "PyYAML>=6.0.1",
-    "requests>=2.31.0",
-    "sentencepiece>=0.1.99",
-    "torch>=2.0.0",
-    "transformers>=4.36.0",
-    "uvicorn>=0.24.0",
-    "safetensors>=0.4.0",
+  "beautifulsoup4>=4.11",
+  "datasets>=2",
+  "fastapi>=0.104",
+  "flask>=2.3",
+  "gunicorn>=21.2",
+  "httpx>=0.25",
+  "huggingface-hub>=0.19",
+  "jinja2>=3",
+  "jsonschema>=4.17",
+  "license-expression>=30.4.4",
+  "packageurl-python>=0.11.1",
+  "pydantic>=2.4",
+  "python-multipart",
+  "pyyaml>=6.0.1",
+  "requests>=2.31",
+  "safetensors>=0.4.0",
+  "sentencepiece>=0.1.99",
+  "torch>=2",
+  "transformers>=4.36",
+  "uvicorn>=0.24",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "ruff",
-    "gguf>=0.6.0"
+optional-dependencies.dev = [
+  "gguf>=0.6",
+  "pre-commit>=3",
+  "pytest>=7",
+  "pytest-cov>=4",
+  "pytest-mock>=3.10",
 ]
-
-[project.scripts]
-aibom = "src.cli:main"
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src*"]
-namespaces = false
-
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --cov=src"
-testpaths = [
-    "tests",
-]
-pythonpath = [
-    "."
-]
+scripts.aibom = "src.cli:main"
 
 [dependency-groups]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "ruff",
-    "gguf>=0.6.0",
+  "gguf>=0.6",
 ]
+
+[tool.setuptools]
+packages.find.where = [ "." ]
+packages.find.include = [ "src*" ]
+packages.find.namespaces = false
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+lint.select = [
+  "B",   # flake8-bugbear
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "T10", # flake8-debugger
+  "UP",  # pyupgrade
+  "W",   # pycodestyle warnings
+]
+
+[tool.bandit]
+exclude_dirs = [ "tests" ]
+skips = [ "B101" ]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
+check_untyped_defs = true
+warn_unreachable = true
+warn_unused_ignores = true
+exclude = "tests/"
+plugins = [ "pydantic.mypy" ]
+
+[[tool.mypy.overrides]]
+ignore_errors = true
+module = [
+  "src.models.extractor",
+  "src.models.gguf_metadata",
+  "src.models.registry",
+  "src.models.service",
+]
+
+[tool.pytest]
+ini_options.minversion = "6.0"
+ini_options.addopts = "-ra -q --cov=src"
+ini_options.testpaths = [
+  "tests",
+]
+ini_options.pythonpath = [ "." ]
