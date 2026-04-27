@@ -37,6 +37,7 @@ dependencies = [
   "python-multipart",
   "pyyaml>=6.0.1",
   "requests>=2.31",
+  "safetensors>=0.4.0",
   "sentencepiece>=0.1.99",
   "torch>=2",
   "transformers>=4.36",
