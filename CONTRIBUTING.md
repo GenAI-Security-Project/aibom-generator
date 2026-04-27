@@ -80,7 +80,7 @@ import json
 import logging
 
 # Third-party
-import requests
+from cyclonedx.model.bom import Bom
 from huggingface_hub import HfApi
 
 # Local imports
@@ -124,7 +124,6 @@ aibom-generator/
 │   │   ├── validation.py     # CycloneDX 1.6 schema validation
 │   │   ├── license_utils.py  # License normalization
 │   │   └── analytics.py      # Usage tracking
-│   ├── schemas/              # JSON schemas (CycloneDX, SPDX)
 │   └── templates/            # HTML templates
 ├── tests/                    # Unit and integration tests
 └── requirements.txt
@@ -134,7 +133,8 @@ aibom-generator/
 
 - **Service-oriented architecture**: Core logic lives in `models/service.py`
 - **Registry-driven fields**: Field definitions from `models/registry.py`
-- **CycloneDX 1.6 compliance**: All AIBOMs validate against the schema
+- **CycloneDX Python Library**: BOM serialization, schema validation, and SPDX license handling delegate to [`cyclonedx-python-lib`](https://github.com/CycloneDX/cyclonedx-python-lib) — avoid manual JSON construction for anything the library supports
+- **CycloneDX 1.6 compliance**: All AIBOMs validate against the schema via the library's built-in `JsonValidator`
 - **Completeness scoring**: Quality metrics in `models/scoring.py`
 
 ## Running Tests
