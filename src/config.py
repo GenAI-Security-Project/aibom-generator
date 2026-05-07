@@ -1,6 +1,17 @@
-import os
+from __future__ import annotations
+
+import os, sys
 from pathlib import Path
-import tomllib
+
+sys.version_info >= (3, 8) or sys.exit("Python 3.8 or higher is required for this project.")
+
+if sys.version_info < (3, 11):
+    import tomli as tomllib
+else:
+    import tomllib
+
+
+
 
 
 # Base Directory Setup
