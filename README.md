@@ -21,6 +21,8 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 - Calculates **AIBOM completeness scoring** with recommendations  
 - Supports metadata extraction from model cards, configurations, and repository files  
 
+> **Built on [CycloneDX Python Library](https://github.com/CycloneDX/cyclonedx-python-lib)** — BOM generation, schema validation, and SPDX license handling are all powered by the official `cyclonedx-python-lib`, ensuring spec-compliant output without manual JSON construction.
+
 ---
 
 ## 🛠 Features

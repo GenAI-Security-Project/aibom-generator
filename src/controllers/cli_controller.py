@@ -3,7 +3,6 @@ import logging
 from typing import Optional
 from ..models.service import AIBOMService
 from ..models.scoring import calculate_completeness_score
-from ..models.scoring import calculate_completeness_score
 from ..config import OUTPUT_DIR, TEMPLATES_DIR
 from ..utils.formatter import export_aibom
 import os
@@ -25,15 +24,15 @@ class CLIController:
                  enable_summarization: bool = False, verbose: bool = False,
                  name: Optional[str] = None, version: Optional[str] = None, manufacturer: Optional[str] = None):
         if verbose:
-            logging.getLogger().setLevel(logging.INFO)
-            
-        print(f"Generating AIBOM for {model_id}...")
-        
+            logging.getLogger().setLevel(logging.DEBUG)
+
+        logger.info("Generating AIBOM for %s...", model_id)
+
         versions_to_generate = ["1.6", "1.7"]
         reports = []
-        generated_aiboms = {} 
-        
-        print(f"  - Generating AIBOM model data...")
+        generated_aiboms = {}
+
+        logger.info("Generating AIBOM model data...")
         try:
             primary_aibom = self.service.generate_aibom(
                 model_id, 
@@ -85,8 +84,7 @@ class CLIController:
             output_file_primary = output_file_1_6
 
         except Exception as e:
-            logger.error(f"Failed to generate SBOM: {e}", exc_info=True)
-            print(f"  ❌ Failed to generate SBOM: {e}")
+            logger.error("Failed to generate SBOM: %s", e, exc_info=True)
             reports = []
 
         if reports:
@@ -130,7 +128,7 @@ class CLIController:
                     with open(html_output_file, "w") as f:
                         f.write(html_content)
                     
-                    print(f"\n📄 HTML Report:\n   {html_output_file}")
+                    logger.info("HTML Report: %s", html_output_file)
 
                     # Copy static assets
                     try:
@@ -148,19 +146,19 @@ class CLIController:
                             if os.path.exists(static_dst):
                                 shutil.rmtree(static_dst)
                             shutil.copytree(static_src, static_dst)
-                            # print(f"   - Static assets copied to: {static_dst}")
+                            logger.debug("Static assets copied to: %s", static_dst)
                         else:
-                            logger.warning(f"Static source directory not found: {static_src}")
+                            logger.warning("Static source directory not found: %s", static_src)
 
                     except Exception as e:
-                        logger.warning(f"Failed to copy static assets: {e}")
+                        logger.warning("Failed to copy static assets: %s", e)
 
                     # Model Description
                     if "components" in primary_aibom and primary_aibom["components"]:
                         description = primary_aibom["components"][0].get("description", "No description available")
                         if len(description) > 256:
                             description = description[:253] + "..."
-                        print(f"\n📝 Model Description:\n   {description}")
+                        logger.info("Model Description: %s", description)
 
                     # License
                     if "components" in primary_aibom and primary_aibom["components"]:
@@ -173,42 +171,39 @@ class CLIController:
                                 if val:
                                     license_list.append(val)
                             if license_list:
-                                print(f"\n⚖️ License:\n   {', '.join(license_list)}")
+                                logger.info("License: %s", ", ".join(license_list))
                                 
                 except Exception as e:
-                    logger.warning(f"Failed to generate HTML report: {e}")
+                    logger.warning("Failed to generate HTML report: %s", e)
 
-            # Print Summary for ALL versions
             for r in reports:
                 spec = r.get("spec_version", "1.6")
-                print(f"\n✅ Successfully generated CycloneDX {spec} SBOM:")
-                print(f"   {r.get('output_file')}")
-                
+                logger.info("Successfully generated CycloneDX %s SBOM: %s", spec, r.get("output_file"))
+
                 if not r["schema_validation"]["valid"]:
-                    print(f"⚠️  Schema Validation Errors ({spec}):")
+                    logger.warning("Schema Validation Errors (%s):", spec)
                     for err in r["schema_validation"]["errors"]:
-                        print(f"   - {err}")
+                        logger.warning("  - %s", err)
                 else:
-                    print(f"   - Schema Validation ({spec}): ✅ Valid")
-            
+                    logger.info("Schema Validation (%s): Valid", spec)
+
             # Display Detailed Score Summary (from primary)
             if primary_report and "final_score" in primary_report:
                 score = primary_report["final_score"]
                 t_score = score.get('total_score', 0)
                 formatted_t_score = int(t_score) if isinstance(t_score, (int, float)) and t_score == int(t_score) else t_score
-                print(f"\n📊 Completeness Score: {formatted_t_score}/100")
-                
+                logger.info("Completeness Score: %s/100", formatted_t_score)
+
                 if "completeness_profile" in score:
                     profile = score["completeness_profile"]
-                    print(f"   Profile: {profile.get('name')} - {profile.get('description')}")
-                
+                    logger.info("Profile: %s - %s", profile.get("name"), profile.get("description"))
+
                 if "section_scores" in score:
-                    print("\n📋 Section Breakdown:")
-                    
+                    logger.info("Section Breakdown:")
                     for section, s_score in score["section_scores"].items():
                         max_s = score.get("max_scores", {}).get(section, "?")
                         formatted_s_score = int(s_score) if isinstance(s_score, (int, float)) and s_score == int(s_score) else s_score
-                        print(f"   - {section.replace('_', ' ').title()}: {formatted_s_score}/{max_s}")
+                        logger.info("  %s: %s/%s", section.replace("_", " ").title(), formatted_s_score, max_s)
 
         else:
-             print("\n❌ Failed to generate any SBOMs.")
+            logger.error("Failed to generate any SBOMs.")

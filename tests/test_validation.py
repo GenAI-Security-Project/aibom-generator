@@ -1,72 +1,48 @@
+import json
 import unittest
-from unittest.mock import MagicMock, patch, mock_open
-from src.utils.validation import validate_aibom, load_schema, _download_schema
+from cyclonedx.model.bom import Bom
+from cyclonedx.model.component import Component, ComponentType
+from cyclonedx.output.json import JsonV1Dot6
+from src.utils.validation import validate_aibom, get_validation_summary
+
+
+def _valid_aibom() -> dict:
+    """Generate a minimal valid CycloneDX 1.6 BOM dict via the library."""
+    bom = Bom()
+    bom.components.add(Component(name="test-model", type=ComponentType.MACHINE_LEARNING_MODEL))
+    return json.loads(JsonV1Dot6(bom).output_as_string())
+
 
 class TestValidation(unittest.TestCase):
-    @patch("src.utils.validation.load_schema")
-    def test_validate_aibom_valid(self, mock_load):
-        mock_load.return_value = {
-            "type": "object", 
-            "properties": {"bomFormat": {"type": "string"}},
-            "required": ["bomFormat"]
-        }
-        valid_aibom = {"bomFormat": "CycloneDX"}
-        is_valid, errors = validate_aibom(valid_aibom)
-        if not is_valid:
-            print(f"\nValidation Errors: {errors}")
+    def test_validate_aibom_valid(self):
+        is_valid, errors = validate_aibom(_valid_aibom())
         self.assertTrue(is_valid)
         self.assertEqual(errors, [])
 
-    @patch("src.utils.validation.load_schema")
-    def test_validate_aibom_invalid(self, mock_load):
-        mock_load.return_value = {
-            "type": "object", 
-            "properties": {"bomFormat": {"type": "string"}},
-            "required": ["bomFormat"]
-        }
-        invalid_aibom = {"otherField": "value"}
-        is_valid, errors = validate_aibom(invalid_aibom)
+    def test_validate_aibom_invalid(self):
+        # Missing all required CycloneDX fields
+        is_valid, errors = validate_aibom({"otherField": "value"})
         self.assertFalse(is_valid)
         self.assertTrue(len(errors) > 0)
-        
-    @patch("src.utils.validation.requests.get")
-    def test_download_schema(self, mock_get):
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"key": "value"}
-        mock_get.return_value = mock_response
-        
-        with patch("builtins.open", mock_open()) as mock_file:
-            schema = _download_schema()
-            self.assertEqual(schema, {"key": "value"})
 
-    @patch("src.utils.validation._load_schema_from_cache")
-    def test_schema_caching(self, mock_load):
-        """Test that schema is cached after first load."""
-        import src.utils.validation as val_module
-        # Reset cache for test
-        old_cache = val_module._cached_schema
-        val_module._cached_schema = None
-        
-        try:
-            mock_schema = {"type": "object", "cached": True}
-            mock_load.return_value = mock_schema
-            
-            # First load
-            schema1 = load_schema()
-            self.assertIs(schema1, mock_schema)
-            self.assertEqual(mock_load.call_count, 1)
-            
-            # Second load should use cache
-            schema2 = load_schema()
-            self.assertIs(schema2, schema1)
-            self.assertEqual(mock_load.call_count, 1) # Still 1
-        finally:
-            val_module._cached_schema = old_cache
+    def test_validate_aibom_wrong_bom_format(self):
+        aibom = _valid_aibom()
+        aibom["bomFormat"] = "NotCycloneDX"
+        is_valid, _ = validate_aibom(aibom)
+        self.assertFalse(is_valid)
 
-    def test_schema_loading(self):
-        """Test that schema can be loaded (integration check)."""
-        schema = load_schema()
-        self.assertTrue(schema is None or isinstance(schema, dict))
+    def test_get_validation_summary_valid(self):
+        summary = get_validation_summary(_valid_aibom())
+        self.assertTrue(summary["valid"])
+        self.assertEqual(summary["error_count"], 0)
+        self.assertEqual(summary["errors"], [])
 
-if __name__ == '__main__':
+    def test_get_validation_summary_invalid(self):
+        summary = get_validation_summary({"bad": "data"})
+        self.assertFalse(summary["valid"])
+        self.assertGreater(summary["error_count"], 0)
+        self.assertGreater(len(summary["errors"]), 0)
+
+
+if __name__ == "__main__":
     unittest.main()

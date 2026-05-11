@@ -1,11 +1,13 @@
 
 import logging
-import re
-import os
 import json
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from enum import Enum
+from cyclonedx.schema import SchemaVersion
+from cyclonedx.validation.json import JsonValidator
 from .registry import get_field_registry_manager
+
+_cdx_validator = JsonValidator(SchemaVersion.V1_6)
 
 logger = logging.getLogger(__name__)
 
@@ -31,44 +33,6 @@ except Exception as e:
     VALIDATION_MESSAGES = {}
     SCORING_WEIGHTS = {}
 
-# Load SPDX licenses
-try:
-    schema_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas", "spdx.schema.json")
-    with open(schema_path, "r", encoding="utf-8") as f:
-        _spdx_schema = json.load(f)
-        SPDX_LICENSES = set(_spdx_schema.get("enum", []))
-    logger.info(f"✅ SPDX licenses schema loaded: {len(SPDX_LICENSES)} licenses")
-except Exception as e:
-    logger.error(f"❌ Failed to load SPDX schema: {e}")
-    SPDX_LICENSES = {"MIT", "Apache-2.0", "GPL-3.0-only", "GPL-2.0-only", "LGPL-3.0-only",
-                     "BSD-3-Clause", "BSD-2-Clause", "CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0",
-                     "Unlicense", "NONE"}
-
-# Build JSON Schema Registry
-JSON_SCHEMA_REGISTRY = None
-try:
-    from referencing import Registry, Resource
-    registry = Registry()
-    schemas_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "schemas")
-    if os.path.exists(schemas_dir):
-        for filename in os.listdir(schemas_dir):
-            if filename.endswith(".json"):
-                with open(os.path.join(schemas_dir, filename), "r", encoding="utf-8") as schema_file:
-                    schema_data = json.load(schema_file)
-                    resource = Resource.from_contents(schema_data)
-                    schema_id = schema_data.get("$id", "")
-                    if schema_id:
-                        registry = registry.with_resource(uri=schema_id, resource=resource)
-                    registry = registry.with_resource(uri=filename, resource=resource)
-        JSON_SCHEMA_REGISTRY = registry
-        logger.info("✅ JSON Schema Registry loaded for local ref resolution")
-except Exception as e:
-    logger.error(f"❌ Failed to build JSON Schema Registry: {e}")
-
-def validate_spdx(license_entry):
-    if isinstance(license_entry, list):
-        return all(lic in SPDX_LICENSES for lic in license_entry)
-    return license_entry in SPDX_LICENSES
 
 def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
     """
@@ -400,55 +364,24 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
 
     return result
 
-def _validate_ai_requirements(aibom: Dict[str, Any]) -> List[Dict[str, Any]]:
-    # ... logic from utils.py ...
-    # Implementing minimal version or copying full logic?
-    # I'll implement a concise version.
-    issues = []
-    if "bomFormat" in aibom and aibom["bomFormat"] != "CycloneDX":
-         issues.append({"severity": "error", "code": "INVALID_BOM_FORMAT", "message": "Must be CycloneDX", "path": "$.bomFormat"})
-    # ... (Add more crucial checks here as needed)
-    return issues
-
 def validate_aibom(aibom: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Validate the AIBOM against the appropriate CycloneDX schema.
+    Validate the AIBOM against the CycloneDX 1.6 schema using the
+    cyclonedx-python-lib built-in validator.
     """
     issues = []
-    
-    # 1. Schema Validation (using local schemas)
+
     try:
-        import json
-        import jsonschema
-        import os
-        
-        spec_version = aibom.get("specVersion", "1.6")
-        schema_file = f"bom-{spec_version}.schema.json"
-        # Relative path from src/models/scoring.py -> src/schemas/
-        schema_path = os.path.join(os.path.dirname(__file__), '..', 'schemas', schema_file)
-        
-        if os.path.exists(schema_path):
-            with open(schema_path, 'r', encoding="utf-8") as f:
-                schema = json.load(f)
-            if JSON_SCHEMA_REGISTRY is not None:
-                jsonschema.validate(instance=aibom, schema=schema, registry=JSON_SCHEMA_REGISTRY)
-            else:
-                jsonschema.validate(instance=aibom, schema=schema)
-        else:
-             # If schema missing, warn but don't fail hard
-             issues.append({"severity": "warning", "message": f"Schema file not found: {schema_file}, skipping strict validation."})
-             
-    except jsonschema.ValidationError as e:
-        issues.append({"severity": "error", "message": e.message, "path": getattr(e, "json_path", "unknown")})
+        errors = _cdx_validator.validate_str(json.dumps(aibom), all_errors=True)
+        if errors is not None:
+            for e in errors:
+                path = ".".join(str(p) for p in e.data_path) or "root"
+                issues.append({"severity": "error", "message": e.message, "path": path})
     except Exception as e:
         issues.append({"severity": "error", "message": f"Validation error: {str(e)}"})
-        
-    # 2. Custom Business Logic Checks (AI Requirements)
-    custom_issues = _validate_ai_requirements(aibom)
-    issues.extend(custom_issues)
 
     return {
         "valid": not any(i["severity"] == "error" for i in issues),
         "issues": issues,
-        "error_count": sum(1 for i in issues if i["severity"] == "error")
+        "error_count": sum(1 for i in issues if i["severity"] == "error"),
     }
