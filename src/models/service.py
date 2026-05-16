@@ -661,6 +661,30 @@ class AIBOMService:
                 props.append({"name": "genai:aibom:modelcard:quantizationFileType", "value": str(q_dict["file_type"])})
             taxonomy_mapped_keys.append("quantization")
 
+        # Training Data Completeness Check
+        has_training_data = self._verify_datasets_available(metadata)
+        props.append({"name": "genai:aibom:trainingDataAvailable", "value": "true" if has_training_data else "false"})
+        
+        # Add status note about dataset verification
+        if has_training_data:
+            props.append({
+                "name": "genai:aibom:trainingDataStatus",
+                "value": "Training datasets verified: Dataset(s) exist and are accessible on Hugging Face Hub."
+            })
+        else:
+            # Dataset referenced but not found/verified
+            if "datasets" in metadata and metadata.get("datasets"):
+                props.append({
+                    "name": "genai:aibom:trainingDataWarning", 
+                    "value": "Training datasets were referenced but could not be verified on Hugging Face Hub. Dataset may not exist, be disabled, or be inaccessible."
+                })
+            else:
+                # No dataset info at all
+                props.append({
+                    "name": "genai:aibom:trainingDataWarning", 
+                    "value": "Training data information is missing or not documented. This limits transparency and auditability of the model."
+                })
+
         # Basic Fields we've already mapped to structured homes
         mapped_fields = [
             "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
@@ -668,7 +692,8 @@ class AIBOMService:
             "pipeline_tag", "name", "author", "license", "description",
             "commit", "bomFormat", "specVersion", "version", "licenses",
             "external_references", "tags", "library_name", "paper", "downloadLocation",
-            "gguf_filename", "gguf_license", "model_type", "architectures"
+            "gguf_filename", "gguf_license", "model_type", "architectures",
+            "trainingDataAvailable", "trainingDataWarning"
         ] + taxonomy_mapped_keys
         
         for k, v in metadata.items():
@@ -719,3 +744,28 @@ class AIBOMService:
             return (["csv", "json"], ["string", "number"])
             
         return ([], [])
+
+    def _verify_datasets_available(self, metadata: Dict[str, Any]) -> bool:
+        """Verify if training datasets exist on Hugging Face Hub."""
+        datasets = metadata.get("datasets")
+        if not datasets:
+            return False
+        
+        # Normalize to list
+        if isinstance(datasets, str):
+            datasets = [datasets]
+        elif isinstance(datasets, dict):
+            datasets = [datasets.get("name", "")]
+        
+        # Filter out empty/placeholder values
+        valid = [d for d in datasets if isinstance(d, str) and d.strip() and d.lower() != "unknown"]
+        
+        return any(self._verify_dataset_exists_on_hf(d) for d in valid) if valid else False
+    
+    def _verify_dataset_exists_on_hf(self, dataset_id: str) -> bool:
+        """Check if dataset exists and is accessible on HF Hub."""
+        try:
+            info = self.hf_api.dataset_info(repo_id=dataset_id)
+            return info is not None and not getattr(info, 'disabled', False)
+        except Exception:
+            return False
