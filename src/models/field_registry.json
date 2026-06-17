@@ -512,7 +512,7 @@
       "weight": 1.0,
       "category": "component_basic",
       "description": "Additional external references",
-      "jsonpath": "$.component.externalReferences",
+      "jsonpath": "$.components[0].externalReferences",
       "aibom_generation": {
         "location": "$.component.externalReferences",
         "rule": "include_if_available",
