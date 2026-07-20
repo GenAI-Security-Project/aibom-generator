@@ -38,7 +38,7 @@ jobs:
         run: |
           pipx run --spec cyclonedx-bom cyclonedx-py environment .venv/bin/python \
             --output-format JSON \
-            --output-file "aibom-generator-${RELEASE}.json"
+            --output-file "aibom-generator-${RELEASE}.cdx.json"
 
       - name: Create GitHub Release
         env:
@@ -47,4 +47,4 @@ jobs:
           gh release create "${RELEASE}" \
             --title "${RELEASE}" \
             --generate-notes \
-            "aibom-generator-${RELEASE}.json"
+            "aibom-generator-${RELEASE}.cdx.json"
