@@ -13,6 +13,9 @@ on:
 permissions:
   contents: write   # required to create a release and upload assets
 
+env:
+  RELEASE: ${{ github.ref_name }}   # the pushed tag, e.g. v1.0.3
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -35,13 +38,13 @@ jobs:
         run: |
           pipx run --spec cyclonedx-bom cyclonedx-py environment .venv/bin/python \
             --output-format JSON \
-            --output-file bom.json
+            --output-file "aibom-generator-${RELEASE}.json"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
+          gh release create "${RELEASE}" \
+            --title "${RELEASE}" \
             --generate-notes \
-            bom.json
+            "aibom-generator-${RELEASE}.json"
