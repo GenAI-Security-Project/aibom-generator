@@ -35,8 +35,15 @@ jobs:
       - name: Generate Python SBOM (CycloneDX)
         # cyclonedx-py runs isolated via pipx so the SBOM reflects only the
         # project's runtime dependencies, not the SBOM tool itself.
+        #
+        # `environment` introspects the installed venv, so the full transitive
+        # dependency closure is captured automatically, and the CycloneDX
+        # `dependencies` graph records the transitive paths between components.
+        # `--pyproject` roots that graph at the project itself, so its direct
+        # deps (and everything reachable from them) are traceable.
         run: |
           pipx run --spec cyclonedx-bom cyclonedx-py environment .venv/bin/python \
+            --pyproject pyproject.toml \
             --output-format JSON \
             --output-file "aibom-generator-${RELEASE}.cdx.json"
 
