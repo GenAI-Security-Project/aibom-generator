@@ -1,0 +1,90 @@
+name: Release
+
+# Publish a GitHub Release whenever a version tag is pushed. The release
+# includes the built Python distribution artifacts (wheel + sdist) and a
+# CycloneDX SBOM of the project's Python runtime environment, with the
+# artifacts' hashes recorded in the SBOM.
+#
+#   git tag v1.0.3
+#   git push origin v1.0.3
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # required to create a release and upload assets
+
+env:
+  RELEASE: ${{ github.ref_name }}   # the pushed tag, e.g. v1.0.3
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install project into an isolated environment
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install .
+
+      - name: Build release artifacts (wheel + sdist)
+        run: |
+          python -m pip install --upgrade build
+          python -m build --outdir dist
+          ls -l dist
+
+      - name: Generate Python SBOM (CycloneDX)
+        # cyclonedx-py runs isolated via pipx so the SBOM reflects only the
+        # project's runtime dependencies, not the SBOM tool itself.
+        #
+        # `environment` introspects the installed venv, so the full transitive
+        # dependency closure is captured automatically, and the CycloneDX
+        # `dependencies` graph records the transitive paths between components.
+        # `--pyproject` roots that graph at the project itself, so its direct
+        # deps (and everything reachable from them) are traceable.
+        run: |
+          pipx run --spec cyclonedx-bom cyclonedx-py environment .venv/bin/python \
+            --pyproject pyproject.toml \
+            --output-format JSON \
+            --output-file "aibom-generator-${RELEASE}.cdx.json"
+
+      - name: Finalize root component metadata and record artifact hashes
+        # Set the root component's group, PURL namespace, supplier and
+        # manufacturer to the owning organization, align its version with the
+        # release tag, and record each built artifact (with SHA-256/SHA-512
+        # hashes) as a `distribution` external reference on the root component.
+        run: |
+          python scripts/finalize_sbom.py "aibom-generator-${RELEASE}.cdx.json" \
+            --version "${RELEASE}" \
+            --download-base-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${RELEASE}" \
+            $(for f in dist/*; do echo --artifact "$f"; done)
+
+      - name: Validate SBOM against CycloneDX schema
+        run: |
+          .venv/bin/python - "aibom-generator-${RELEASE}.cdx.json" <<'PY'
+          import sys
+          from cyclonedx.validation.json import JsonStrictValidator
+          from cyclonedx.schema import SchemaVersion
+          data = open(sys.argv[1], encoding="utf-8").read()
+          error = JsonStrictValidator(SchemaVersion.V1_6).validate_str(data)
+          if error is not None:
+              raise SystemExit(f"SBOM failed CycloneDX 1.6 validation: {error}")
+          print("SBOM is valid against CycloneDX 1.6")
+          PY
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${RELEASE}" \
+            --title "${RELEASE}" \
+            --generate-notes \
+            "aibom-generator-${RELEASE}.cdx.json" \
+            dist/*
