@@ -47,6 +47,26 @@ jobs:
             --output-format JSON \
             --output-file "aibom-generator-${RELEASE}.cdx.json"
 
+      - name: Finalize root component metadata
+        # Set the root component's group, PURL namespace, supplier and
+        # manufacturer to the owning organization, and align its version with
+        # the release tag. cyclonedx-py cannot set these from pyproject alone.
+        run: |
+          python scripts/finalize_sbom.py "aibom-generator-${RELEASE}.cdx.json" "${RELEASE}"
+
+      - name: Validate SBOM against CycloneDX schema
+        run: |
+          .venv/bin/python - "aibom-generator-${RELEASE}.cdx.json" <<'PY'
+          import sys
+          from cyclonedx.validation.json import JsonStrictValidator
+          from cyclonedx.schema import SchemaVersion
+          data = open(sys.argv[1], encoding="utf-8").read()
+          error = JsonStrictValidator(SchemaVersion.V1_6).validate_str(data)
+          if error is not None:
+              raise SystemExit(f"SBOM failed CycloneDX 1.6 validation: {error}")
+          print("SBOM is valid against CycloneDX 1.6")
+          PY
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
