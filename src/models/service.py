@@ -444,6 +444,8 @@ class AIBOMService:
         popia_compliance                 owasp:aibom:regulatory:popiaCompliance
         kdpa_compliance                  owasp:aibom:regulatory:kdpaCompliance
         gdpa_compliance                  owasp:aibom:regulatory:gdpaCompliance
+        rwanda_dpa_compliance            owasp:aibom:regulatory:rwandaDpaCompliance
+        egypt_pdpl_compliance            owasp:aibom:regulatory:egyptPdplCompliance
         regulatory_contact_point         owasp:aibom:regulatory:regulatoryContactPoint
         ===============================  =============================================
         """
@@ -454,6 +456,8 @@ class AIBOMService:
             "popia_compliance":                 "popiaCompliance",
             "kdpa_compliance":                  "kdpaCompliance",
             "gdpa_compliance":                  "gdpaCompliance",
+            "rwanda_dpa_compliance":            "rwandaDpaCompliance",
+            "egypt_pdpl_compliance":            "egyptPdplCompliance",
             "regulatory_contact_point":         "regulatoryContactPoint",
         }
         props: List[Dict[str, str]] = []

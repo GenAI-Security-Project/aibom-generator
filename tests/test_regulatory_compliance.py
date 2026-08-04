@@ -35,7 +35,7 @@ class TestBuildRegulatoryProperties(unittest.TestCase):
         self.assertEqual(len(props), 1)
         self.assertEqual(props[0]["value"], "NG, ZA, KE")
 
-    def test_all_seven_fields_emitted(self):
+    def test_all_nine_fields_emitted(self):
         full_input = {
             "african_deployment_jurisdictions": ["NG", "ZA"],
             "ndpa_compliance":                  "registered; lawful_basis=legitimate_interests; dpia=completed",
@@ -43,10 +43,12 @@ class TestBuildRegulatoryProperties(unittest.TestCase):
             "popia_compliance":                 "registered; information_officer=appointed",
             "kdpa_compliance":                  "registered; odpc_registration=active",
             "gdpa_compliance":                  "registered; dpc_registration=active",
+            "rwanda_dpa_compliance":            "registered; ncsa_registration=active",
+            "egypt_pdpl_compliance":            "registered; pdpa_registration=active",
             "regulatory_contact_point":         "dpo@example.com",
         }
         props = AIBOMService._build_regulatory_properties(full_input)
-        self.assertEqual(len(props), 7)
+        self.assertEqual(len(props), 9)
         names = {p["name"] for p in props}
         self.assertIn("owasp:aibom:regulatory:africanDeploymentJurisdictions", names)
         self.assertIn("owasp:aibom:regulatory:ndpaCompliance", names)
@@ -54,7 +56,25 @@ class TestBuildRegulatoryProperties(unittest.TestCase):
         self.assertIn("owasp:aibom:regulatory:popiaCompliance", names)
         self.assertIn("owasp:aibom:regulatory:kdpaCompliance", names)
         self.assertIn("owasp:aibom:regulatory:gdpaCompliance", names)
+        self.assertIn("owasp:aibom:regulatory:rwandaDpaCompliance", names)
+        self.assertIn("owasp:aibom:regulatory:egyptPdplCompliance", names)
         self.assertIn("owasp:aibom:regulatory:regulatoryContactPoint", names)
+
+    def test_rwanda_dpa_compliance_field(self):
+        props = AIBOMService._build_regulatory_properties(
+            {"rwanda_dpa_compliance": "registered; ncsa_registration=RW-2025-001"}
+        )
+        self.assertEqual(len(props), 1)
+        self.assertEqual(props[0]["name"], "owasp:aibom:regulatory:rwandaDpaCompliance")
+        self.assertEqual(props[0]["value"], "registered; ncsa_registration=RW-2025-001")
+
+    def test_egypt_pdpl_compliance_field(self):
+        props = AIBOMService._build_regulatory_properties(
+            {"egypt_pdpl_compliance": "registered; pdpa_registration=EG-2025-001; automated_decisions=disclosed"}
+        )
+        self.assertEqual(len(props), 1)
+        self.assertEqual(props[0]["name"], "owasp:aibom:regulatory:egyptPdplCompliance")
+        self.assertIn("automated_decisions=disclosed", props[0]["value"])
 
     def test_empty_dict_returns_no_props(self):
         self.assertEqual(AIBOMService._build_regulatory_properties({}), [])
@@ -154,6 +174,8 @@ class TestRegulatoryFieldRegistry(unittest.TestCase):
             "popiaCompliance",
             "kdpaCompliance",
             "gdpaCompliance",
+            "rwandaDpaCompliance",
+            "egyptPdplCompliance",
             "regulatoryContactPoint",
         ):
             self.assertIn(field, checklist, f"{field} not found in field_checklist")
@@ -168,6 +190,8 @@ class TestRegulatoryFieldRegistry(unittest.TestCase):
             "popiaCompliance",
             "kdpaCompliance",
             "gdpaCompliance",
+            "rwandaDpaCompliance",
+            "egyptPdplCompliance",
             "regulatoryContactPoint",
         ):
             self.assertIn(field, missing_supp, f"{field} not in missing supplementary fields")

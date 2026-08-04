@@ -2014,6 +2014,72 @@
         "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
         "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
       }
+    },
+    "rwandaDpaCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Rwanda Data Protection Law No. 058/2021 compliance \u2014 NCSA registration and data controller obligations",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:rwandaDpaCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "rwanda_dpa_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: rwandaDpaCompliance \u2014 required for models that process personal data of Rwandan data subjects",
+        "recommendation": "Provide Rwanda Data Protection Law No. 058/2021 compliance status: data controller registration with the National Cyber Security Authority (NCSA), lawful basis for processing, and consent or legitimate interests assessment under Article 12."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "rwanda_dpa_law": "https://www.rura.rw/fileadmin/Documents/Laws_and_Regulations/ICT/Law_No._058_2021_of_13_10_2021_relating_to_the_protection_of_personal_data_and_privacy.pdf",
+        "ncsa_rwanda": "https://www.ncsa.rw/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "egyptPdplCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Egypt Personal Data Protection Law No. 151/2020 compliance \u2014 PDPA registration and data controller obligations",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:egyptPdplCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "egypt_pdpl_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: egyptPdplCompliance \u2014 required for models that process personal data of Egyptian data subjects",
+        "recommendation": "Provide Egypt PDPL No. 151/2020 compliance status: data controller registration with the Personal Data Protection Authority (PDPA), lawful basis under Article 4, and whether automated decision-making is used under Article 23."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "egypt_pdpl_2020": "https://mcit.gov.eg/en/Publications/13",
+        "egypt_pdpa": "https://pdpa.gov.eg/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
     }
   }
 }
