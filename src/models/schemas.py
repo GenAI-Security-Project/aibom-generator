@@ -42,6 +42,16 @@ class GenerateRequest(BaseModel):
     include_inference: bool = True
     use_best_practices: bool = True
     hf_token: Optional[str] = None
+    regulatory_metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "African regulatory compliance metadata injected at $.metadata.properties "
+            "under the owasp:aibom:regulatory: namespace. "
+            "Supported keys: african_deployment_jurisdictions, ndpa_compliance, "
+            "nfiu_aml_compliance, popia_compliance, kdpa_compliance, gdpa_compliance, "
+            "regulatory_contact_point."
+        ),
+    )
 
 class BatchRequest(BaseModel):
     model_ids: List[str]
