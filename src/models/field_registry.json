@@ -1787,6 +1787,233 @@
         "note": "Custom OWASP extension property (owasp:aibom:distribution namespace); not part of the official genai:aibom taxonomy",
         "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#components_items_properties"
       }
+    },
+    "africanDeploymentJurisdictions": {
+      "tier": "important",
+      "weight": 2.0,
+      "category": "metadata",
+      "description": "African jurisdictions where this model is deployed or processes personal data (ISO 3166-1 alpha-2 codes, e.g. NG, ZA, KE)",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:africanDeploymentJurisdictions')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "african_deployment_jurisdictions"
+        ],
+        "validation": "recommended",
+        "data_type": "array"
+      },
+      "scoring": {
+        "points": 2.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.1
+      },
+      "validation_message": {
+        "missing": "Missing field: africanDeploymentJurisdictions \u2014 list the African jurisdictions where this model is deployed or processes personal data",
+        "recommendation": "Provide ISO 3166-1 alpha-2 codes for each jurisdiction (e.g. NG, ZA, KE, GH, RW, EG, ET). Required for NDPA, POPIA, KDPA, and AU Data Policy Framework compliance."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "au_data_policy_framework": "https://au.int/en/documents/20210309/african-union-data-policy-framework",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "ndpaCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Nigeria Data Protection Act 2023 compliance \u2014 lawful basis, NITDA registration status, and DPIA completion",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:ndpaCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "ndpa_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: ndpaCompliance \u2014 required for models that process Nigerian personal data",
+        "recommendation": "Provide NDPA 2023 compliance status: lawful basis under NDPA \u00a725 (legitimate interests, consent, or contractual necessity), NITDA data controller registration status, and whether a Data Protection Impact Assessment (DPIA) was completed under NDPA \u00a732."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "nigeria_ndpa_2023": "https://nitda.gov.ng/wp-content/uploads/2023/03/NigeriaDataProtectionAct2023.pdf",
+        "nitda_registration": "https://nitda.gov.ng/data-protection/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "nfiuAmlCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Nigeria Financial Intelligence Unit AML/CFT obligations for AI models deployed in Nigerian financial services",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:nfiuAmlCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "nfiu_aml_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: nfiuAmlCompliance \u2014 required for AI models used in Nigerian financial services (CBN-licensed institutions)",
+        "recommendation": "Provide NFIU AML/CFT compliance status: whether the model has been assessed against NFIU Regulations 2022, CBN KYC framework compliance, and explainability requirements for automated credit and fraud decisions."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "nfiu_regulations": "https://nfiu.gov.ng/",
+        "cbn_risk_framework": "https://www.cbn.gov.ng/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "popiaCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "South Africa Protection of Personal Information Act 2013 compliance \u2014 information officer registration and Section 36 conditions",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:popiaCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "popia_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: popiaCompliance \u2014 required for models that process personal information of South African data subjects",
+        "recommendation": "Provide POPIA compliance status: information officer registration with the Information Regulator, the lawful grounds for processing under POPIA \u00a711, and whether automated decision-making is used under POPIA \u00a771."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "popia_act": "https://www.justice.gov.za/inforeg/legal.html",
+        "information_regulator_za": "https://inforegulator.org.za/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "kdpaCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Kenya Data Protection Act 2019 compliance \u2014 data commissioner registration and DPIA status",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:kdpaCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "kdpa_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: kdpaCompliance \u2014 required for models that process personal data of Kenyan data subjects",
+        "recommendation": "Provide KDPA 2019 compliance status: data controller or processor registration with the Office of the Data Protection Commissioner (ODPC), lawful basis for processing, and Data Protection Impact Assessment (DPIA) status for high-risk processing."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "kdpa_act": "https://www.odpc.go.ke/",
+        "odpc_registration": "https://www.odpc.go.ke/registration/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "gdpaCompliance": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Ghana Data Protection Act 2012 (Act 843) compliance \u2014 Data Protection Commission registration",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:gdpaCompliance')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "gdpa_compliance"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: gdpaCompliance \u2014 required for models that process personal data of Ghanaian data subjects",
+        "recommendation": "Provide Ghana DPA 2012 compliance status: registration with the Data Protection Commission (DPC) under DPA \u00a717, lawful basis for processing, and whether automated decision-making is used."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "ghana_dpa": "https://www.dpc.gov.gh/",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
+    },
+    "regulatoryContactPoint": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "metadata",
+      "description": "Contact point (DPO or compliance officer) for African regulatory queries and cross-border data transfer requests",
+      "jsonpath": "$.metadata.properties[?(@.name=='owasp:aibom:regulatory:regulatoryContactPoint')].value",
+      "aibom_generation": {
+        "location": "$.metadata.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "regulatory_contact_point"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.05
+      },
+      "validation_message": {
+        "missing": "Missing field: regulatoryContactPoint \u2014 Data Protection Officer or compliance contact for African regulatory queries",
+        "recommendation": "Provide the contact email or URL of the Data Protection Officer (DPO) or compliance officer responsible for African regulatory inquiries. Required under NDPA 2023 \u00a731 (Nigeria), POPIA \u00a755 (South Africa), and KDPA \u00a724 (Kenya) for organizations that process personal data at scale."
+      },
+      "reference_urls": {
+        "owasp_aibom_taxonomy": "https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#metadata_properties"
+      }
     }
   }
 }

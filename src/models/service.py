@@ -80,9 +80,17 @@ class AIBOMService:
         enable_summarization: bool = False,
         spec_version: str = "1.6",
         metadata_overrides: Optional[Dict[str, str]] = None,
+        regulatory_metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Generate an AIBOM for the specified Hugging Face model.
+
+        Args:
+            regulatory_metadata: Optional dict of African regulatory compliance fields.
+                Keys map to owasp:aibom:regulatory:* properties in $.metadata.properties.
+                Supported keys: african_deployment_jurisdictions (list or str),
+                ndpa_compliance, nfiu_aml_compliance, popia_compliance,
+                kdpa_compliance, gdpa_compliance, regulatory_contact_point.
         """
         try:
             model_id = self._normalise_model_id(model_id)
@@ -118,7 +126,12 @@ class AIBOMService:
                 pass
             
             # 5. Create Final AIBOM
-            aibom = self._create_aibom_structure(model_id, final_metadata, spec_version=spec_version, metadata_overrides=metadata_overrides)
+            aibom = self._create_aibom_structure(
+                model_id, final_metadata,
+                spec_version=spec_version,
+                metadata_overrides=metadata_overrides,
+                regulatory_metadata=regulatory_metadata,
+            )
             
             # Validate Schema
             is_valid, validation_errors = validate_aibom(aibom)
@@ -277,8 +290,14 @@ class AIBOMService:
             return path
         return raw_id
 
-    def _create_aibom_structure(self, model_id: str, metadata: Dict[str, Any], spec_version: str = "1.6",
-                              metadata_overrides: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    def _create_aibom_structure(
+        self,
+        model_id: str,
+        metadata: Dict[str, Any],
+        spec_version: str = "1.6",
+        metadata_overrides: Optional[Dict[str, str]] = None,
+        regulatory_metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         full_commit = metadata.get("commit")
         version = full_commit[:8] if full_commit else "1.0"
         
@@ -305,6 +324,15 @@ class AIBOMService:
         # this post-serialization dict manipulation should be replaced with a proper object.
         if component_section.get("modelCard"):
             aibom["components"][0]["modelCard"] = component_section["modelCard"]
+
+        # African regulatory compliance properties — owasp:aibom:regulatory:* namespace.
+        # Injected at $.metadata.properties so they describe the legal/regulatory context of
+        # this AIBOM document (jurisdiction of deployment) rather than model card attributes.
+        # See: https://github.com/GenAI-Security-Project/cyclonedx-property-taxonomy
+        regulatory_props = self._build_regulatory_properties(regulatory_metadata or {})
+        if regulatory_props:
+            aibom["metadata"].setdefault("properties", []).extend(regulatory_props)
+
         return aibom
 
     def _build_cyclonedx_metadata(self, metadata_section: Dict[str, Any]) -> BomMetaData:
@@ -396,6 +424,47 @@ class AIBOMService:
     def _map_external_reference_type(reference_type: str) -> ExternalReferenceType:
         normalized_name = reference_type.upper().replace("-", "_")
         return ExternalReferenceType.__members__.get(normalized_name, ExternalReferenceType.WEBSITE)
+
+    @staticmethod
+    def _build_regulatory_properties(regulatory_metadata: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Build ``owasp:aibom:regulatory:*`` properties for injection at ``$.metadata.properties``.
+
+        Maps snake_case input keys to camelCase CycloneDX property names under the
+        ``owasp:aibom:regulatory:`` namespace.  List values are joined as a
+        comma-separated string so the output is always a valid CycloneDX property value.
+
+        Supported input keys and their resulting property names:
+
+        ===============================  =============================================
+        Input key                        Property name
+        ===============================  =============================================
+        african_deployment_jurisdictions owasp:aibom:regulatory:africanDeploymentJurisdictions
+        ndpa_compliance                  owasp:aibom:regulatory:ndpaCompliance
+        nfiu_aml_compliance              owasp:aibom:regulatory:nfiuAmlCompliance
+        popia_compliance                 owasp:aibom:regulatory:popiaCompliance
+        kdpa_compliance                  owasp:aibom:regulatory:kdpaCompliance
+        gdpa_compliance                  owasp:aibom:regulatory:gdpaCompliance
+        regulatory_contact_point         owasp:aibom:regulatory:regulatoryContactPoint
+        ===============================  =============================================
+        """
+        _FIELD_MAP: Dict[str, str] = {
+            "african_deployment_jurisdictions": "africanDeploymentJurisdictions",
+            "ndpa_compliance":                  "ndpaCompliance",
+            "nfiu_aml_compliance":              "nfiuAmlCompliance",
+            "popia_compliance":                 "popiaCompliance",
+            "kdpa_compliance":                  "kdpaCompliance",
+            "gdpa_compliance":                  "gdpaCompliance",
+            "regulatory_contact_point":         "regulatoryContactPoint",
+        }
+        props: List[Dict[str, str]] = []
+        for key, prop_name in _FIELD_MAP.items():
+            value = regulatory_metadata.get(key)
+            if value is None:
+                continue
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            props.append({"name": f"owasp:aibom:regulatory:{prop_name}", "value": str(value)})
+        return props
 
     def _create_metadata_section(self, model_id: str, metadata: Dict[str, Any], overrides: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
