@@ -8,6 +8,10 @@ from ..utils.formatter import export_aibom
 import os
 import shutil
 
+from spdx_tools.spdx.parser.jsonlikedict.json_like_dict_parser import JsonLikeDictParser
+from spdx_tools.spdx.validation.document_validator import validate_full_spdx_document
+from spdx_tools.spdx.parser.error import SPDXParsingError
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,9 +53,30 @@ class CLIController:
 
     def _validate_spdx_schema_version(self, aibom_data: dict, spec_version: str):
         """
-        TODO: Implement SPDX schema validation.
+        Validates the AIBOM data using the official spdx-tools package.
         """
-        pass
+        try:
+            # Map aibom versions to spdx_tools expected format e.g. "SPDX-2.3"
+            spdx_version_str = f"SPDX-{spec_version}"
+
+            try:
+                parser = JsonLikeDictParser()
+                document = parser.parse(aibom_data)
+            except SPDXParsingError as e:
+                logger.error("SPDX parsing failed for version %s: %s", spec_version, e)
+                return False
+
+            validation_messages = validate_full_spdx_document(document, spdx_version_str)
+            if validation_messages:
+                for msg in validation_messages:
+                    logger.error("SPDX validation error: %s", msg.validation_message)
+                return False
+
+            logger.info("SPDX schema validation successful for version %s", spec_version)
+            return True
+        except Exception as e:
+            logger.error("Failed to validate SPDX schema for version %s: %s", spec_version, e)
+            return False
 
     def generate(self, model_id: str, output_file: Optional[str] = None, include_inference: bool = False, 
                  enable_summarization: bool = False, verbose: bool = False,
