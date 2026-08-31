@@ -36,6 +36,7 @@ dependencies = [
     "transformers>=4.36.0",
     "uvicorn>=0.24.0",
     "safetensors>=0.4.0",
+    "aiofiles>=23.2.1",
 ]
 
 [project.optional-dependencies]
