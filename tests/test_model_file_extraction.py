@@ -229,3 +229,66 @@ class TestExtractionIsResilientToModelFileFailures:
         extractor = EnhancedExtractor(model_file_extractors=[FailingModelFileExtractor(), fake])
         metadata = extractor.extract_metadata(model_id, model_info, model_card)
         assert metadata["hyperparameter"]["block_count"] == 32
+
+from unittest.mock import MagicMock, patch
+import pytest
+
+class TestLicenseDetection:
+    """Test the optimized _detect_license_from_file behavior."""
+
+    @patch("src.models.extractor.hf_hub_download")
+    def test_detect_license_from_file_optimized(self, mock_hf_download):
+        """Ensures that the optimization correctly queries model_info before downloading."""
+        from src.models.extractor import EnhancedExtractor
+        from unittest.mock import mock_open
+
+        # Setup fake API
+        mock_api = MagicMock()
+        mock_repo_info = MagicMock()
+
+        # Give it some random files and one matching license
+        file1 = MagicMock()
+        file1.rfilename = "README.md"
+        file2 = MagicMock()
+        file2.rfilename = "config.json"
+        file3 = MagicMock()
+        file3.rfilename = "LICENSE.txt" # this one should trigger a hit
+        mock_repo_info.siblings = [file1, file2, file3]
+        mock_api.model_info.return_value = mock_repo_info
+
+        extractor = EnhancedExtractor(hf_api=mock_api, model_file_extractors=[])
+
+        mock_hf_download.return_value = "/fake/path/LICENSE.txt"
+
+        with patch("builtins.open", mock_open(read_data="MIT License")) as mock_file:
+            result = extractor._detect_license_from_file("fake/repo")
+
+            # API should have been called once
+            mock_api.model_info.assert_called_once_with(repo_id="fake/repo", files_metadata=False)
+
+            # Download should have been called EXACTLY ONCE with LICENSE.txt, skipping "LICENSE"
+            mock_hf_download.assert_called_once_with(repo_id="fake/repo", filename="LICENSE.txt")
+
+            # Should have found MIT
+            assert result == "MIT"
+
+    @patch("src.models.extractor.hf_hub_download")
+    def test_detect_license_from_file_no_license(self, mock_hf_download):
+        """Ensures that if no license file is in the sibling list, zero downloads occur."""
+        from src.models.extractor import EnhancedExtractor
+
+        mock_api = MagicMock()
+        mock_repo_info = MagicMock()
+
+        file1 = MagicMock()
+        file1.rfilename = "README.md"
+        mock_repo_info.siblings = [file1]
+        mock_api.model_info.return_value = mock_repo_info
+
+        extractor = EnhancedExtractor(hf_api=mock_api, model_file_extractors=[])
+
+        result = extractor._detect_license_from_file("fake/repo")
+
+        mock_api.model_info.assert_called_once()
+        mock_hf_download.assert_not_called()
+        assert result is None
