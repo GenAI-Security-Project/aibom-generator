@@ -10,7 +10,8 @@ Thank you for your interest in contributing to the OWASP AIBOM Generator! This p
    git clone https://github.com/YOUR_USERNAME/aibom-generator.git
    cd aibom-generator
    ```
-3. **Set up your environment**:
+3. **Set up your environment** with Python 3.11 or newer, as required by
+   [`pyproject.toml`](pyproject.toml):
 
    ```bash
    # Local Python setup
@@ -43,7 +44,7 @@ type/issue-number-description
 
 ### Pull Request Process
 
-1. Create a branch from `v0.2` (or `main` for documentation)
+1. Create a branch from `main`
 2. Make your changes with clear, focused commits
 3. Push to your fork and open a PR
 4. Link your PR to any related issues
@@ -68,7 +69,7 @@ type(scope): description
 
 ### Python Style
 
-- **Python 3.8+** compatibility required
+- **Python 3.11+** compatibility required (see `requires-python` in `pyproject.toml`)
 - Follow existing patterns in the codebase
 - Use type hints for function signatures
 
@@ -165,7 +166,7 @@ pip install -e '.[dev]'
 python -m uvicorn src.main:app --reload --port 7860
 
 # Or use CLI
-python -m src.cli --model_id "microsoft/DialoGPT-medium"
+python -m src.cli "microsoft/DialoGPT-medium"
 ```
 
 ## Updating Dependencies
