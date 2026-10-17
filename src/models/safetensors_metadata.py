@@ -10,6 +10,7 @@ See research.md section 12 for full format specification and design rationale.
 import json
 import math
 import logging
+import concurrent.futures
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Union
@@ -121,57 +122,68 @@ def map_to_metadata(info: SafetensorsModelInfo) -> MetadataDict:
 def fetch_safetensors_metadata(
     repo_id: str, *, hf_token: Optional[str] = None
 ) -> Optional[SafetensorsModelInfo]:
-    """Fetch config.json + safetensors headers from a HuggingFace repo.
+    """Fetch config.json + safetensors headers from a HuggingFace repo concurrently.
 
     Returns None if config.json is missing (can't extract hyperparameters).
     Returns partial info if safetensors headers are unavailable.
     """
-    # Step 1: Fetch config.json (required)
-    try:
+    def _fetch_config():
         config_path = hf_hub_download(repo_id, "config.json", token=hf_token)
         with open(config_path) as f:
-            config = json.load(f)
-    except Exception as e:
-        logger.warning(f"Could not fetch config.json for {repo_id}: {e}")
-        return None
+            return json.load(f)
 
-    parsed = parse_config(config)
-
-    info = SafetensorsModelInfo(
-        architecture=parsed.get("architecture"),
-        context_length=parsed.get("context_length"),
-        embedding_length=parsed.get("embedding_length"),
-        block_count=parsed.get("block_count"),
-        attention_head_count=parsed.get("attention_head_count"),
-        attention_head_count_kv=parsed.get("attention_head_count_kv"),
-        feed_forward_length=parsed.get("feed_forward_length"),
-        rope_dimension_count=parsed.get("rope_dimension_count"),
-        vocab_size=parsed.get("vocab_size"),
-    )
-
-    # Step 2: Fetch tokenizer_config.json (optional — adds tokenizer_class)
-    try:
+    def _fetch_tokenizer():
         tok_path = hf_hub_download(repo_id, "tokenizer_config.json", token=hf_token)
         with open(tok_path) as f:
-            tok_config = json.load(f)
-        info.tokenizer_class = tok_config.get("tokenizer_class")
-    except Exception:
-        pass
+            return json.load(f)
 
-    # Step 3: Fetch safetensors headers (optional — adds tensor info)
-    try:
+    def _fetch_safetensors_meta():
         api = HfApi()
         repo_meta = api.get_safetensors_metadata(repo_id, token=hf_token)
-
-        # Aggregate tensors across all shard files
         all_tensors = {}
         for file_meta in repo_meta.files_metadata.values():
             all_tensors.update(file_meta.tensors)
+        return _extract_tensor_info(all_tensors)
 
-        tensor_info = _extract_tensor_info(all_tensors)
-        info.total_parameters = tensor_info["total_parameters"]
-        info.dtype_counts = tensor_info["dtype_counts"]
-    except Exception as e:
-        logger.info(f"No safetensors metadata for {repo_id}: {e}")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        future_config = executor.submit(_fetch_config)
+        future_tokenizer = executor.submit(_fetch_tokenizer)
+        future_safetensors = executor.submit(_fetch_safetensors_meta)
 
-    return info
+        # Step 1: Process config.json (required)
+        try:
+            config = future_config.result()
+        except Exception as e:
+            logger.warning(f"Could not fetch config.json for {repo_id}: {e}")
+            return None
+
+        parsed = parse_config(config)
+
+        info = SafetensorsModelInfo(
+            architecture=parsed.get("architecture"),
+            context_length=parsed.get("context_length"),
+            embedding_length=parsed.get("embedding_length"),
+            block_count=parsed.get("block_count"),
+            attention_head_count=parsed.get("attention_head_count"),
+            attention_head_count_kv=parsed.get("attention_head_count_kv"),
+            feed_forward_length=parsed.get("feed_forward_length"),
+            rope_dimension_count=parsed.get("rope_dimension_count"),
+            vocab_size=parsed.get("vocab_size"),
+        )
+
+        # Step 2: Process tokenizer_config.json (optional — adds tokenizer_class)
+        try:
+            tok_config = future_tokenizer.result()
+            info.tokenizer_class = tok_config.get("tokenizer_class")
+        except Exception:
+            pass
+
+        # Step 3: Process safetensors headers (optional — adds tensor info)
+        try:
+            tensor_info = future_safetensors.result()
+            info.total_parameters = tensor_info["total_parameters"]
+            info.dtype_counts = tensor_info["dtype_counts"]
+        except Exception as e:
+            logger.info(f"No safetensors metadata for {repo_id}: {e}")
+
+        return info
