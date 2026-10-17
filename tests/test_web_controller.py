@@ -152,6 +152,31 @@ class WebControllerTests(unittest.TestCase):
         finally:
             shutil.rmtree(temp_root, ignore_errors=True)
 
+    @patch("src.controllers.web_controller.aiofiles.open")
+    def test_generate_uses_aiofiles_async(self, mock_aiofiles_open):
+        from unittest.mock import AsyncMock
+        mock_file = AsyncMock()
+        mock_aiofiles_open.return_value.__aenter__.return_value = mock_file
+
+        app = FastAPI()
+        app.include_router(web_controller.router)
+
+        with patch.object(web_controller, "OUTPUT_DIR", "/tmp/dummy"), \
+             patch.object(web_controller, "HfApi", _FakeHfApi), \
+             patch.object(web_controller, "AIBOMService", _FakeService), \
+             patch.object(web_controller, "log_sbom_generation", lambda model_id: None), \
+             patch.object(web_controller, "get_sbom_count", lambda: "0"):
+
+            client = TestClient(app)
+            response = client.post(
+                "/generate",
+                data={"model_id": "owner/local-web-model"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_aiofiles_open.call_count, 2)
+        # Verify that await f.write(...) was called via the context manager
+        self.assertEqual(mock_file.write.call_count, 2)
 
 if __name__ == "__main__":
     unittest.main()

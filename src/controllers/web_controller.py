@@ -5,6 +5,7 @@ import logging
 import html
 from urllib.parse import urlparse
 from typing import Optional
+import aiofiles
 
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -115,20 +116,20 @@ async def generate_form(
         filepath = os.path.join(OUTPUT_DIR, filename)
         filepath_1_7 = os.path.join(OUTPUT_DIR, f"{normalized_id.replace('/', '_')}_ai_sbom_1_7.json")
         
-        def _save_task():
+        def _format_task():
             # Generate Formatted JSON strings
             json_1_6 = export_aibom(aibom, bom_type="cyclonedx", spec_version="1.6")
             json_1_7 = export_aibom(aibom, bom_type="cyclonedx", spec_version="1.7")
-            
-            os.makedirs(OUTPUT_DIR, exist_ok=True)
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(json_1_6)
-            with open(filepath_1_7, "w", encoding="utf-8") as f:
-                f.write(json_1_7)
-            log_sbom_generation(sanitized_model_id)
             return json_1_6, json_1_7
             
-        json_1_6, json_1_7 = await loop.run_in_executor(None, _save_task)
+        json_1_6, json_1_7 = await loop.run_in_executor(None, _format_task)
+
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        async with aiofiles.open(filepath, "w", encoding="utf-8") as f:
+            await f.write(json_1_6)
+        async with aiofiles.open(filepath_1_7, "w", encoding="utf-8") as f:
+            await f.write(json_1_7)
+        log_sbom_generation(sanitized_model_id)
         
         # Extract score
         completeness_score = None
