@@ -43,7 +43,7 @@ click==8.4.2
     #   uvicorn
 cyclonedx-python-lib==11.11.0
     # via owasp-aibom-generator (pyproject.toml)
-datasets==5.0.0
+datasets==5.0.1
     # via owasp-aibom-generator (pyproject.toml)
 defusedxml==0.7.1
     # via py-serializable
