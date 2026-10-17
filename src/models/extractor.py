@@ -118,20 +118,27 @@ class EnhancedExtractor:
         or None if none match.
         """
         license_filenames = ["LICENSE", "LICENSE.txt", "LICENSE.md", "LICENSE.rst", "COPYING"]
-        for filename in license_filenames:
+
+        try:
+            repo_info = self.hf_api.model_info(repo_id=model_id, files_metadata=False)
+            repo_filenames = {sibling.rfilename for sibling in repo_info.siblings}
+        except Exception as e:
+            logger.debug(f"Failed to fetch model info for {model_id}: {e}")
+            return None
+
+        matching_files = [f for f in license_filenames if f in repo_filenames]
+
+        for matching_file in matching_files:
             try:
-                file_path = hf_hub_download(repo_id=model_id, filename=filename)
+                file_path = hf_hub_download(repo_id=model_id, filename=matching_file)
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     snippet = f.read(4096).lower()
                 for header, spdx_id in LICENSE_MAPPING.items():
                     if header in snippet:
                         return spdx_id
-            except (RepositoryNotFoundError, EntryNotFoundError):
-                # file doesn’t exist; continue
-                continue
             except Exception as e:
-                logger.debug(f"Licence detection error reading {filename}: {e}")
-                continue
+                logger.debug(f"Licence detection error reading {matching_file}: {e}")
+
         return None
 
     def extract_metadata(self, model_id: str, model_info: Dict[str, Any], model_card: Optional[ModelCard], enable_summarization: bool = False) -> Dict[str, Any]:
