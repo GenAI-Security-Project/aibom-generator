@@ -104,6 +104,51 @@ class _FakeService:
 
 
 class CLIControllerTests(unittest.TestCase):
+
+    def test_validate_spdx_schema_version_success(self):
+        controller = CLIController()
+        # A minimal valid SPDX 2.3 document
+        valid_spdx_data = {
+            "spdxVersion": "SPDX-2.3",
+            "dataLicense": "CC0-1.0",
+            "SPDXID": "SPDXRef-DOCUMENT",
+            "name": "Test-Document",
+            "documentNamespace": "http://spdx.org/spdxdocs/spdx-example-444504E0-4F89-41D3-9A0C-0305E82C3301",
+            "creationInfo": {
+                "creators": ["Tool: owasp-aibom-generator"],
+                "created": "2023-11-20T14:30:00Z"
+            },
+            "packages": [
+                {
+                    "name": "Test-Package",
+                    "SPDXID": "SPDXRef-Package",
+                    "downloadLocation": "NOASSERTION",
+                    "licenseDeclared": "NOASSERTION"
+                }
+            ],
+            "relationships": [
+                {
+                    "spdxElementId": "SPDXRef-DOCUMENT",
+                    "relatedSpdxElement": "SPDXRef-Package",
+                    "relationshipType": "DESCRIBES"
+                }
+            ]
+        }
+
+        result = controller._validate_spdx_schema_version(valid_spdx_data, "2.3")
+        self.assertTrue(result)
+
+    def test_validate_spdx_schema_version_failure(self):
+        controller = CLIController()
+        # Invalid SPDX document (missing mandatory fields like creationInfo)
+        invalid_spdx_data = {
+            "spdxVersion": "SPDX-2.3",
+            "SPDXID": "SPDXRef-DOCUMENT",
+        }
+
+        result = controller._validate_spdx_schema_version(invalid_spdx_data, "2.3")
+        self.assertFalse(result)
+
     def _assert_cyclonedx_export(self, exported: dict, spec_version: str):
         self.assertEqual(exported["bomFormat"], "CycloneDX")
         self.assertEqual(exported["specVersion"], spec_version)
