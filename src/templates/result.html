@@ -47,8 +47,9 @@
         </div>
 
         <!-- Calculate Shared Score State -->
-        {% set score_percent = (completeness_score.total_score if completeness_score.total_score != 'Undefined' else 0)
-        | float %}
+        {% set total_max_score = completeness_score.max_scores.values() | sum if completeness_score.max_scores else 0 %}
+        {% set total_points = completeness_score.total_score if completeness_score.total_score != 'Undefined' else 0 %}
+        {% set score_percent = ((total_points / total_max_score * 100) if total_max_score else 0) | float %}
         {% if score_percent >= 90 %}
         {% set score_class = 'progress-excellent' %}
         {% set score_label = 'Excellent' %}
@@ -329,8 +330,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set required_fields = ['bomFormat', 'specVersion', 'serialNumber', 'version'] %}
-                                {% for field in required_fields %}
+                                {% set required_fields = completeness_score.category_fields_list.required_fields
+                                if completeness_score and completeness_score.category_fields_list else [] %}
+                                {% for field_item in required_fields %}
+                                {% set field = field_item.name %}
+                                {% set tier = field_item.tier %}
                                 <tr>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
@@ -342,12 +346,12 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        $.{{ field }}
+                                        {{ field_item.path }}
                                         {% else %}
                                         Not found
                                         {% endif %}
                                     </td>
-                                    <td><span class="field-tier tier-critical"></span> Critical</td>
+                                    <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
                                     <td>
                                         {% set f_type = completeness_score.field_types.get(field, 'Unknown') %}
                                         {% set f_url = completeness_score.reference_urls.get(field, '') if
@@ -370,7 +374,8 @@
                             ({{ completeness_score.category_details.required_fields.percentage if
                             completeness_score.category_details else 'N/A' }}%) =
                             {{ completeness_score.section_scores.required_fields if completeness_score.section_scores
-                            else 'N/A' }}/20 points
+                            else 'N/A' }}/{{ completeness_score.category_details.required_fields.max_points if
+                            completeness_score.category_details else 'N/A' }} points
                         </div>
                     </div>
 
@@ -388,14 +393,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set metadata_fields = [
-                                ('primaryPurpose', 'Critical'),
-                                ('suppliedBy', 'Critical'),
-                                ('standardCompliance', 'Supplementary'),
-                                ('domain', 'Supplementary'),
-                                ('autonomyType', 'Supplementary')
-                                ] %}
-                                {% for field, tier in metadata_fields %}
+                                {% set metadata_fields = completeness_score.category_fields_list.metadata
+                                if completeness_score and completeness_score.category_fields_list else [] %}
+                                {% for field_item in metadata_fields %}
+                                {% set field = field_item.name %}
+                                {% set tier = field_item.tier %}
                                 <tr>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
@@ -407,13 +409,7 @@
                                     <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        {% if field == 'primaryPurpose' %}
-                                        $.components[0].modelCard.modelParameters.task
-                                        {% elif field == 'suppliedBy' %}
-                                        $.components[0].supplier.name
-                                        {% else %}
-                                        $.components[0].modelCard.properties[name="{{ field }}"]
-                                        {% endif %}
+                                        {{ field_item.path }}
                                         {% else %}
                                         Not found
                                         {% endif %}
@@ -441,7 +437,8 @@
                             ({{ completeness_score.category_details.metadata.percentage if
                             completeness_score.category_details else 'N/A' }}%) =
                             {{ completeness_score.section_scores.metadata if completeness_score.section_scores else
-                            'N/A' }}/20 points
+                            'N/A' }}/{{ completeness_score.category_details.metadata.max_points if
+                            completeness_score.category_details else 'N/A' }} points
                         </div>
                     </div>
 
@@ -459,15 +456,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% set component_basic_fields = [
-                                ('name', 'Critical'),
-                                ('type', 'Critical'),
-                                ('component_version', 'Critical'),
-                                ('purl', 'Important'),
-                                ('description', 'Important'),
-                                ('licenses', 'Important')
-                                ] %}
-                                {% for field, tier in component_basic_fields %}
+                                {% set component_basic_fields = completeness_score.category_fields_list.component_basic
+                                if completeness_score and completeness_score.category_fields_list else [] %}
+                                {% for field_item in component_basic_fields %}
+                                {% set field = field_item.name %}
+                                {% set tier = field_item.tier %}
                                 <tr>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
@@ -476,21 +469,12 @@
                                         <span class="x-mark">✘</span>
                                         {% endif %}
                                     </td>
-                                    <td>{% if field == 'component_version' %}version{% else %}{{ field }}{% endif %}
-                                    </td>
+                                    <td>{{ field }}</td>
                                     <td>
                                         {% if completeness_score.field_checklist.get(field, '').startswith('✔') %}
-                                        {% if field == 'component_version' %}
-                                        $.components[0].version
-                                        {% else %}
-                                        $.components[0].{{ field }}
-                                        {% endif %}
-                                        {% else %}
-                                        {% if field == 'description' %}
-                                        Not found in component level
+                                        {{ field_item.path }}
                                         {% else %}
                                         Not found
-                                        {% endif %}
                                         {% endif %}
                                     </td>
                                     <td><span class="field-tier tier-{{ tier|lower }}"></span> {{ tier }}</td>
@@ -516,7 +500,8 @@
                             ({{ completeness_score.category_details.component_basic.percentage if
                             completeness_score.category_details else 'N/A' }}%) =
                             {{ completeness_score.section_scores.component_basic if completeness_score.section_scores
-                            else 'N/A' }}/20 points
+                            else 'N/A' }}/{{ completeness_score.category_details.component_basic.max_points if
+                            completeness_score.category_details else 'N/A' }} points
                         </div>
                     </div>
 
@@ -578,7 +563,9 @@
                             ({{ completeness_score.category_details.component_model_card.percentage if
                             completeness_score.category_details else 'N/A' }}%) =
                             {{ completeness_score.section_scores.component_model_card if
-                            completeness_score.section_scores else 'N/A' }}/30 points
+                            completeness_score.section_scores else 'N/A' }}/{{
+                            completeness_score.category_details.component_model_card.max_points if
+                            completeness_score.category_details else 'N/A' }} points
                         </div>
                     </div>
 
@@ -640,7 +627,9 @@
                             ({{ completeness_score.category_details.external_references.percentage if
                             completeness_score.category_details else 'N/A' }}%) =
                             {{ completeness_score.section_scores.external_references if
-                            completeness_score.section_scores else 'N/A' }}/10 points
+                            completeness_score.section_scores else 'N/A' }}/{{
+                            completeness_score.category_details.external_references.max_points if
+                            completeness_score.category_details else 'N/A' }} points
                         </div>
                     </div>
 
@@ -657,8 +646,8 @@
 
                     <!-- Total Score Display -->
                     <div class="total-score-container">
-                        <div class="total-score">{{ (completeness_score.total_score if completeness_score.total_score !=
-                            "Undefined" else 0)|round(1) }}/100</div>
+                        <div class="total-score">{{ total_points|round(1) }}/{{ total_max_score if total_max_score else
+                            'N/A' }}</div>
                         <div class="total-progress">
                             <div class="progress-container">
                                 <div class="progress-bar {{ score_class }}"
@@ -689,18 +678,19 @@
                             <tbody>
                                 {% if completeness_score.category_details and completeness_score.section_scores %}
                                 {% set categories = [
-                                ('Required Fields', 'required_fields', 20),
-                                ('Metadata', 'metadata', 20),
-                                ('Component Basic', 'component_basic', 20),
-                                ('Model Card', 'component_model_card', 30),
-                                ('External References', 'external_references', 10)
+                                ('Required Fields', 'required_fields'),
+                                ('Metadata', 'metadata'),
+                                ('Component Basic', 'component_basic'),
+                                ('Model Card', 'component_model_card'),
+                                ('External References', 'external_references')
                                 ] %}
-                                {% for display_name, key, max_score in categories %}
+                                {% for display_name, key in categories %}
                                 <tr>
                                     <td>{{ display_name }}</td>
                                     <td>{{ completeness_score.category_details[key].present_fields }}/{{
                                         completeness_score.category_details[key].total_fields }}</td>
-                                    <td>{{ completeness_score.section_scores[key]|round(1) }}/{{ max_score }}</td>
+                                    <td>{{ completeness_score.section_scores[key]|round(1) }}/{{
+                                        completeness_score.category_details[key].max_points }}</td>
                                     <td>
                                         <div class="progress-container">
                                             {% set percentage = completeness_score.category_details[key].percentage %}
@@ -735,9 +725,11 @@
                         {% for category, score in completeness_score.section_scores.items() %}
                         {{ score|round(1) }}{% if not loop.last %} + {% endif %}
                         {% endfor %}
-                        = <strong>{{ completeness_score.subtotal_score|round(1) }}/100</strong>
+                        = <strong>{{ completeness_score.subtotal_score|round(1) }}/{{ total_max_score if total_max_score
+                            else 'N/A' }}</strong>
                         {% else %}
-                        <strong>{{ completeness_score.subtotal_score|round(1) }}/100</strong>
+                        <strong>{{ completeness_score.subtotal_score|round(1) }}/{{ total_max_score if total_max_score
+                            else 'N/A' }}</strong>
                         {% endif %}
                     </p>
 
@@ -745,11 +737,12 @@
                     <p>Penalty Applied: <strong>-{{ completeness_score.penalty_percentage }}%</strong> ({{
                         completeness_score.penalty_reason }})</p>
                     <p>Final Score: {{ completeness_score.subtotal_score|round(1) }} × {{
-                        completeness_score.penalty_factor }} = <strong>{{ completeness_score.total_score|round(1)
-                            }}/100</strong></p>
+                        completeness_score.penalty_factor }} = <strong>{{ completeness_score.total_score|round(1) }}/{{
+                            total_max_score if total_max_score else 'N/A' }}</strong></p>
                     {% else %}
                     <p>No penalties applied</p>
-                    <p>Final Score: <strong>{{ completeness_score.total_score|round(1) }}/100</strong></p>
+                    <p>Final Score: <strong>{{ completeness_score.total_score|round(1) }}/{{ total_max_score if
+                            total_max_score else 'N/A' }}</strong></p>
                     {% endif %}
                 </div>
 
