@@ -60,6 +60,9 @@ where = ["."]
 include = ["src*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+"src.models" = ["field_registry.json", "g7_cyclonedx_1_7_profile.json"]
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --cov=src"
