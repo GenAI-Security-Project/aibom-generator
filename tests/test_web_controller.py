@@ -1,5 +1,6 @@
 import json
 import shutil
+import tempfile
 import unittest
 import uuid
 from pathlib import Path
@@ -113,6 +114,31 @@ class _FakeService:
 
 
 class WebControllerTests(unittest.TestCase):
+    def test_result_template_escapes_json_script_terminators(self):
+        app = FastAPI()
+        app.include_router(web_controller.router)
+        aibom = _sample_aibom()
+        aibom["components"][0]["description"] = "</script><script>alert(1)</script>"
+
+        class MaliciousMetadataService(_FakeService):
+            def generate_aibom(self, model_id, include_inference=False):
+                return aibom
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            with patch.object(web_controller, "OUTPUT_DIR", output_dir), \
+                 patch.object(web_controller, "HfApi", _FakeHfApi), \
+                 patch.object(web_controller, "AIBOMService", MaliciousMetadataService), \
+                 patch.object(web_controller, "log_sbom_generation", lambda model_id: None), \
+                 patch.object(web_controller, "get_sbom_count", lambda: "0"):
+                response = TestClient(app).post(
+                    "/generate",
+                    data={"model_id": "owner/local-web-model"},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("</script><script>alert(1)</script>", response.text)
+        self.assertIn(r"\u003c/script\u003e\u003cscript\u003ealert(1)", response.text)
+
     def test_generate_route_writes_utf8_json_to_patched_output_dir(self):
         app = FastAPI()
         app.include_router(web_controller.router)
