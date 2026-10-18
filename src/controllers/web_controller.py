@@ -17,7 +17,7 @@ from ..models.service import AIBOMService
 from ..models.scoring import calculate_completeness_score
 from ..utils.analytics import log_sbom_generation, get_sbom_count
 from ..utils.formatter import export_aibom
-from ..config import TEMPLATES_DIR, OUTPUT_DIR
+from ..config import AIBOM_GEN_VERSION, TEMPLATES_DIR, OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,11 @@ async def root(request: Request):
 
 @router.get("/status")
 async def get_status():
-    return {"status": "operational", "version": "1.0.0", "generator_version": "2.0.0"}
+    return {
+        "status": "operational",
+        "version": AIBOM_GEN_VERSION,
+        "generator_version": AIBOM_GEN_VERSION,
+    }
 
 @router.post("/generate", response_class=HTMLResponse)
 async def generate_form(

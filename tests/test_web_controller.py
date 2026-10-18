@@ -113,6 +113,22 @@ class _FakeService:
 
 
 class WebControllerTests(unittest.TestCase):
+    def test_status_uses_project_version(self):
+        app = FastAPI()
+        app.include_router(web_controller.router)
+
+        response = TestClient(app).get("/status")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "status": "operational",
+                "version": web_controller.AIBOM_GEN_VERSION,
+                "generator_version": web_controller.AIBOM_GEN_VERSION,
+            },
+        )
+
     def test_generate_route_writes_utf8_json_to_patched_output_dir(self):
         app = FastAPI()
         app.include_router(web_controller.router)
