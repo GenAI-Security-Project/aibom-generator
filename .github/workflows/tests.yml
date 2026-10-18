@@ -15,4 +15,6 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check --output-format=github --select E9,F63,F7,F82 .
       - run: pytest tests/ -v --tb=short
