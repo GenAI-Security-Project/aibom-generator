@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 from pydantic import BaseModel, Field
 
 # --- Enums (from enhanced_extractor.py) ---
@@ -30,7 +30,7 @@ class ExtractionResult(BaseModel):
     source: DataSource
     confidence: ConfidenceLevel
     extraction_method: str
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     fallback_chain: List[str] = Field(default_factory=list)
 
     def __str__(self):
