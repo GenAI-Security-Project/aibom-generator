@@ -862,8 +862,8 @@
     </div>
 
     <script>
-        const AIBOM_CDX_JSON_1_6 = {{ aibom_cdx_json_1_6 | safe }};
-        const AIBOM_CDX_JSON_1_7 = {{ aibom_cdx_json_1_7 | safe }};
+        const AIBOM_CDX_JSON_1_6 = {{ aibom_cdx_json_1_6 | tojson }};
+        const AIBOM_CDX_JSON_1_7 = {{ aibom_cdx_json_1_7 | tojson }};
         const FILENAME_BASE = "{{ model_id|replace('/', '_') }}";
     </script>
     <script src="{{ static_root|default('/static') }}/js/script.js"></script>
