@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from datasets import Dataset, load_dataset, concatenate_datasets
 from ..config import HF_REPO, HF_TOKEN
 
@@ -24,7 +24,7 @@ def log_sbom_generation(model_id: str):
             try:
                 normalized_model_id = model_id 
                 log_data = {
-                    "timestamp": [datetime.utcnow().isoformat()],
+                    "timestamp": [datetime.now(UTC).isoformat()],
                     "event": ["generated"],
                     "model_id": [normalized_model_id]
                 }
