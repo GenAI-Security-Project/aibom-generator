@@ -2,7 +2,7 @@
 #    uv pip compile pyproject.toml -o requirements.txt
 aiohappyeyeballs==2.7.1
     # via aiohttp
-aiohttp==3.14.2
+aiohttp==3.14.4
     # via fsspec
 aiosignal==1.4.0
     # via aiohttp
@@ -267,5 +267,5 @@ werkzeug==3.1.8
     # via flask
 xxhash==3.8.1
     # via datasets
-yarl==1.24.5
+yarl==1.25.1
     # via aiohttp
