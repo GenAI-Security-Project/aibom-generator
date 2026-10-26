@@ -70,6 +70,9 @@ pythonpath = [
     "."
 ]
 
+[tool.coverage.run]
+relative_files = true
+
 [dependency-groups]
 dev = [
     "pytest>=7.0.0",

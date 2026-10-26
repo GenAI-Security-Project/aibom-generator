@@ -1,0 +1,26 @@
+name: Post coverage comment
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+
+jobs:
+  comment:
+    name: Post coverage comment
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    permissions:
+      # Publish new comments on pull requests.
+      pull-requests: write
+      # Edit existing comments (avoids duplicate comments on each run).
+      contents: write
+      # Look up the triggering workflow run and download its comment artifact.
+      actions: read
+    steps:
+      - name: Post comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}
