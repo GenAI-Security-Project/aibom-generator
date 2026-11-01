@@ -603,7 +603,9 @@ class AIBOMService:
             if field in metadata:
                 val = metadata[field]
                 if isinstance(val, list):
-                    val = ", ".join(val)
+                    val = ", ".join(str(v) for v in val)
+                if val is None or not str(val).strip():
+                    continue
                 tech_props.append({"name": field, "value": str(val)})
         return tech_props
 
