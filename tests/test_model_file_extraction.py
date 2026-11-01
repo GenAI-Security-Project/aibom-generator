@@ -71,10 +71,10 @@ class TestGGUFFileExtractorWithMockedAPI:
             "src.models.model_file_extractors.list_repo_files",
             lambda model_id, **kw: ["a.gguf", "b.gguf"],
         )
-        captured = {}
+        captured = {"filenames": []}
 
         def fake_fetch(repo_id, filename, **kw):
-            captured["filename"] = filename
+            captured["filenames"].append(filename)
             from src.models.gguf_metadata import parse_gguf_metadata, extract_model_info
             parsed = parse_gguf_metadata(full_gguf_bytes, filename=filename)
             return extract_model_info(parsed)
@@ -84,7 +84,9 @@ class TestGGUFFileExtractorWithMockedAPI:
         )
         result = GGUFFileExtractor().extract_metadata("owner/model")
 
-        assert captured["filename"] == "a.gguf"
+        # The first file supplies the primary metadata; the other variants are only
+        # read for the cross-variant chat template comparison.
+        assert captured["filenames"][0] == "a.gguf"
         assert result["hyperparameter"]["context_length"] == 4096
 
     def test_extract_metadata_returns_empty_on_fetch_failure(self, monkeypatch):

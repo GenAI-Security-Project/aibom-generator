@@ -1,11 +1,17 @@
 import logging
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Protocol, Dict, List, Union, runtime_checkable
 
 from huggingface_hub import HfApi, list_repo_files
 
-from .gguf_metadata import fetch_gguf_metadata_from_repo, map_to_metadata as gguf_map_to_metadata
+from .gguf_metadata import (
+    GGUFModelInfo,
+    fetch_gguf_metadata_from_repo,
+    map_to_metadata as gguf_map_to_metadata,
+    summarize_chat_template_consistency,
+)
 from .safetensors_metadata import fetch_safetensors_metadata, map_to_metadata as st_map_to_metadata
 
 logger = logging.getLogger(__name__)
@@ -27,6 +33,23 @@ RUNTIME_LLM_STACK = "llm-stack"
 # Matches HuggingFace shard suffixes like "-00001-of-00002" or ".00001-of-00003"
 # so shards of the same model/quant variant can be grouped together.
 _SHARD_SUFFIX_RE = re.compile(r"[-.]?\d{3,5}-of-\d{3,5}")
+_SHARD_INDEX_RE = re.compile(r"(\d{3,5})-of-\d{3,5}")
+
+# Upper bound on GGUF files whose header is fetched to compare chat templates
+# (each fetch reads the first few MB of the file, never the weights).
+MAX_GGUF_VARIANTS_EXAMINED = 8
+_GGUF_FETCH_WORKERS = 4
+
+
+def select_gguf_variants(gguf_files: List[str]) -> List[str]:
+    """One file per variant: later shards of a split GGUF carry no tokenizer metadata."""
+    variants = []
+    for name in gguf_files:
+        match = _SHARD_INDEX_RE.search(os.path.basename(name))
+        if match and int(match.group(1)) != 1:
+            continue
+        variants.append(name)
+    return variants or list(gguf_files)
 
 
 @runtime_checkable
@@ -50,14 +73,36 @@ class GGUFFileExtractor:
             if not gguf_files:
                 return {}
 
-            model_info = fetch_gguf_metadata_from_repo(model_id, gguf_files[0])
+            variants = select_gguf_variants(gguf_files)
+            model_info = fetch_gguf_metadata_from_repo(model_id, variants[0])
             if model_info is None:
                 return {}
 
-            return gguf_map_to_metadata(model_info)
+            metadata = gguf_map_to_metadata(model_info)
+            examined = [model_info] + self._fetch_other_variants(
+                model_id, variants[1:MAX_GGUF_VARIANTS_EXAMINED]
+            )
+            metadata.update(summarize_chat_template_consistency(examined, len(variants)))
+            return metadata
         except Exception as e:
             logger.warning(f"GGUF extraction failed for {model_id}: {e}")
             return {}
+
+    @staticmethod
+    def _fetch_other_variants(model_id: str, filenames: List[str]) -> List[GGUFModelInfo]:
+        """Best effort: a variant that cannot be read is skipped, not fatal."""
+        if not filenames:
+            return []
+
+        def fetch(filename: str) -> Optional[GGUFModelInfo]:
+            try:
+                return fetch_gguf_metadata_from_repo(model_id, filename)
+            except Exception as e:
+                logger.warning(f"GGUF variant {filename} unreadable for {model_id}: {e}")
+                return None
+
+        with ThreadPoolExecutor(max_workers=_GGUF_FETCH_WORKERS) as pool:
+            return [info for info in pool.map(fetch, filenames) if info is not None]
 
 
 class SafetensorsFileExtractor:

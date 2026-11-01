@@ -811,6 +811,27 @@ class AIBOMService:
                 props.append({"name": f"owasp:aibom:distribution:{p_name}", "value": str(metadata[p_key])})
                 taxonomy_mapped_keys.append(p_key)
 
+        # Chat template integrity signal (GGUF tokenizer.chat_template), custom OWASP
+        # namespace for the same reason as the distribution properties above.
+        chat_template_mapping = {
+            "chat_template_present": "present",
+            "chat_template_hash": "hash",
+            "chat_template_source": "source",
+            "chat_template_security_status": "securityStatus",
+            "chat_template_security_indicators": "securityIndicators",
+            "chat_template_consistency": "consistency",
+            "chat_template_variants_examined": "variantsExamined",
+            "chat_template_variants_total": "variantsTotal",
+            "chat_template_variant_hashes": "variantHashes",
+        }
+        for p_key, p_name in chat_template_mapping.items():
+            value = metadata.get(p_key)
+            if value is not None:
+                if isinstance(value, bool):
+                    value = "true" if value else "false"
+                props.append({"name": f"owasp:aibom:chatTemplate:{p_name}", "value": str(value)})
+                taxonomy_mapped_keys.append(p_key)
+
         # Basic Fields we've already mapped to structured homes
         mapped_fields = [
             "primaryPurpose", "typeOfModel", "suppliedBy", "intendedUse",
