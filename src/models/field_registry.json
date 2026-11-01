@@ -1787,6 +1787,123 @@
         "note": "Custom OWASP extension property (owasp:aibom:distribution namespace); not part of the official genai:aibom taxonomy",
         "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#components_items_properties"
       }
+    },
+    "chat_template_hash": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "SHA-256 hash of the GGUF tokenizer.chat_template, so execution-time prompt formatting can be pinned and compared across variants",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='owasp:aibom:chatTemplate:hash')].value",
+      "aibom_generation": {
+        "location": "$.components[0].modelCard.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "chat_template_hash"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "repository_files"
+        ],
+        "source_priority": [
+          "repository_files"
+        ]
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: chat_template_hash - GGUF chat template integrity helpful for tamper detection",
+        "recommendation": "Record the hash of the GGUF tokenizer.chat_template"
+      },
+      "reference_urls": {
+        "note": "Custom OWASP extension property (owasp:aibom:chatTemplate namespace); not part of the official genai:aibom taxonomy",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#components_items_properties"
+      }
+    },
+    "chat_template_security_status": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Result of a static heuristic scan of the GGUF chat template for constructs that do not belong in a prompt template (not an attestation that the template is benign)",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='owasp:aibom:chatTemplate:securityStatus')].value",
+      "aibom_generation": {
+        "location": "$.components[0].modelCard.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "chat_template_security_status"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "repository_files"
+        ],
+        "source_priority": [
+          "repository_files"
+        ]
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: chat_template_security_status - GGUF chat template scan result helpful for compliance review",
+        "recommendation": "Scan the GGUF chat template and record the result"
+      },
+      "reference_urls": {
+        "note": "Custom OWASP extension property (owasp:aibom:chatTemplate namespace); not part of the official genai:aibom taxonomy",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#components_items_properties"
+      }
+    },
+    "chat_template_consistency": {
+      "tier": "supplementary",
+      "weight": 1.0,
+      "category": "component_model_card",
+      "description": "Whether the GGUF variants (quantizations) of the repository carry the same chat template: consistent, inconsistent or not-comparable",
+      "jsonpath": "$.components[0].modelCard.properties[?(@.name=='owasp:aibom:chatTemplate:consistency')].value",
+      "aibom_generation": {
+        "location": "$.components[0].modelCard.properties",
+        "rule": "include_if_available",
+        "source_fields": [
+          "chat_template_consistency"
+        ],
+        "validation": "optional",
+        "data_type": "string"
+      },
+      "extraction": {
+        "methods": [
+          "repository_files"
+        ],
+        "source_priority": [
+          "repository_files"
+        ]
+      },
+      "scoring": {
+        "points": 1.0,
+        "required_for_profiles": [
+          "advanced"
+        ],
+        "category_contribution": 0.033
+      },
+      "validation_message": {
+        "missing": "Missing supplementary field: chat_template_consistency - GGUF chat template consistency across variants helpful for tamper detection",
+        "recommendation": "Compare the chat template across all GGUF variants of the repository"
+      },
+      "reference_urls": {
+        "note": "Custom OWASP extension property (owasp:aibom:chatTemplate namespace); not part of the official genai:aibom taxonomy",
+        "cyclonedx_properties": "https://cyclonedx.org/docs/1.6/json/#components_items_properties"
+      }
     }
   }
 }

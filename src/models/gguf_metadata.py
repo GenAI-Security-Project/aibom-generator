@@ -6,15 +6,44 @@ It uses HTTP range requests to fetch only the header portion (typically 2-8MB)
 of potentially multi-GB model files.
 """
 
+import hashlib
+import json
+import re
 import struct
 import logging
-from typing import Dict, Any, Optional, List, OrderedDict
+from typing import Dict, Any, Iterable, Optional, List, OrderedDict
 from collections import OrderedDict as OrderedDictType
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
 GGUF_MAGIC = 0x46554747
+
+CHAT_TEMPLATE_KEY = "tokenizer.chat_template"
+# GGUF also allows named templates, e.g. "tokenizer.chat_template.tool_use".
+CHAT_TEMPLATE_NAMED_PREFIX = CHAT_TEMPLATE_KEY + "."
+# Real chat templates are a few KB; anything far beyond that is anomalous.
+MAX_EXPECTED_CHAT_TEMPLATE_CHARS = 64 * 1024
+
+CHAT_TEMPLATE_STATUS_NO_INDICATORS = "no-indicators-found"
+CHAT_TEMPLATE_STATUS_INDICATORS = "indicators-found"
+
+CONSISTENCY_CONSISTENT = "consistent"
+CONSISTENCY_INCONSISTENT = "inconsistent"
+CONSISTENCY_NOT_COMPARABLE = "not-comparable"
+
+# Static heuristics only: they flag constructs that have no place in a prompt
+# formatting template. A clean result is NOT proof that a template is benign.
+_CHAT_TEMPLATE_INDICATORS = (
+    ("python-dunder-access", re.compile(r"__[A-Za-z_]+__")),
+    ("jinja-introspection-global", re.compile(r"\b(?:lipsum|cycler|joiner)\b")),
+    ("external-url", re.compile(r"https?://", re.IGNORECASE)),
+    ("encoded-payload", re.compile(r"[A-Za-z0-9+/]{80,}={0,2}")),
+    (
+        "hidden-characters",
+        re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"),
+    ),
+)
 
 _STRUCT_UINT8 = struct.Struct("<B")
 _STRUCT_INT8 = struct.Struct("<b")
@@ -103,6 +132,8 @@ class GGUFModelInfo:
         description: Optional[str] = None,
         license: Optional[str] = None,
         author: Optional[str] = None,
+        chat_template: Optional[str] = None,
+        named_chat_templates: Optional[Dict[str, str]] = None,
         raw_metadata: Optional[Dict[str, Any]] = None,
     ):
         self.filename = filename
@@ -122,6 +153,8 @@ class GGUFModelInfo:
         self.description = description
         self.license = license
         self.author = author
+        self.chat_template = chat_template
+        self.named_chat_templates = named_chat_templates or {}
         self.raw_metadata = raw_metadata or {}
 
 
@@ -291,8 +324,37 @@ def extract_model_info(gguf_metadata: GGUFMetadata) -> GGUFModelInfo:
         description=meta.get("general.description"),
         license=meta.get("general.license"),
         author=meta.get("general.author"),
+        chat_template=_non_empty_str(meta.get(CHAT_TEMPLATE_KEY)),
+        named_chat_templates={
+            key[len(CHAT_TEMPLATE_NAMED_PREFIX):]: value
+            for key, value in meta.items()
+            if key.startswith(CHAT_TEMPLATE_NAMED_PREFIX)
+            and key != CHAT_TEMPLATE_NAMED_PREFIX
+            and _non_empty_str(value)
+        },
         raw_metadata=dict(meta)
     )
+
+
+def _non_empty_str(value: Any) -> Optional[str]:
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def hash_chat_template(template: str) -> str:
+    """Stable content hash of a chat template (``sha256:<hex>``)."""
+    return f"sha256:{hashlib.sha256(template.encode('utf-8')).hexdigest()}"
+
+
+def scan_chat_template(templates: Iterable[str]) -> List[str]:
+    """Return sorted indicator ids found in the given chat templates by static heuristics."""
+    found = set()
+    for template in templates:
+        if len(template) > MAX_EXPECTED_CHAT_TEMPLATE_CHARS:
+            found.add("oversized-template")
+        for indicator, pattern in _CHAT_TEMPLATE_INDICATORS:
+            if pattern.search(template):
+                found.add(indicator)
+    return sorted(found)
 
 
 def build_huggingface_url(repo_id: str, filename: str, revision: str = "main") -> str:
@@ -519,10 +581,67 @@ def _map_hyperparameters(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     return {"hyperparameter": hyperparams} if hyperparams else {}
 
 
+def _map_chat_template(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
+    """Map the tokenizer chat template into an integrity signal.
+
+    Only a hash, provenance and scan result are recorded; the template text itself
+    is never copied into the AIBOM.
+    """
+    metadata: Dict[str, Any] = {"chat_template_present": gguf_info.chat_template is not None}
+
+    if gguf_info.chat_template is not None:
+        metadata["chat_template_hash"] = hash_chat_template(gguf_info.chat_template)
+        metadata["chat_template_source"] = f"gguf:{gguf_info.filename}#{CHAT_TEMPLATE_KEY}"
+
+    templates = [t for t in (gguf_info.chat_template, *gguf_info.named_chat_templates.values()) if t]
+    if templates:
+        indicators = scan_chat_template(templates)
+        metadata["chat_template_security_status"] = (
+            CHAT_TEMPLATE_STATUS_INDICATORS if indicators else CHAT_TEMPLATE_STATUS_NO_INDICATORS
+        )
+        if indicators:
+            metadata["chat_template_security_indicators"] = ", ".join(indicators)
+
+    return metadata
+
+
+def summarize_chat_template_consistency(
+    variants: List[GGUFModelInfo], total_variants: Optional[int] = None
+) -> Dict[str, Any]:
+    """Compare chat templates across the GGUF variants (quantizations) of a repository.
+
+    A repo is "inconsistent" when variants carry different templates, or when only some
+    of them carry one: both mean the execution-time prompt format differs between files
+    that are supposed to be the same model.
+    """
+    if not variants:
+        return {}
+
+    hashes = {
+        v.filename: hash_chat_template(v.chat_template) if v.chat_template is not None else None
+        for v in variants
+    }
+    distinct = set(hashes.values())
+    metadata: Dict[str, Any] = {
+        "chat_template_variants_examined": len(variants),
+        "chat_template_variants_total": max(total_variants or 0, len(variants)),
+    }
+
+    if len(variants) == 1:
+        metadata["chat_template_consistency"] = CONSISTENCY_NOT_COMPARABLE
+    elif len(distinct) == 1:
+        metadata["chat_template_consistency"] = CONSISTENCY_CONSISTENT
+    else:
+        metadata["chat_template_consistency"] = CONSISTENCY_INCONSISTENT
+        metadata["chat_template_variant_hashes"] = json.dumps(hashes, sort_keys=True)
+
+    return metadata
+
+
 def map_to_metadata(gguf_info: GGUFModelInfo) -> Dict[str, Any]:
     metadata = _map_core_fields(gguf_info)
     metadata |= _map_supplementary_fields(gguf_info)
     metadata |= _map_quantization(gguf_info)
     metadata |= _map_hyperparameters(gguf_info)
-    # TODO: add chat template field mapping
+    metadata |= _map_chat_template(gguf_info)
     return metadata
