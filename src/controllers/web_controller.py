@@ -25,25 +25,33 @@ router = APIRouter()
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # --- Helpers ---
-HF_ID_REGEX = re.compile(r"^[a-zA-Z0-9\.\-\_]+/[a-zA-Z0-9\.\-\_]+$")
+HF_SEGMENT_REGEX = re.compile(r"[a-zA-Z0-9\.\-\_]+")
+
+
+def _is_valid_hf_segment(segment: str) -> bool:
+    # fullmatch (not `$`, which also matches before a trailing newline); "." and ".."
+    # are path-navigation tokens, never valid Hugging Face owner or repo names.
+    return segment not in (".", "..") and HF_SEGMENT_REGEX.fullmatch(segment) is not None
+
 
 def is_valid_hf_input(input_str: str) -> bool:
+    """Validate the raw, unsanitized user input (must run before html.escape)."""
     if not input_str or len(input_str) > 200:
+        return False
+    if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in input_str):
         return False
     if input_str.startswith(("http://", "https://")):
         try:
             parsed = urlparse(input_str)
             if parsed.netloc == "huggingface.co":
                 parts = parsed.path.strip("/").split("/")
-                if len(parts) >= 2 and parts[0] and parts[1]:
-                     if re.match(r"^[a-zA-Z0-9\.\-\_]+$", parts[0]) and \
-                        re.match(r"^[a-zA-Z0-9\.\-\_]+$", parts[1]):
-                         return True
+                if len(parts) >= 2 and _is_valid_hf_segment(parts[0]) and _is_valid_hf_segment(parts[1]):
+                    return True
             return False
         except Exception:
             return False
-    else:
-        return bool(HF_ID_REGEX.match(input_str))
+    owner, sep, repo = input_str.partition("/")
+    return bool(sep) and _is_valid_hf_segment(owner) and _is_valid_hf_segment(repo)
 
 # --- Routes ---
 

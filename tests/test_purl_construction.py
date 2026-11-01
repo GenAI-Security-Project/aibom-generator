@@ -88,6 +88,27 @@ class TestPurlConstruction(unittest.TestCase):
         result = self.service._generate_purl(model_id, version, purl_type="generic")
         self.assertEqual(result, expected)
 
+    def test_owner_name_separator_is_not_percent_encoded(self):
+        """Regression for #13: the owner/name separator is a purl namespace
+        delimiter, so it must stay a literal "/" and never become "%2F"."""
+        purl = self.service._generate_purl("owner/model", "1.0")
+        self.assertNotIn("%2F", purl.upper())
+        self.assertEqual(purl, "pkg:huggingface/owner/model@1.0")
+
+    def test_purl_round_trips_into_namespace_and_name(self):
+        from packageurl import PackageURL
+
+        parsed = PackageURL.from_string(self.service._generate_purl("owner/model", "1.0"))
+        self.assertEqual(parsed.type, "huggingface")
+        self.assertEqual(parsed.namespace, "owner")
+        self.assertEqual(parsed.name, "model")
+        self.assertEqual(parsed.version, "1.0")
+
+    def test_component_purl_and_bom_ref_keep_literal_separator(self):
+        component = self.service._create_component_section("owner/model", {"commit": "a" * 40})
+        self.assertEqual(component["purl"], "pkg:huggingface/owner/model@aaaaaaaa")
+        self.assertEqual(component["bom-ref"], component["purl"])
+
     def test_default_purl_type_is_huggingface(self):
         """Test that default purl_type is 'huggingface'."""
         model_id = "owner/model"
