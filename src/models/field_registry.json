@@ -186,7 +186,7 @@
       "weight": 2.0,
       "category": "external_references",
       "description": "Research paper associated with the model",
-      "jsonpath": "$.metadata.component.externalReferences[?(@.type=='documentation')]",
+      "jsonpath": "$.components[0].externalReferences[?(@.type=='documentation')].url",
       "aibom_generation": {
         "location": "none",
         "rule": "include_if_present",
@@ -514,7 +514,7 @@
       "description": "Additional external references",
       "jsonpath": "$.components[0].externalReferences",
       "aibom_generation": {
-        "location": "$.component.externalReferences",
+        "location": "$.components[0].externalReferences",
         "rule": "include_if_available",
         "source_fields": [
           "external_references",
@@ -1352,7 +1352,7 @@
       "description": "URL to download the model",
       "jsonpath": "$.components[0].externalReferences[?(@.type=='distribution' || @.type=='website')].url",
       "aibom_generation": {
-        "location": "$.component.externalReferences",
+        "location": "$.components[0].externalReferences",
         "rule": "include_if_available",
         "source_fields": [
           "downloadLocation",
