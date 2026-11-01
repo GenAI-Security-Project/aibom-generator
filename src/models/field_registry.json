@@ -151,9 +151,9 @@
       "weight": 3.0,
       "category": "component_model_card",
       "description": "Datasets used for training",
-      "jsonpath": "$.component.modelCard.modelParameters.datasets",
+      "jsonpath": "$.components[0].modelCard.modelParameters.datasets",
       "aibom_generation": {
-        "location": "$.component.modelCard.modelParameters.datasets",
+        "location": "$.components[0].modelCard.modelParameters.datasets",
         "rule": "include_if_available",
         "source_fields": [
           "datasets",
@@ -186,7 +186,7 @@
       "weight": 2.0,
       "category": "external_references",
       "description": "Research paper associated with the model",
-      "jsonpath": "$.metadata.component.externalReferences[?(@.type=='documentation')]",
+      "jsonpath": "$.components[0].externalReferences[?(@.type=='documentation')].url",
       "aibom_generation": {
         "location": "none",
         "rule": "include_if_present",
@@ -410,9 +410,9 @@
       "weight": 4.0,
       "category": "metadata",
       "description": "Primary purpose or task of the AI model",
-      "jsonpath": "$.component.modelCard.modelParameters.task",
+      "jsonpath": "$.components[0].modelCard.modelParameters.task",
       "aibom_generation": {
-        "location": "$.component.modelCard.modelParameters.task",
+        "location": "$.components[0].modelCard.modelParameters.task",
         "rule": "include_if_available",
         "source_fields": [
           "primaryPurpose",
@@ -445,9 +445,9 @@
       "weight": 4.0,
       "category": "metadata",
       "description": "Organization or individual that supplied the model",
-      "jsonpath": "$.component.supplier.name",
+      "jsonpath": "$.components[0].supplier.name",
       "aibom_generation": {
-        "location": "$.component.supplier",
+        "location": "$.components[0].supplier",
         "rule": "include_if_available",
         "source_fields": [
           "suppliedBy",
@@ -514,7 +514,7 @@
       "description": "Additional external references",
       "jsonpath": "$.components[0].externalReferences",
       "aibom_generation": {
-        "location": "$.component.externalReferences",
+        "location": "$.components[0].externalReferences",
         "rule": "include_if_available",
         "source_fields": [
           "external_references",
@@ -816,9 +816,9 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Ethical considerations and fairness assessments",
-      "jsonpath": "$.component.modelCard.considerations.ethicalConsiderations[0].description",
+      "jsonpath": "$.components[0].modelCard.considerations.ethicalConsiderations[0].name",
       "aibom_generation": {
-        "location": "$.component.modelCard.considerations.ethicalConsiderations",
+        "location": "$.components[0].modelCard.considerations.ethicalConsiderations",
         "rule": "include_if_available",
         "source_fields": [
           "ethicalConsiderations",
@@ -916,9 +916,9 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Known limitations of the model",
-      "jsonpath": "$.component.modelCard.considerations.technicalLimitations[0]",
+      "jsonpath": "$.components[0].modelCard.considerations.technicalLimitations[0]",
       "aibom_generation": {
-        "location": "$.component.modelCard.considerations.technicalLimitations",
+        "location": "$.components[0].modelCard.considerations.technicalLimitations",
         "rule": "include_if_available",
         "source_fields": [
           "technicalLimitations",
@@ -983,9 +983,9 @@
       "weight": 2.0,
       "category": "component_model_card",
       "description": "Intended use cases for the model",
-      "jsonpath": "$.component.modelCard.considerations.useCases[0]",
+      "jsonpath": "$.components[0].modelCard.considerations.useCases[0]",
       "aibom_generation": {
-        "location": "$.component.modelCard.considerations.useCases",
+        "location": "$.components[0].modelCard.considerations.useCases",
         "rule": "include_if_available",
         "source_fields": [
           "intendedUse",
@@ -1352,7 +1352,7 @@
       "description": "URL to download the model",
       "jsonpath": "$.components[0].externalReferences[?(@.type=='distribution' || @.type=='website')].url",
       "aibom_generation": {
-        "location": "$.component.externalReferences",
+        "location": "$.components[0].externalReferences",
         "rule": "include_if_available",
         "source_fields": [
           "downloadLocation",

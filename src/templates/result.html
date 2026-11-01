@@ -118,7 +118,7 @@
                         </span>
                     </div>
                     <div class="aibom-property">
-                        <span class="property-name">Type:</span>
+                        <span class="property-name">Component type (CycloneDX):</span>
                         <span class="property-value">
                             {{ aibom.components[0].type if aibom.components else 'Not specified' }}
                         </span>
@@ -161,12 +161,27 @@
                     <h4>📊&nbsp;&nbsp;Model Card</h4>
                     {% if aibom.components[0].modelCard.modelParameters %}
                     <div class="aibom-property">
-                        <span class="property-name">Architecture:</span>
+                        <span class="property-name">Model family (HF model_type):</span>
                         <span class="property-value">
                             {{ aibom.components[0].modelCard.modelParameters.modelArchitecture if
                             aibom.components[0].modelCard.modelParameters.modelArchitecture else 'Not specified' }}
                         </span>
                     </div>
+                    {# Concrete implementation class(es) from HF config.json "architectures" #}
+                    {% set impl = namespace(value=None) %}
+                    {% for prop in aibom.components[0].properties or [] %}
+                    {% if prop.name == 'architectures' and prop.value %}{% set impl.value = prop.value %}{% endif %}
+                    {% endfor %}
+                    {% if impl.value %}
+                    <div class="aibom-property">
+                        <span class="property-name">Model implementation (HF architectures):</span>
+                        <span class="property-value">
+                            {% for arch in impl.value.split(', ') %}
+                            <span class="tag">{{ arch }}</span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
                     <div class="aibom-property">
                         <span class="property-name">Task:</span>
                         <span class="property-value">{{ aibom.components[0].modelCard.modelParameters.task if
