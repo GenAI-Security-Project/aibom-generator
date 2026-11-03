@@ -83,6 +83,14 @@ def check_field_in_aibom(aibom: Dict[str, Any], field: str) -> bool:
         
         if "modelParameters" in model_card and field in model_card["modelParameters"]:
             return True
+
+        if field == "primaryPurpose" and model_card.get("modelParameters", {}).get("task"):
+            return True
+
+        if field == "suppliedBy":
+            supplier = component.get("supplier")
+            if isinstance(supplier, dict) and supplier.get("name"):
+                return True
         
         # Considerations Mapping
         if "considerations" in model_card:
@@ -156,11 +164,14 @@ def check_field_with_enhanced_results(aibom: Dict[str, Any], field: str, extract
         logger.error(f"Error in enhanced field detection for {field}: {e}")
         return check_field_in_aibom(aibom, field)
 
-def determine_completeness_profile(aibom: Dict[str, Any], score: float) -> Dict[str, Any]:
+def determine_completeness_profile(aibom: Dict[str, Any], score: float, extraction_results: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     satisfied_profiles = []
     
     for profile_name, profile in COMPLETENESS_PROFILES.items():
-        all_required_present = all(check_field_in_aibom(aibom, field) for field in profile["required_fields"])
+        all_required_present = all(
+            check_field_with_enhanced_results(aibom, field, extraction_results)
+            for field in profile["required_fields"]
+        )
         score_sufficient = score >= profile["minimum_score"]
         
         if all_required_present and score_sufficient:
@@ -361,7 +372,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "reference_urls": field_reference_urls,
         "missing_fields": missing_fields,
         "category_fields_list": category_fields_list,
-        "completeness_profile": determine_completeness_profile(aibom, final_score),
+        "completeness_profile": determine_completeness_profile(aibom, final_score, extraction_results),
         "penalty_applied": penalty_factor < 1.0,
         "penalty_reason": " and ".join(penalty_reasons) if penalty_reasons else None,
         "recommendations": generate_field_recommendations(missing_fields)
