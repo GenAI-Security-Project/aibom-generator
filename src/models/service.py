@@ -651,6 +651,19 @@ class AIBOMService:
                     
         return external_refs
 
+    @staticmethod
+    def _as_string_list(value: Any) -> List[str]:
+        """Flatten a scalar or list of scalars into a list of non-empty strings."""
+        items = value if isinstance(value, (list, tuple)) else [value]
+        result = []
+        for item in items:
+            if item is None:
+                continue
+            text = str(item).strip()
+            if text:
+                result.append(text)
+        return result
+
     def _create_model_card_section(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         section = {}
         
@@ -728,13 +741,16 @@ class AIBOMService:
         considerations = {}
         # intendedUse -> useCases
         if "intendedUse" in metadata:
-             considerations["useCases"] = [metadata["intendedUse"]]
+             considerations["useCases"] = self._as_string_list(metadata["intendedUse"])
         # technicalLimitations
         if "technicalLimitations" in metadata:
-             considerations["technicalLimitations"] = [metadata["technicalLimitations"]]
+             considerations["technicalLimitations"] = self._as_string_list(metadata["technicalLimitations"])
         # ethicalConsiderations
         if "ethicalConsiderations" in metadata:
-             considerations["ethicalConsiderations"] = [{"name": metadata["ethicalConsiderations"]}]
+             considerations["ethicalConsiderations"] = [
+                 {"name": item} for item in self._as_string_list(metadata["ethicalConsiderations"])
+             ]
+        considerations = {k: v for k, v in considerations.items() if v}
         
         if considerations:
             section["considerations"] = considerations

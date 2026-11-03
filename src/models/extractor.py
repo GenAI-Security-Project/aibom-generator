@@ -572,7 +572,7 @@ class EnhancedExtractor:
                 if val.lower() in ignored_values:
                     continue
                 matches.append(val)
-        return list(set(matches)) # Return unique matches
+        return list(dict.fromkeys(matches))  # Unique matches, in pattern order
     
     def _try_intelligent_inference(self, field_name: str, context: Dict[str, Any]) -> Any:
         """Try to infer field value from other available data"""
