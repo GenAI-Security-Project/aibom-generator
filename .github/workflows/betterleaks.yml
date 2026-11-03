@@ -1,0 +1,55 @@
+name: Betterleaks secret scan
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  betterleaks:
+    name: Scan repository history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout trusted base files
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Checkout pull request as scan input
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: scan-repo
+          persist-credentials: false
+
+      - name: Checkout pushed commit as scan input
+        if: github.event_name != 'pull_request_target'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          path: scan-repo
+          persist-credentials: false
+
+      - name: Run Betterleaks
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "${GITHUB_WORKSPACE}/trusted:/trusted:ro" \
+            -v "${GITHUB_WORKSPACE}/scan-repo:/scan-repo:ro" \
+            ghcr.io/betterleaks/betterleaks:v2.0.0-rc.4@sha256:c5f98fd9adc9b3a23c4d6048d39c39abf432d292ae0a687f55c6b6a3e6f2cf8f \
+            --config /trusted/config/betterleaks.toml \
+            git /scan-repo
