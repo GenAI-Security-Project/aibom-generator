@@ -25,6 +25,11 @@ from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
 from ..utils.validation import validate_aibom
 from ..utils.license_utils import normalize_license_id, get_license_url
+from ..utils.integrity import (
+    add_integrity_attestation,
+    detect_bom_format,
+    verify_integrity_attestation,
+)
 from ..config import AIBOM_GEN_VERSION, AIBOM_GEN_NAME
 
 logger = logging.getLogger(__name__)
@@ -71,6 +76,82 @@ class AIBOMService:
     def get_enhancement_report(self):
         """Return the enhancement report from the last generation"""
         return self.enhancement_report
+
+    @staticmethod
+    def attest_aibom(aibom: Dict[str, Any]) -> Dict[str, Any]:
+        return add_integrity_attestation(aibom)
+
+    @staticmethod
+    def validate_spdx_aibom(
+        aibom: Dict[str, Any],
+        spec_version: Optional[str] = None,
+    ) -> tuple[bool, List[str]]:
+        errors = []
+        declared = str(aibom.get("spdxVersion", ""))
+        if not declared.startswith("SPDX-"):
+            errors.append("Missing or invalid spdxVersion")
+            declared_version = ""
+        else:
+            declared_version = declared.removeprefix("SPDX-")
+
+        supported_versions = {"2.2", "2.3"}
+        if declared_version and declared_version not in supported_versions:
+            errors.append(f"Unsupported SPDX schema version: {declared_version}")
+        if spec_version and declared_version != spec_version.removeprefix("SPDX-"):
+            errors.append(
+                f"SPDX schema version mismatch: expected {spec_version}, found {declared_version}"
+            )
+
+        required_strings = {
+            "dataLicense": "dataLicense",
+            "SPDXID": "SPDXID",
+            "name": "name",
+            "documentNamespace": "documentNamespace",
+        }
+        for field, label in required_strings.items():
+            if not isinstance(aibom.get(field), str) or not aibom[field].strip():
+                errors.append(f"Missing or invalid {label}")
+
+        creation_info = aibom.get("creationInfo")
+        if not isinstance(creation_info, dict):
+            errors.append("Missing or invalid creationInfo")
+        else:
+            if not isinstance(creation_info.get("created"), str):
+                errors.append("Missing or invalid creationInfo.created")
+            creators = creation_info.get("creators")
+            if not isinstance(creators, list) or not creators:
+                errors.append("Missing or invalid creationInfo.creators")
+
+        return not errors, errors
+
+    @classmethod
+    def verify_aibom_document(cls, aibom: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            bom_format = detect_bom_format(aibom)
+        except ValueError as exc:
+            return {
+                "valid": False,
+                "format": "unknown",
+                "schema_validation": {"valid": False, "errors": [str(exc)]},
+                "integrity": verify_integrity_attestation(aibom),
+            }
+
+        if bom_format == "cyclonedx":
+            schema_valid, schema_errors = validate_aibom(aibom)
+        else:
+            schema_valid, schema_errors = cls.validate_spdx_aibom(aibom)
+
+        integrity = verify_integrity_attestation(aibom)
+        integrity_valid = integrity["valid"] is not False
+        return {
+            "valid": schema_valid and integrity_valid,
+            "format": bom_format,
+            "schema_validation": {
+                "valid": schema_valid,
+                "errors": schema_errors,
+            },
+            "integrity": integrity,
+        }
 
     def generate_aibom(
         self,
@@ -233,7 +314,9 @@ class AIBOMService:
         )
         bom.components.add(model_component)
 
-        return json.loads(JsonV1Dot6(bom).output_as_string())
+        return add_integrity_attestation(
+            json.loads(JsonV1Dot6(bom).output_as_string())
+        )
 
     def _fetch_with_backoff(self, fetch_func, *args, max_retries=3, initial_backoff=1.0, **kwargs):
         import time
@@ -305,7 +388,7 @@ class AIBOMService:
         # this post-serialization dict manipulation should be replaced with a proper object.
         if component_section.get("modelCard"):
             aibom["components"][0]["modelCard"] = component_section["modelCard"]
-        return aibom
+        return add_integrity_attestation(aibom)
 
     def _build_cyclonedx_metadata(self, metadata_section: Dict[str, Any]) -> BomMetaData:
         metadata_component = metadata_section["component"]

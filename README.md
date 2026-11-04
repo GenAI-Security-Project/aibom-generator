@@ -71,6 +71,11 @@ python3 -m src.cli google-bert/bert-base-uncased \
   --output "my_sbom.json"
 ```
 
+Verify a generated document's schema and integrity attestation:
+```bash
+python3 -m src.cli --verify "my_sbom.json"
+```
+
 **Command Line Options:**
 
 | Option | Shorthand | Description |
@@ -81,6 +86,7 @@ python3 -m src.cli google-bert/bert-base-uncased \
 | `--name` | `-n` | Override component name in metadata |
 | `--version` | `-v` | Override component version in metadata |
 | `--manufacturer` | `-m` | Override component manufacturer/supplier |
+| `--verify FILE` | | Verify schema validity and any integrity attestation |
 | `--inference` | `-i` | Use AI inference for enhanced metadata (requires API key) |
 | `--summarize` | `-s` | Enable intelligent description summarization |
 | `--verbose` | | Enable verbose logging |
