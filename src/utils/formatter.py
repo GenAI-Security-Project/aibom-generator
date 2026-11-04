@@ -2,6 +2,8 @@ import json
 import copy
 from typing import Dict, Any
 
+from .integrity import add_integrity_attestation
+
 CYCLONEDX_SCHEMA_BY_SPEC_VERSION = {
     "1.6": "http://cyclonedx.org/schema/bom-1.6.schema.json",
     "1.7": "http://cyclonedx.org/schema/bom-1.7.schema.json",
@@ -29,4 +31,4 @@ def export_aibom(aibom: Dict[str, Any], bom_type: str = "cyclonedx", spec_versio
         # Since spdx mapping logic to AIBOM isn't fully built yet, this serves as the routing hook
         pass
         
-    return json.dumps(output, indent=2)
+    return json.dumps(add_integrity_attestation(output), indent=2)

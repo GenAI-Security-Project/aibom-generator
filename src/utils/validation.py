@@ -13,7 +13,21 @@ from cyclonedx.validation.json import JsonValidator
 
 logger = logging.getLogger(__name__)
 
+_SCHEMA_VERSIONS = {
+    "1.6": SchemaVersion.V1_6,
+    "1.7": SchemaVersion.V1_7,
+}
 _validator = JsonValidator(SchemaVersion.V1_6)
+_validators: Dict[str, JsonValidator] = {"1.6": _validator}
+
+
+def _validator_for(spec_version: str) -> JsonValidator:
+    schema_version = _SCHEMA_VERSIONS.get(spec_version)
+    if schema_version is None:
+        raise ValueError(f"Unsupported CycloneDX schema version: {spec_version}")
+    if spec_version not in _validators:
+        _validators[spec_version] = JsonValidator(schema_version)
+    return _validators[spec_version]
 
 
 def _format_validation_error(error: Any) -> str:
@@ -47,7 +61,7 @@ def _format_validation_error(error: Any) -> str:
 
 def validate_aibom(aibom: Dict[str, Any], strict: bool = False) -> Tuple[bool, List[str]]:
     """
-    Validate an AIBOM against the CycloneDX 1.6 schema.
+    Validate an AIBOM against its declared CycloneDX schema.
 
     Args:
         aibom: The AIBOM dictionary to validate.
@@ -57,7 +71,11 @@ def validate_aibom(aibom: Dict[str, Any], strict: bool = False) -> Tuple[bool, L
         Tuple of (is_valid, list of error messages).
     """
     try:
-        errors = _validator.validate_str(json.dumps(aibom), all_errors=True)
+        spec_version = str(aibom.get("specVersion", "1.6"))
+        errors = _validator_for(spec_version).validate_str(
+            json.dumps(aibom),
+            all_errors=True,
+        )
         if errors is None:
             return True, []
         messages = [_format_validation_error(e) for e in errors]

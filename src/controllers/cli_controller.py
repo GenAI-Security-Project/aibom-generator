@@ -48,10 +48,41 @@ class CLIController:
         self.service = AIBOMService()
 
     def _validate_spdx_schema_version(self, aibom_data: dict, spec_version: str):
-        """
-        TODO: Implement SPDX schema validation.
-        """
-        pass
+        return self.service.validate_spdx_aibom(aibom_data, spec_version)
+
+    def verify(self, input_file: str) -> bool:
+        try:
+            with open(input_file, "r", encoding="utf-8") as handle:
+                aibom_data = json.load(handle)
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.error("Unable to read BOM JSON: %s", exc)
+            return False
+
+        if not isinstance(aibom_data, dict):
+            logger.error("BOM JSON must contain an object at the document root")
+            return False
+
+        result = self.service.verify_aibom_document(aibom_data)
+        schema = result["schema_validation"]
+        integrity = result["integrity"]
+
+        if schema["valid"]:
+            logger.info("Schema validation: valid")
+        else:
+            logger.error("Schema validation: invalid")
+            for error in schema["errors"]:
+                logger.error("  - %s", error)
+
+        if integrity["status"] == "verified":
+            logger.info("Integrity verification: verified")
+        elif integrity["status"] == "unattested":
+            logger.warning("Integrity verification: unattested document")
+        else:
+            logger.error("Integrity verification: %s", integrity["status"])
+            for error in integrity.get("errors", []):
+                logger.error("  - %s", error)
+
+        return result["valid"]
 
     def generate(self, model_id: str, output_file: Optional[str] = None, include_inference: bool = False, 
                  enable_summarization: bool = False, verbose: bool = False,

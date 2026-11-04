@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--name", "-n", help="Component name in metadata")
     parser.add_argument("--version", "-v", help="Component version in metadata")
     parser.add_argument("--manufacturer", "-m", help="Component manufacturer/supplier in metadata")
+    parser.add_argument("--verify", metavar="FILE", help="Verify BOM schema and integrity attestation")
 
     args = parser.parse_args()
 
@@ -23,6 +24,11 @@ def main():
     logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     controller = CLIController()
+
+    if args.verify:
+        if args.model_id:
+            parser.error("model_id cannot be combined with --verify")
+        sys.exit(0 if controller.verify(args.verify) else 1)
 
     if args.test:
         test_models = [

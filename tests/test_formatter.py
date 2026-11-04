@@ -2,6 +2,7 @@ import json
 import unittest
 
 from src.utils.formatter import export_aibom
+from src.utils.integrity import INTEGRITY_PROPERTY_PREFIX
 
 
 def _sample_aibom() -> dict:
@@ -60,6 +61,10 @@ class TestFormatter(unittest.TestCase):
             output.pop("$schema")
             output.pop("specVersion")
             output.pop("bomFormat")
+            output["properties"] = [
+                prop for prop in output.get("properties", [])
+                if not prop["name"].startswith(INTEGRITY_PROPERTY_PREFIX)
+            ]
 
         self.assertEqual(exported_1_7, exported_1_6)
 
