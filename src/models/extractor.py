@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List, Union
 
 from huggingface_hub import HfApi, ModelCard, hf_hub_download
 from huggingface_hub.utils import RepositoryNotFoundError, EntryNotFoundError
+from cyclonedx import spdx as cdx_spdx
 
 from .schemas import DataSource, ConfidenceLevel, ExtractionResult
 from .registry import get_field_registry_manager
@@ -15,10 +16,31 @@ from .model_file_extractors import (
     default_extractors,
     extract_distribution_metadata,
 )
-from ..utils.license_utils import LICENSE_MAPPING
+from ..utils.license_utils import LICENSE_MAPPING, LICENSE_URLS, normalize_license_id
 from .config_parsing import parse_config as _parse_hparams_from_config
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_readme_license(candidate: str) -> Optional[str]:
+    """Return a declared license token without accepting trailing prose."""
+    candidate = candidate.rstrip(" .")
+    normalized = normalize_license_id(candidate)
+    if normalized and (" " not in candidate or normalized in LICENSE_URLS):
+        return normalized
+
+    words = candidate.split()
+    for end in range(min(len(words), 5), 0, -1):
+        prefix = " ".join(words[:end]).rstrip(" .")
+        mapped = LICENSE_MAPPING.get(prefix.lower())
+        if mapped:
+            return mapped
+        fixed = cdx_spdx.fixup_id(prefix)
+        if fixed is not None:
+            return fixed
+        if prefix in LICENSE_URLS:
+            return prefix
+    return None
 
 
 def _build_hyperparameters_from_config(config_data: dict) -> Optional[str]:
@@ -38,12 +60,26 @@ class EnhancedExtractor:
     # Moved to class level to avoid recompilation on every request
     PATTERNS = {
         'license': [
-            re.compile(r'license[:\s]+([a-zA-Z0-9\-\.\s\n]+)', re.IGNORECASE | re.DOTALL),
-            re.compile(r'licensed under[:\s]+([a-zA-Z0-9\-\.\s\n]+)', re.IGNORECASE | re.DOTALL),
-            # Robust capture for markdown links [License Name](...)
-            re.compile(r'governed by[:\s]+(?:the\s+)?\[([^\]]+)\]', re.IGNORECASE | re.DOTALL),
-            re.compile(r'governed by[:\s]+(?:the\s+)?([a-zA-Z0-9\-\.\s\n]+)', re.IGNORECASE | re.DOTALL),
-            re.compile(r'governed by the[:\s]+\[([^\]]+)\]', re.IGNORECASE | re.DOTALL),
+            re.compile(
+                r'^\s*(?:[-*]\s*)?(?:\*\*)?licenses?(?:\*\*)?\s*:\s*'
+                r'([a-zA-Z0-9][a-zA-Z0-9.+-]*(?:[ \t]+[a-zA-Z0-9][a-zA-Z0-9.+-]*){0,4})',
+                re.IGNORECASE | re.MULTILINE,
+            ),
+            re.compile(
+                r'\blicensed under\s+(?:the\s+)?'
+                r'([a-zA-Z0-9][a-zA-Z0-9.+-]*(?:[ \t]+[a-zA-Z0-9][a-zA-Z0-9.+-]*){0,4})',
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r'\bgoverned by\s+(?:the\s+)?\[([^\]\r\n]+)\]',
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r'^\s{0,3}#{1,6}\s*licenses?\s*$[\r\n]+'
+                r'(?:[ \t]*[\r\n]+)*[ \t]*'
+                r'([a-zA-Z0-9][a-zA-Z0-9.+-]*(?:[ \t]+[a-zA-Z0-9][a-zA-Z0-9.+-]*){0,4})',
+                re.IGNORECASE | re.MULTILINE,
+            ),
         ],
         'datasets': [
             re.compile(r'trained on[:\s]+([a-zA-Z0-9\-\_\/]+)', re.IGNORECASE),
@@ -289,6 +325,19 @@ class EnhancedExtractor:
             )
             return yaml_value
         
+        # Repository license files are authoritative and must win over README prose.
+        if field_name in {"license", "licenses"}:
+            detected = self._detect_license_from_file(context["model_id"])
+            if detected:
+                self.extraction_results[field_name] = ExtractionResult(
+                    value=detected,
+                    source=DataSource.REPOSITORY_FILES,
+                    confidence=ConfidenceLevel.HIGH,
+                    extraction_method="license_file",
+                    fallback_chain=extraction_methods,
+                )
+                return detected
+
         # Strategy 3: Configuration file extraction
         config_value = self._try_config_extraction(field_name, context)
         if config_value is not None:
@@ -323,19 +372,6 @@ class EnhancedExtractor:
             )
             return inferred_value
 
-        # detect licence from repository files if the field is licence/ licences
-        if field_name in {"license", "licenses"}:
-            detected = self._detect_license_from_file(context["model_id"])
-            if detected:
-                self.extraction_results[field_name] = ExtractionResult(
-                    value=detected,
-                    source=DataSource.REPOSITORY_FILES,
-                    confidence=ConfidenceLevel.MEDIUM,
-                    extraction_method="license_file",
-                    fallback_chain=extraction_methods,
-                )
-                return detected
-        
         if field_name == "description":
             # Try intelligent summarization if description is missing AND enabled
             if context.get('enable_summarization', False):
@@ -545,9 +581,9 @@ class EnhancedExtractor:
                 # Need to implement _find_pattern_matches which was missing in original snippet but used
                 matches = self._find_pattern_matches(readme_content, self.PATTERNS[pattern_key])
                 if matches:
-                    # Prefer longest match for critical fields where "the" or short noise might appear
                     if field_name in ['license', 'licenses']:
-                         return max(matches, key=len)
+                        normalized = [_normalize_readme_license(candidate) for candidate in matches]
+                        return next((candidate for candidate in normalized if candidate), None)
                     # Prefer string for critical fields
                     if field_name in ['model_type']: 
                         return matches[0]
@@ -572,7 +608,7 @@ class EnhancedExtractor:
                 if val.lower() in ignored_values:
                     continue
                 matches.append(val)
-        return list(set(matches)) # Return unique matches
+        return list(dict.fromkeys(matches)) # Return unique matches in pattern order
     
     def _try_intelligent_inference(self, field_name: str, context: Dict[str, Any]) -> Any:
         """Try to infer field value from other available data"""
