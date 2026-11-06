@@ -79,8 +79,12 @@ class EnhancedExtractor:
         self,
         hf_api: Optional[HfApi] = None,
         model_file_extractors: Optional[List[ModelFileExtractor]] = None,
+        hub_token: str | bool | None = None,
     ):
-        self.hf_api = hf_api or HfApi()
+        # None keeps CLI implicit-token behavior. False is required for the
+        # public web app so an operator HF_TOKEN is not attached to visitor requests.
+        self.hub_token = hub_token if hf_api is None else getattr(hf_api, "token", hub_token)
+        self.hf_api = hf_api or HfApi(token=self.hub_token)
         self.extraction_results = {}
         self.model_file_extractors = (
             model_file_extractors if model_file_extractors is not None
@@ -120,7 +124,11 @@ class EnhancedExtractor:
         license_filenames = ["LICENSE", "LICENSE.txt", "LICENSE.md", "LICENSE.rst", "COPYING"]
         for filename in license_filenames:
             try:
-                file_path = hf_hub_download(repo_id=model_id, filename=filename)
+                file_path = hf_hub_download(
+                    repo_id=model_id,
+                    filename=filename,
+                    token=self.hub_token,
+                )
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     snippet = f.read(4096).lower()
                 for header, spdx_id in LICENSE_MAPPING.items():
@@ -796,7 +804,12 @@ class EnhancedExtractor:
         """Download and parse a JSON config file from the model repository"""
         import json
         try:
-            file_path = self._fetch_with_backoff(hf_hub_download, repo_id=model_id, filename=filename)
+            file_path = self._fetch_with_backoff(
+                hf_hub_download,
+                repo_id=model_id,
+                filename=filename,
+                token=self.hub_token,
+            )
             with open(file_path, 'r') as f:
                 return json.load(f)
         except (RepositoryNotFoundError, EntryNotFoundError, json.JSONDecodeError):
@@ -809,7 +822,12 @@ class EnhancedExtractor:
         try:
             if model_card and hasattr(model_card, 'content'):
                 return model_card.content
-            readme_path = self._fetch_with_backoff(hf_hub_download, repo_id=model_id, filename="README.md")
+            readme_path = self._fetch_with_backoff(
+                hf_hub_download,
+                repo_id=model_id,
+                filename="README.md",
+                token=self.hub_token,
+            )
             with open(readme_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception:

@@ -36,21 +36,30 @@ class ModelFileExtractor(Protocol):
 
 
 class GGUFFileExtractor:
+    def __init__(self, hub_token: str | bool | None = None):
+        self.hub_token = hub_token
 
     def can_extract(self, model_id: str) -> bool:
         try:
-            return any(f.endswith(".gguf") for f in list_repo_files(model_id))
+            return any(
+                f.endswith(".gguf")
+                for f in list_repo_files(model_id, token=self.hub_token)
+            )
         except Exception:
             return False
 
     def extract_metadata(self, model_id: str) -> Dict[str, Union[str, int, dict]]:
         try:
-            files = list_repo_files(model_id)
+            files = list_repo_files(model_id, token=self.hub_token)
             gguf_files = [f for f in files if f.endswith(".gguf")]
             if not gguf_files:
                 return {}
 
-            model_info = fetch_gguf_metadata_from_repo(model_id, gguf_files[0])
+            model_info = fetch_gguf_metadata_from_repo(
+                model_id,
+                gguf_files[0],
+                hf_token=self.hub_token,
+            )
             if model_info is None:
                 return {}
 
@@ -61,16 +70,21 @@ class GGUFFileExtractor:
 
 
 class SafetensorsFileExtractor:
+    def __init__(self, hub_token: str | bool | None = None):
+        self.hub_token = hub_token
 
     def can_extract(self, model_id: str) -> bool:
         try:
-            return any(f.endswith(".safetensors") for f in list_repo_files(model_id))
+            return any(
+                f.endswith(".safetensors")
+                for f in list_repo_files(model_id, token=self.hub_token)
+            )
         except Exception:
             return False
 
     def extract_metadata(self, model_id: str) -> Dict[str, Union[str, int, dict]]:
         try:
-            info = fetch_safetensors_metadata(model_id)
+            info = fetch_safetensors_metadata(model_id, hf_token=self.hub_token)
             if info is None:
                 return {}
             return st_map_to_metadata(info)
@@ -79,8 +93,13 @@ class SafetensorsFileExtractor:
             return {}
 
 
-def default_extractors() -> List[ModelFileExtractor]:
-    return [SafetensorsFileExtractor(), GGUFFileExtractor()]
+def default_extractors(
+    hub_token: str | bool | None = None,
+) -> List[ModelFileExtractor]:
+    return [
+        SafetensorsFileExtractor(hub_token=hub_token),
+        GGUFFileExtractor(hub_token=hub_token),
+    ]
 
 
 def extract_distribution_metadata(
@@ -97,7 +116,7 @@ def extract_distribution_metadata(
     Unlike the per-format ``ModelFileExtractor`` implementations, this runs for
     every repo regardless of weight format. Returns an empty dict on failure.
     """
-    api = hf_api or HfApi()
+    api = hf_api or HfApi(token=False)
     try:
         info = api.model_info(model_id, files_metadata=True)
     except Exception as e:

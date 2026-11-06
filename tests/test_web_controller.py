@@ -93,13 +93,17 @@ def _sample_score() -> dict:
 
 
 class _FakeHfApi:
+    def __init__(self, token=None):
+        self.token = token
+
     def model_info(self, model_id):
         return {"modelId": model_id}
 
 
 class _FakeService:
-    def __init__(self, use_best_practices=True):
+    def __init__(self, use_best_practices=True, hf_token=None):
         self.use_best_practices = use_best_practices
+        self.hf_token = hf_token
 
     @staticmethod
     def _normalise_model_id(model_id):
@@ -151,6 +155,50 @@ class WebControllerTests(unittest.TestCase):
             json.loads(json_1_7.read_text(encoding="utf-8"))
         finally:
             shutil.rmtree(temp_root, ignore_errors=True)
+
+    def test_generate_does_not_attach_ambient_hub_token(self):
+        seen = {}
+
+        class RecordingApi:
+            def __init__(self, token=None):
+                seen["api_token"] = token
+
+            def model_info(self, model_id):
+                return {"modelId": model_id}
+
+        class RecordingService:
+            def __init__(self, use_best_practices=True, hf_token=None):
+                seen["service_token"] = hf_token
+                seen["use_best_practices"] = use_best_practices
+
+            @staticmethod
+            def _normalise_model_id(model_id):
+                return model_id
+
+            def generate_aibom(self, model_id, include_inference=False):
+                return _sample_aibom()
+
+            def get_enhancement_report(self):
+                return {"final_score": _sample_score()}
+
+        app = FastAPI()
+        app.include_router(web_controller.router)
+        repo_root = Path(__file__).resolve().parents[1]
+        output_dir = repo_root / "sboms" / f"token-isolation-{uuid.uuid4().hex}"
+        try:
+            with patch.object(web_controller, "OUTPUT_DIR", str(output_dir)), \
+                 patch.object(web_controller, "HfApi", RecordingApi), \
+                 patch.object(web_controller, "AIBOMService", RecordingService), \
+                 patch.object(web_controller, "log_sbom_generation", lambda model_id: None), \
+                 patch.object(web_controller, "get_sbom_count", lambda: "0"):
+                client = TestClient(app)
+                response = client.post("/generate", data={"model_id": "owner/local-web-model"})
+        finally:
+            shutil.rmtree(output_dir, ignore_errors=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIs(seen["api_token"], False)
+        self.assertIs(seen["service_token"], False)
 
     @patch("src.controllers.web_controller.aiofiles.open")
     def test_generate_uses_aiofiles_async(self, mock_aiofiles_open):

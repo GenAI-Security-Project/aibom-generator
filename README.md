@@ -53,6 +53,8 @@ Start the local server at `http://localhost:8000`:
 python3 -m src.main
 ```
 
+The public `/generate` path calls Hugging Face with `token=False`. An `HF_TOKEN` configured for usage logging is not attached to visitor generation requests, so the web app cannot read private repositories with the operator credential. Use the CLI, which keeps the normal implicit token, for private models.
+
 ### 3. Run via CLI
 Generate an AIBOM for a Hugging Face model directly from your terminal:
 

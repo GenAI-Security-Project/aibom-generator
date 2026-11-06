@@ -85,7 +85,7 @@ async def generate_form(
     import asyncio
     try:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, lambda: HfApi().model_info(normalized_id))
+        await loop.run_in_executor(None, lambda: HfApi(token=False).model_info(normalized_id))
     except RepositoryNotFoundError:
         return templates.TemplateResponse(request, "error.html", {
             "request": request,
@@ -104,7 +104,9 @@ async def generate_form(
     # Generate (non-blocking)
     try:
         def _generate_task():
-            service = AIBOMService(use_best_practices=use_best_practices)
+            # Public generation must not attach the process HF_TOKEN. token=None
+            # means "send the ambient login token"; token=False does not.
+            service = AIBOMService(hf_token=False, use_best_practices=use_best_practices)
             aibom = service.generate_aibom(sanitized_model_id, include_inference=include_inference)
             report = service.get_enhancement_report()
             return service, aibom, report

@@ -160,7 +160,7 @@ def fetch_safetensors_metadata(
 
     # Step 3: Fetch safetensors headers (optional — adds tensor info)
     try:
-        api = HfApi()
+        api = HfApi(token=hf_token)
         repo_meta = api.get_safetensors_metadata(repo_id, token=hf_token)
 
         # Aggregate tensors across all shard files
