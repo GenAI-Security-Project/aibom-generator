@@ -45,6 +45,7 @@ class AIBOMService:
         use_best_practices: bool = True,
         model_file_extractors: Optional[List[ModelFileExtractor]] = None,
     ):
+        self.hf_token = hf_token
         self.hf_api = HfApi(token=hf_token)
         self.inference_model_url = inference_model_url
         self.use_inference = use_inference
@@ -53,7 +54,7 @@ class AIBOMService:
         self.extraction_results = {}
         self.model_file_extractors = (
             model_file_extractors if model_file_extractors is not None
-            else default_extractors()
+            else default_extractors(hub_token=hf_token)
         )
         
         # Initialize registry manager
@@ -154,7 +155,11 @@ class AIBOMService:
 
     def _extract_metadata(self, model_id: str, model_info: Dict[str, Any], model_card: Optional[ModelCard], enable_summarization: bool = False) -> Dict[str, Any]:
         """Wrapper around EnhancedExtractor"""
-        extractor = EnhancedExtractor(self.hf_api, model_file_extractors=self.model_file_extractors)
+        extractor = EnhancedExtractor(
+            self.hf_api,
+            model_file_extractors=self.model_file_extractors,
+            hub_token=self.hf_token,
+        )
         # Ideally we reuse the registry manager
         if self.registry_manager:
             extractor.registry_manager = self.registry_manager
@@ -262,7 +267,7 @@ class AIBOMService:
 
     def _fetch_model_card(self, model_id: str) -> Optional[ModelCard]:
         try:
-            return self._fetch_with_backoff(ModelCard.load, model_id)
+            return self._fetch_with_backoff(ModelCard.load, model_id, token=self.hf_token)
         except Exception as e:
             logger.warning(f"Error fetching model card for {model_id}: {e}")
             return None
