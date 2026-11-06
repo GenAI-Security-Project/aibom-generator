@@ -32,6 +32,7 @@ The tool is also listed in the official **[CycloneDX Tool Center](https://cyclon
 - Completeness scoring & improvement tips  
 - API endpoints for automation  
 - Standards-aligned generation (CycloneDX 1.6, compatible with SPDX AI Profile)
+- Fail-closed local policy gate for generated CycloneDX AI-BOMs
 
 ---
 
@@ -86,6 +87,31 @@ python3 -m src.cli google-bert/bert-base-uncased \
 | `--verbose` | | Enable verbose logging |
 
 *   Metrics and produced SBOMs are saved to the `sboms/` directory by default.
+
+### 4. Policy gate
+
+Reject a generated CycloneDX AI-BOM that misses a required field, carries a denied license, names an unexpected task, or falls below a completeness floor. An empty policy or an unknown key fails closed. The gate does not contact Hugging Face.
+
+```bash
+python3 -m src.policy_gate --bom sboms/owner_model_ai_sbom_1_6.json --policy policy.yaml
+```
+
+```yaml
+spec_version: "1.6"
+require_license: true
+required_fields:
+  - bomFormat
+  - specVersion
+  - serialNumber
+denied_licenses:
+  - GPL-3.0-only
+allowed_tasks:
+  - text-generation
+minimum_score: 70
+require_schema_valid: true
+```
+
+Exit status is `0` when the document passes, `1` when it violates the policy, and `2` when an input cannot be read.
 
 ---
 
