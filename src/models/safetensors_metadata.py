@@ -61,7 +61,7 @@ def _extract_tensor_info(tensors: dict) -> TensorInfoResult:
 
     for _, tensor in tensors.items():
         shape = tensor.shape
-        param_count = math.prod(shape) if shape else 0
+        param_count = math.prod(shape)
         total_parameters += param_count
         dtype_counter[tensor.dtype] += 1
 

@@ -239,6 +239,16 @@ class TestExtractTensorInfo:
         assert result["total_parameters"] == 0
         assert result["dtype_counts"] == {}
 
+    def test_scalar_and_zero_sized_tensors(self):
+        tensors = {
+            "scalar": TensorInfo(dtype="F32", shape=[], data_offsets=(0, 4)),
+            "empty": TensorInfo(dtype="F32", shape=[0, 3], data_offsets=(4, 4)),
+            "matrix": TensorInfo(dtype="BF16", shape=[2, 3], data_offsets=(4, 16)),
+        }
+        result = _extract_tensor_info(tensors)
+        assert result["total_parameters"] == 7
+        assert result["dtype_counts"] == {"F32": 2, "BF16": 1}
+
 
 class TestFetchSafetensorsMetadata:
     """Integration: config.json + safetensors headers → SafetensorsModelInfo."""
