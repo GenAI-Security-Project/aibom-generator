@@ -15,6 +15,7 @@ from .model_file_extractors import (
     default_extractors,
     extract_distribution_metadata,
 )
+from .model_file_hashes import collect_model_file_hashes
 from ..utils.license_utils import LICENSE_MAPPING
 from .config_parsing import parse_config as _parse_hparams_from_config
 
@@ -228,6 +229,11 @@ class EnhancedExtractor:
              if commit_sha:
                  metadata['commit'] = commit_sha
 
+        # Per-file content hashes at the pinned commit (issue #138)
+        model_files = self._extract_model_file_hashes(model_id, metadata.get('commit'))
+        if model_files:
+            metadata['model_files'] = model_files
+
         # Add external references (always needed)
         metadata.update(self._generate_external_references(model_id, metadata))
         
@@ -240,6 +246,14 @@ class EnhancedExtractor:
         except Exception as e:
             logger.warning(f"Distribution metadata extraction failed for {model_id}: {e}")
             return {}
+
+    def _extract_model_file_hashes(self, model_id: str, revision: Optional[str]) -> List[Dict[str, Any]]:
+        """SHA-256 of each model file at the pinned revision; empty without a revision."""
+        try:
+            return collect_model_file_hashes(model_id, revision, hf_api=self.hf_api)
+        except Exception as e:
+            logger.warning(f"Model file hashing failed for {model_id}: {e}")
+            return []
 
     def _extract_model_file_metadata(self, model_id: str) -> Dict[str, Any]:
         for extractor in self.model_file_extractors:
