@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Optional, Any, List
 from urllib.parse import urlparse
 from packageurl import PackageURL
-from cyclonedx.model import ExternalReference, ExternalReferenceType, Property, XsUri
+from cyclonedx.model import ExternalReference, ExternalReferenceType, HashAlgorithm, HashType, Property, XsUri
 from cyclonedx.model.bom import Bom, BomMetaData
 from cyclonedx.model.tool import ToolRepository
 from cyclonedx.model.bom_ref import BomRef
@@ -346,8 +346,60 @@ class AIBOMService:
             supplier=self._entity_from_dict(component_section.get("supplier")),
             authors=self._authors_from_dicts(component_section.get("authors", [])),
             properties=self._properties_from_dicts(component_section.get("properties", [])),
-            external_references=self._external_refs_from_dicts(component_section.get("externalReferences", []))
+            external_references=self._external_refs_from_dicts(component_section.get("externalReferences", [])),
+            components=[self._build_file_component(f) for f in component_section.get("components", [])]
         )
+
+    @staticmethod
+    def _build_file_component(file_section: Dict[str, Any]) -> Component:
+        hashes = [
+            HashType(alg=HashAlgorithm.SHA_256, content=h["content"])
+            for h in file_section.get("hashes", [])
+            if h.get("alg") == "SHA-256" and h.get("content")
+        ]
+        return Component(
+            name=file_section["name"],
+            type=ComponentType.FILE,
+            bom_ref=file_section["bom-ref"],
+            hashes=hashes,
+            properties=[Property(name=p["name"], value=p["value"]) for p in file_section.get("properties", [])],
+        )
+
+    def _create_model_file_components(self, model_id: str, version: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """One file component per model artifact, each with its SHA-256 and the hash source.
+
+        The source is recorded as owasp:aibom:file:hashSource (hf-lfs | computed | unknown).
+        A file whose hash could not be obtained is listed with hashSource unknown and
+        no hashes, rather than omitted.
+        """
+        files = metadata.get("model_files") or []
+        if not files or not metadata.get("commit"):
+            return []
+        parts = model_id.split("/", 1)
+        namespace = parts[0] if len(parts) == 2 else None
+        name = parts[1] if len(parts) == 2 else parts[0]
+
+        sections = []
+        for entry in files:
+            path = entry.get("path")
+            if not path:
+                continue
+            bom_ref = PackageURL(type="huggingface", namespace=namespace, name=name,
+                                 version=version, subpath=path).to_string()
+            section: Dict[str, Any] = {
+                "type": "file",
+                "name": path,
+                "bom-ref": bom_ref,
+                "properties": [{"name": "owasp:aibom:file:hashSource", "value": entry.get("source", "unknown")}],
+            }
+            if entry.get("sha256"):
+                section["hashes"] = [{"alg": "SHA-256", "content": entry["sha256"]}]
+            elif entry.get("reason"):
+                section["properties"].append({"name": "owasp:aibom:file:hashUnavailableReason", "value": entry["reason"]})
+            if isinstance(entry.get("size"), int):
+                section["properties"].append({"name": "owasp:aibom:file:size", "value": str(entry["size"])})
+            sections.append(section)
+        return sections
 
     @staticmethod
     def _entity_from_dict(entity: Optional[Dict[str, Any]]) -> Optional[OrganizationalEntity]:
@@ -486,6 +538,11 @@ class AIBOMService:
         
         # 5. Model Card
         component["modelCard"] = self._create_model_card_section(metadata)
+
+        # 6. Model files with per-file content hashes (issue #138)
+        file_components = self._create_model_file_components(model_id, version, metadata)
+        if file_components:
+            component["components"] = file_components
         
         # Defined order for better readability: bom-ref, type, group, name, version, purl, description, modelCard, manufacturer, supplier, authors
         # We also need to preserve: licenses, properties, externalReferences (placing them logically)
@@ -493,7 +550,7 @@ class AIBOMService:
             "bom-ref", "type", "group", "name", "version", "purl", 
             "description", "licenses", "modelCard", 
             "manufacturer", "supplier", "authors", 
-            "properties", "externalReferences"
+            "properties", "externalReferences", "components"
         ]
         
         ordered_component = {}
@@ -818,7 +875,7 @@ class AIBOMService:
             "pipeline_tag", "name", "author", "license", "description",
             "commit", "bomFormat", "specVersion", "version", "licenses",
             "external_references", "tags", "library_name", "paper", "downloadLocation",
-            "gguf_filename", "gguf_license", "model_type", "architectures",
+            "gguf_filename", "gguf_license", "model_type", "architectures", "model_files",
             "trainingDataAvailable", "trainingDataWarning"
         ] + taxonomy_mapped_keys
         
