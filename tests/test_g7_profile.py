@@ -6,6 +6,7 @@ import pytest
 from cyclonedx.schema import SchemaVersion
 from cyclonedx.validation.json import JsonStrictValidator
 
+from src.models import g7_profile
 from src.models.g7_profile import PROFILE_PATH, calculate_g7_completeness, load_g7_profile
 from src.models.scoring import calculate_completeness_score
 
@@ -267,6 +268,93 @@ def test_counts_reconcile_without_mutating_input():
     assert result["percentage"] == result["present"] * 2
     assert all(sum(cluster[key] for key in statuses) == cluster["total"] for cluster in result["clusters"].values())
     assert document == original
+
+
+@pytest.mark.parametrize("dataset_count", [1, 128])
+def test_many_datasets_share_document_traversals_and_dependency_lookups(mocker, dataset_count):
+    class Dependency(dict):
+        source_reads = 0
+
+        def __getitem__(self, key):
+            if key == "ref":
+                type(self).source_reads += 1
+            return super().__getitem__(key)
+
+    datasets = [{"type": "data", "name": f"dataset-{index}", "bom-ref": f"dataset-{index}",
+                 "data": [{"type": "dataset"}]} for index in range(dataset_count)]
+    document = bom(model(), *datasets, {"type": "library", "name": "runtime", "bom-ref": "runtime"},
+                   dependencies=[Dependency(ref=data["bom-ref"], dependsOn=["runtime"]) for data in datasets])
+    components = mocker.spy(g7_profile, "_components")
+    cohorts = mocker.spy(g7_profile, "_cohorts")
+    result = report(document)
+    assert components.call_count == cohorts.call_count == 1
+    # Count actual source lookups, not elapsed time: per-dataset full graph scans
+    # would exceed this linear bound as the dataset cohort grows.
+    assert Dependency.source_reads <= 12 * dataset_count
+    dependencies = element(result, "dataset-dependency")
+    assert dependencies["status"] == "partial"
+    assert dependencies["subjects"] == [
+        {"path": f"/components/{index + 1}", "status": "partial",
+         "evidence": [f"/dependencies/{index}/dependsOn/0"]}
+        for index in range(dataset_count)
+    ]
+
+
+def test_dependency_index_preserves_original_positions_and_repeated_source_entries():
+    datasets = [{"type": "data", "name": name, "bom-ref": name, "data": [{"type": "dataset"}]}
+                for name in ("data-a", "data-b")]
+    libraries = [{"type": "library", "name": name, "bom-ref": name} for name in ("lib-a", "lib-b")]
+    document = bom(model(), *datasets, *libraries,
+                   metadata={"component": {"type": "application", "name": "system", "bom-ref": "system"}},
+                   dependencies=[
+                       {"ref": "missing", "dependsOn": ["lib-a"]},
+                       {"ref": "data-b", "dependsOn": ["lib-a", "data-b", "missing"]},
+                       {"ref": "system", "dependsOn": ["lib-a"]},
+                       {"ref": "data-a", "dependsOn": ["lib-b", "missing", "lib-a"]},
+                       {"ref": "system", "dependsOn": ["model-a", "data-b"]},
+                       {"ref": "data-b", "dependsOn": ["lib-b"]},
+                       {"ref": "model-a", "dependsOn": ["data-a", "lib-a", "missing", "model-a"]},
+                   ])
+    original = copy.deepcopy(document)
+    result = report(document)
+    assert element(result, "meta-dependency")["subjects"][0]["evidence"] == [
+        f"/dependencies/{edge}/dependsOn/{target}"
+        for edge, target in [(1, 0), (2, 0), (3, 0), (3, 2), (4, 0), (4, 1), (5, 0), (6, 0), (6, 1)]
+    ]
+    assert element(result, "dataset-dependency")["subjects"] == [
+        {"path": "/components/1", "status": "partial",
+         "evidence": ["/dependencies/3/dependsOn/0", "/dependencies/3/dependsOn/2"]},
+        {"path": "/components/2", "status": "partial",
+         "evidence": ["/dependencies/1/dependsOn/0", "/dependencies/5/dependsOn/0"]},
+    ]
+    assert element(result, "slp-components")["subjects"][0]["evidence"] == [
+        "/dependencies/2/dependsOn/0", "/dependencies/4/dependsOn/0", "/dependencies/4/dependsOn/1"]
+    assert element(result, "infrastructure-software")["subjects"][0]["evidence"] == [
+        "/dependencies/2/dependsOn/0", "/dependencies/6/dependsOn/1"]
+    assert document == original
+    # Reachability previously used the last dependency entry for a given source.
+    document["dependencies"][2], document["dependencies"][4] = document["dependencies"][4], document["dependencies"][2]
+    assert status(report(document), "slp-name") == "review"
+
+
+def test_assessment_context_is_fresh_after_mutating_the_same_document():
+    dataset = {"type": "data", "name": "data", "bom-ref": "data", "data": [{"type": "dataset"}]}
+    document = bom(model(), dataset, {"type": "library", "name": "runtime", "bom-ref": "runtime"},
+                   dependencies=[{"ref": "data", "dependsOn": ["runtime"]}])
+    before = report(document)
+    before_snapshot = copy.deepcopy(before)
+    assert status(before, "dataset-dependency") == "partial"
+    document["components"][0]["version"] = "2"
+    document["components"][1]["bom-ref"] = "renamed-data"
+    document["components"][2]["type"] = "device"
+    document["dependencies"][0]["ref"] = "renamed-data"
+    document["components"].append(model("new-model", version="3"))
+    after = report(document)
+    assert status(after, "dataset-dependency") == "missing"
+    assert status(after, "model-version") == "present"
+    assert len(element(after, "model-version")["subjects"]) == 2
+    assert before == before_snapshot
+    assert after == report(copy.deepcopy(document))
 
 
 def test_existing_score_integration_preserves_legacy_score_and_reports_unsupported_1_6():

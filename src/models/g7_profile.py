@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 from urllib.parse import urlparse
 
 from cyclonedx.schema import SchemaVersion
@@ -28,6 +28,15 @@ def load_g7_profile() -> Dict[str, Any]:
 class _Subject:
     path: str
     value: Dict[str, Any]
+
+
+@dataclass
+class _AssessmentContext:
+    cohorts: Dict[str, List[_Subject]]
+    by_ref: Dict[str, _Subject]
+    dependencies: List[Tuple[int, Dict[str, Any]]]
+    dependencies_by_source: Dict[str, List[Tuple[int, Dict[str, Any]]]]
+    ai_refs: Set[str]
 
 
 def _values(value: Any, segments: List[str], path: str) -> Iterable[Tuple[str, Any]]:
@@ -68,9 +77,10 @@ def _components(document: Dict[str, Any]) -> List[_Subject]:
     return result
 
 
-def _cohorts(document: Dict[str, Any]) -> Dict[str, List[_Subject]]:
-    components = _components(document)
-    by_ref = {c.value["bom-ref"]: c for c in components if c.value.get("bom-ref")}
+def _cohorts(
+    document: Dict[str, Any], components: List[_Subject], by_ref: Dict[str, _Subject],
+    dependencies_by_source: Dict[str, List[Tuple[int, Dict[str, Any]]]],
+) -> Dict[str, List[_Subject]]:
     models = [c for c in components if c.value.get("type") == "machine-learning-model"]
     datasets = {
         c.path: c for c in components if c.value.get("type") == "data"
@@ -95,14 +105,16 @@ def _cohorts(document: Dict[str, Any]) -> Dict[str, List[_Subject]]:
     systems = []
     subject = next((c for c in components if c.path == "/metadata/component"), None)
     if subject and subject.value.get("type") == "application":
-        edges = {edge["ref"]: edge.get("dependsOn", []) for edge in document.get("dependencies", [])}
         pending = [subject.value.get("bom-ref")]
         reached = set()
         while pending:
             ref = pending.pop()
             if ref and ref not in reached:
                 reached.add(ref)
-                pending.extend(edges.get(ref, []))
+                edges = dependencies_by_source.get(ref, [])
+                if edges:
+                    # Preserve the original last-entry behavior for reachability.
+                    pending.extend(edges[-1][1].get("dependsOn", []))
         if any(m.path.startswith(subject.path + "/components/") or m.value.get("bom-ref") in reached for m in models):
             systems.append(subject)
     tools = document.get("metadata", {}).get("tools", {})
@@ -117,37 +129,46 @@ def _cohorts(document: Dict[str, Any]) -> Dict[str, List[_Subject]]:
             "dataset": list(datasets.values()), "tool": tool_subjects}
 
 
-def _relationships(document: Dict[str, Any], subject: _Subject, check: str) -> List[str]:
-    components = _components(document)
-    by_ref = {c.value["bom-ref"]: c.value for c in components if c.value.get("bom-ref")}
-    cohorts = _cohorts(document)
-    ai_refs = {c.value.get("bom-ref") for c in cohorts["model"] + cohorts["system"]}
+def _assessment_context(document: Dict[str, Any], components: List[_Subject]) -> _AssessmentContext:
+    """Build lookups once per assessment; never cache mutable input across calls."""
+    by_ref = {c.value["bom-ref"]: c for c in components if c.value.get("bom-ref")}
+    dependencies = list(enumerate(document.get("dependencies", [])))
+    dependencies_by_source: Dict[str, List[Tuple[int, Dict[str, Any]]]] = {}
+    for index, edge in dependencies:
+        dependencies_by_source.setdefault(edge["ref"], []).append((index, edge))
+    cohorts = _cohorts(document, components, by_ref, dependencies_by_source)
+    ai_refs = {c.value["bom-ref"] for c in cohorts["model"] + cohorts["system"] if c.value.get("bom-ref")}
+    return _AssessmentContext(cohorts, by_ref, dependencies, dependencies_by_source, ai_refs)
+
+
+def _relationships(context: _AssessmentContext, subject: _Subject, check: str) -> List[str]:
+    edges = context.dependencies
+    if check in {"dataset_dependencies", "subject_dependencies"}:
+        edges = context.dependencies_by_source.get(subject.value.get("bom-ref"), [])
     evidence = []
-    for index, edge in enumerate(document.get("dependencies", [])):
-        source = by_ref.get(edge["ref"])
+    for index, edge in edges:
+        source = context.by_ref.get(edge["ref"])
         if not source:
             continue
-        if check in {"dataset_dependencies", "subject_dependencies"} and edge["ref"] != subject.value.get("bom-ref"):
-            continue
-        if check == "software_dependencies" and edge["ref"] not in ai_refs:
+        if check == "software_dependencies" and edge["ref"] not in context.ai_refs:
             continue
         for target_index, ref in enumerate(edge.get("dependsOn", [])):
-            target = by_ref.get(ref)
+            target = context.by_ref.get(ref)
             if not target or ref == edge["ref"]:
                 continue
-            if check == "software_dependencies" and target.get("type") not in _SOFTWARE_TYPES:
+            if check == "software_dependencies" and target.value.get("type") not in _SOFTWARE_TYPES:
                 continue
-            if check == "dataset_dependencies" and target.get("type") not in _SOFTWARE_TYPES | {"data"}:
+            if check == "dataset_dependencies" and target.value.get("type") not in _SOFTWARE_TYPES | {"data"}:
                 continue
             evidence.append(f"/dependencies/{index}/dependsOn/{target_index}")
     return evidence
 
 
-def _evidence(document: Dict[str, Any], subject: _Subject, element: Dict[str, Any]) -> Tuple[List[str], bool, bool]:
+def _evidence(context: _AssessmentContext, subject: _Subject, element: Dict[str, Any]) -> Tuple[List[str], bool, bool]:
     """Return JSON pointers, whether all required groups matched, and unknown presence."""
     check = element.get("check")
     if check in {"dependencies", "dataset_dependencies", "software_dependencies", "subject_dependencies"}:
-        evidence = _relationships(document, subject, check)
+        evidence = _relationships(context, subject, check)
         return evidence, bool(evidence), False
     evidence = []
     unknown = False
@@ -170,10 +191,10 @@ def _evidence(document: Dict[str, Any], subject: _Subject, element: Dict[str, An
     return sorted(set(evidence)), bool(matched) and all(matched), unknown
 
 
-def _evaluate(document: Dict[str, Any], subjects: List[_Subject], element: Dict[str, Any]) -> Dict[str, Any]:
+def _evaluate(context: _AssessmentContext, subjects: List[_Subject], element: Dict[str, Any]) -> Dict[str, Any]:
     details = []
     for subject in subjects:
-        evidence, complete, unknown = _evidence(document, subject, element)
+        evidence, complete, unknown = _evidence(context, subject, element)
         if "unresolved_ref" in subject.value:
             status = "review"
         elif element["coverage"] == "manual":
@@ -207,7 +228,6 @@ def calculate_g7_completeness(aibom: Dict[str, Any]) -> Dict[str, Any]:
     """
     profile = load_g7_profile()
     report_status, reason = "assessed", None
-    cohorts: Dict[str, List[_Subject]] = {}
     if not isinstance(aibom, dict) or aibom.get("bomFormat") != "CycloneDX" or aibom.get("specVersion") != "1.7":
         report_status, reason = "unsupported", "This profile requires a CycloneDX 1.7 JSON document."
     else:
@@ -223,15 +243,15 @@ def calculate_g7_completeness(aibom: Dict[str, Any]) -> Dict[str, Any]:
             if len(refs) != len(set(refs)):
                 report_status, reason = "invalid", "Component bom-ref values must be unique."
             else:
-                cohorts = _cohorts(aibom)
-                if not cohorts["model"] and not cohorts["dataset"]:
+                context = _assessment_context(aibom, components)
+                if not context.cohorts["model"] and not context.cohorts["dataset"]:
                     report_status, reason = "not_applicable", "No typed AI models or datasets were found."
     results = []
     clusters: Dict[str, Dict[str, int]] = {}
     for element in profile["elements"]:
         result = {key: element[key] for key in ("id", "cluster", "name", "coverage", "cyclonedx", "source_section", "source_page", "notes")}
         result.update(
-            _evaluate(aibom, cohorts[element["scope"]], element)
+            _evaluate(context, context.cohorts[element["scope"]], element)
             if report_status == "assessed" else {"status": "not_assessed", "subjects": []}
         )
         results.append(result)
