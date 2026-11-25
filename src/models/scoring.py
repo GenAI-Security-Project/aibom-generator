@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 from cyclonedx.schema import SchemaVersion
 from cyclonedx.validation.json import JsonValidator
+from .g7_profile import calculate_g7_completeness
 from .registry import get_field_registry_manager
 
 _cdx_validator = JsonValidator(SchemaVersion.V1_6)
@@ -362,6 +363,7 @@ def calculate_completeness_score(aibom: Dict[str, Any], validate: bool = True, e
         "missing_fields": missing_fields,
         "category_fields_list": category_fields_list,
         "completeness_profile": determine_completeness_profile(aibom, final_score),
+        "g7_profile": calculate_g7_completeness(aibom),
         "penalty_applied": penalty_factor < 1.0,
         "penalty_reason": " and ".join(penalty_reasons) if penalty_reasons else None,
         "recommendations": generate_field_recommendations(missing_fields)

@@ -1,0 +1,820 @@
+{
+  "profile": "G7 SBOM for AI - Minimum Elements",
+  "profile_version": "0.2.0-draft",
+  "cyclonedx_version": "1.7",
+  "source": {
+    "url": "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/KI/SBOM-for-AI_minimum-elements.pdf?__blob=publicationFile&v=4",
+    "sha256": "d0b2f41c5baa2bcb2c8bea5b9d610fe9bafef202bbc42798b0a562eb0db5e77c",
+    "verified_on": "2026-10-18",
+    "page_numbering": "Printed page numbers; PDF page index is printed page + 1 (zero-based).",
+    "verification": "Element names, cluster membership and definitions checked against sections 2.1-2.7 of the downloaded BSI publication."
+  },
+  "scoring": "Project-defined known-evidence coverage: present / 50. Partial, review and explicit unknown do not earn full credit. Not a G7-prescribed score or proof of compliance.",
+  "elements": [
+    {
+      "id": "g7-meta-author",
+      "cluster": "metadata",
+      "name": "SBOM author",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 6,
+      "coverage": "native",
+      "cyclonedx": "metadata.authors[].name",
+      "evidence_groups": [
+        [
+          "metadata.authors.*.name"
+        ]
+      ],
+      "notes": "The operator creating the BOM, not the generation tool or component manufacturer."
+    },
+    {
+      "id": "g7-meta-version",
+      "cluster": "metadata",
+      "name": "SBOM version",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 6,
+      "coverage": "native",
+      "cyclonedx": "version",
+      "evidence_groups": [
+        [
+          "version"
+        ]
+      ],
+      "notes": "CycloneDX revision number; schema validation enforces a positive integer."
+    },
+    {
+      "id": "g7-meta-format-name",
+      "cluster": "metadata",
+      "name": "SBOM data format name",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 7,
+      "coverage": "native",
+      "cyclonedx": "bomFormat",
+      "evidence_groups": [
+        [
+          "bomFormat"
+        ]
+      ],
+      "notes": "Must equal CycloneDX; checked before assessment."
+    },
+    {
+      "id": "g7-meta-format-version",
+      "cluster": "metadata",
+      "name": "SBOM data format version",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 7,
+      "coverage": "native",
+      "cyclonedx": "specVersion",
+      "evidence_groups": [
+        [
+          "specVersion"
+        ]
+      ],
+      "notes": "Only CycloneDX 1.7 is assessed by this mapping."
+    },
+    {
+      "id": "g7-meta-signature",
+      "cluster": "metadata",
+      "name": "SBOM author signature",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 7,
+      "coverage": "manual",
+      "cyclonedx": "signature",
+      "evidence_groups": [
+        [
+          "signature.algorithm",
+          "signature.signers.*.algorithm",
+          "signature.chain.*.algorithm"
+        ],
+        [
+          "signature.value",
+          "signature.signers.*.value",
+          "signature.chain.*.value"
+        ]
+      ],
+      "notes": "Signature structure does not establish author attribution, cryptographic validity, or algorithm approval. Verify separately."
+    },
+    {
+      "id": "g7-meta-tool-name",
+      "cluster": "metadata",
+      "name": "SBOM tool name",
+      "scope": "tool",
+      "source_section": "2.1",
+      "source_page": 7,
+      "coverage": "native",
+      "cyclonedx": "metadata.tools.components[].name",
+      "evidence_groups": [
+        [
+          "name"
+        ]
+      ],
+      "notes": "Every declared generation tool must have a name; deprecated metadata.tools[] is also supported."
+    },
+    {
+      "id": "g7-meta-tool-version",
+      "cluster": "metadata",
+      "name": "SBOM tool version",
+      "scope": "tool",
+      "source_section": "2.1",
+      "source_page": 7,
+      "coverage": "native",
+      "cyclonedx": "metadata.tools.components[].version",
+      "evidence_groups": [
+        [
+          "version"
+        ]
+      ],
+      "notes": "Every declared generation tool must have a version. Explicit unknowns remain visible."
+    },
+    {
+      "id": "g7-meta-generation-context",
+      "cluster": "metadata",
+      "name": "SBOM generation context",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 8,
+      "coverage": "native",
+      "cyclonedx": "metadata.lifecycles[]",
+      "evidence_groups": [
+        [
+          "metadata.lifecycles.*.phase",
+          "metadata.lifecycles.*.name"
+        ]
+      ],
+      "notes": "Lifecycle phase conveys generation context; no custom namespace is required."
+    },
+    {
+      "id": "g7-meta-timestamp",
+      "cluster": "metadata",
+      "name": "SBOM timestamp",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 8,
+      "coverage": "native",
+      "cyclonedx": "metadata.timestamp",
+      "evidence_groups": [
+        [
+          "metadata.timestamp"
+        ]
+      ],
+      "notes": "Document update time, distinct from system/model update time."
+    },
+    {
+      "id": "g7-meta-dependency",
+      "cluster": "metadata",
+      "name": "SBOM dependency relationship",
+      "scope": "document",
+      "source_section": "2.1",
+      "source_page": 8,
+      "coverage": "partial",
+      "cyclonedx": "dependencies[].ref/dependsOn[]",
+      "evidence_groups": [],
+      "notes": "Resolved edges provide inclusion evidence. Derivation and graph completeness need review.",
+      "check": "dependencies"
+    },
+    {
+      "id": "g7-slp-name",
+      "cluster": "system-level-properties",
+      "name": "System name",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 9,
+      "coverage": "native",
+      "cyclonedx": "metadata.component.name",
+      "evidence_groups": [
+        [
+          "name"
+        ]
+      ],
+      "notes": "Only an application BOM subject connected to a typed model is selected as a system."
+    },
+    {
+      "id": "g7-slp-components",
+      "cluster": "system-level-properties",
+      "name": "System components",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 9,
+      "coverage": "partial",
+      "cyclonedx": "components[] and dependencies[]",
+      "evidence_groups": [],
+      "notes": "The system's resolved outgoing dependency edges are candidates; inventory completeness needs review.",
+      "check": "subject_dependencies"
+    },
+    {
+      "id": "g7-slp-producer",
+      "cluster": "system-level-properties",
+      "name": "System producer",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 10,
+      "coverage": "native",
+      "cyclonedx": "metadata.component.manufacturer.name",
+      "evidence_groups": [
+        [
+          "manufacturer.name"
+        ]
+      ],
+      "notes": "A supplier need not be the producer; supplier is not accepted automatically."
+    },
+    {
+      "id": "g7-slp-version",
+      "cluster": "system-level-properties",
+      "name": "System version",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 10,
+      "coverage": "native",
+      "cyclonedx": "metadata.component.version",
+      "evidence_groups": [
+        [
+          "version"
+        ]
+      ],
+      "notes": "Unknown is explicitly reported, without known-value credit."
+    },
+    {
+      "id": "g7-slp-timestamp",
+      "cluster": "system-level-properties",
+      "name": "System timestamp",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 10,
+      "coverage": "partial",
+      "cyclonedx": "metadata.component.releaseNotes.timestamp",
+      "evidence_groups": [
+        [
+          "releaseNotes.timestamp"
+        ]
+      ],
+      "notes": "Release-note creation time is only a candidate for the system's most recent update; metadata.timestamp is not evidence."
+    },
+    {
+      "id": "g7-slp-data-flow",
+      "cluster": "system-level-properties",
+      "name": "System data flow",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 10,
+      "coverage": "manual",
+      "cyclonedx": "services[].data[].source/destination; formulation",
+      "evidence_groups": [],
+      "notes": "Review component-to-component flow; a data classification or generic service entry alone is insufficient."
+    },
+    {
+      "id": "g7-slp-data-usage",
+      "cluster": "system-level-properties",
+      "name": "System data usage",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 10,
+      "coverage": "manual",
+      "cyclonedx": "services[].data; technical documentation",
+      "evidence_groups": [],
+      "notes": "Review how data is consumed and processed; classification is not a usage description."
+    },
+    {
+      "id": "g7-slp-input-output",
+      "cluster": "system-level-properties",
+      "name": "System input/output properties",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 11,
+      "coverage": "manual",
+      "cyclonedx": "system documentation; service interfaces",
+      "evidence_groups": [],
+      "notes": "A model's input/output formats do not establish the surrounding system's input/output properties."
+    },
+    {
+      "id": "g7-slp-application-area",
+      "cluster": "system-level-properties",
+      "name": "Intended application area",
+      "scope": "system",
+      "source_section": "2.2",
+      "source_page": 11,
+      "coverage": "manual",
+      "cyclonedx": "metadata.component.description/tags",
+      "evidence_groups": [
+        [
+          "description",
+          "tags.*"
+        ]
+      ],
+      "notes": "Review deployment context; arbitrary descriptions/tags do not establish intended application area."
+    },
+    {
+      "id": "g7-model-name",
+      "cluster": "models",
+      "name": "Model name",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 12,
+      "coverage": "native",
+      "cyclonedx": "component.name",
+      "evidence_groups": [
+        [
+          "name"
+        ]
+      ],
+      "notes": "Check each typed machine-learning-model, including nested and metadata components."
+    },
+    {
+      "id": "g7-model-identifier",
+      "cluster": "models",
+      "name": "Model identifier",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 12,
+      "coverage": "native",
+      "cyclonedx": "component.purl/cpe/omniborId/swhid/bom-ref",
+      "evidence_groups": [
+        [
+          "purl",
+          "cpe",
+          "omniborId.*",
+          "swhid.*",
+          "bom-ref"
+        ]
+      ],
+      "notes": "A bom-ref is local to this BOM; it does not establish external identity or resolvability."
+    },
+    {
+      "id": "g7-model-version",
+      "cluster": "models",
+      "name": "Model version",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 13,
+      "coverage": "native",
+      "cyclonedx": "component.version",
+      "evidence_groups": [
+        [
+          "version"
+        ]
+      ],
+      "notes": "Every model is checked independently; explicit unknown receives no known-value credit."
+    },
+    {
+      "id": "g7-model-timestamp",
+      "cluster": "models",
+      "name": "Model timestamp",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 13,
+      "coverage": "partial",
+      "cyclonedx": "component.releaseNotes.timestamp",
+      "evidence_groups": [
+        [
+          "releaseNotes.timestamp"
+        ]
+      ],
+      "notes": "Release-note creation is a candidate, not proof of model update/release time."
+    },
+    {
+      "id": "g7-model-producer",
+      "cluster": "models",
+      "name": "Model producer",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 14,
+      "coverage": "native",
+      "cyclonedx": "component.manufacturer.name",
+      "evidence_groups": [
+        [
+          "manufacturer.name"
+        ]
+      ],
+      "notes": "Producer means originator/manufacturer; a distributor's supplier field is insufficient."
+    },
+    {
+      "id": "g7-model-description",
+      "cluster": "models",
+      "name": "Model description",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 14,
+      "coverage": "partial",
+      "cyclonedx": "component.description; modelCard.considerations; pedigree",
+      "evidence_groups": [
+        [
+          "description"
+        ],
+        [
+          "modelCard.considerations.technicalLimitations.*"
+        ],
+        [
+          "pedigree.ancestors.*.name",
+          "pedigree.notes"
+        ]
+      ],
+      "notes": "Capabilities, limitations and lineage require semantic review. All three groups are candidates, not proof of completeness."
+    },
+    {
+      "id": "g7-model-hash-value",
+      "cluster": "models",
+      "name": "Model hash value",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 14,
+      "coverage": "native",
+      "cyclonedx": "component.hashes[].content",
+      "evidence_groups": [
+        [
+          "hashes.*.content"
+        ]
+      ],
+      "notes": "Schema-valid digest is documented; artifact binding and recomputation are not performed."
+    },
+    {
+      "id": "g7-model-hash-algorithm",
+      "cluster": "models",
+      "name": "Model hash algorithm",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 15,
+      "coverage": "partial",
+      "cyclonedx": "component.hashes[].alg",
+      "evidence_groups": [
+        [
+          "hashes.*.alg"
+        ]
+      ],
+      "notes": "CycloneDX uses its own algorithm labels. IANA name alignment and relevant-authority approval require review."
+    },
+    {
+      "id": "g7-model-properties",
+      "cluster": "models",
+      "name": "Model properties",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 15,
+      "coverage": "native",
+      "cyclonedx": "modelCard.modelParameters.modelArchitecture/architectureFamily",
+      "evidence_groups": [
+        [
+          "modelCard.modelParameters.modelArchitecture",
+          "modelCard.modelParameters.architectureFamily"
+        ]
+      ],
+      "notes": "Records explicit architecture characteristics; an empty model card or input formats alone are insufficient."
+    },
+    {
+      "id": "g7-model-input-output",
+      "cluster": "models",
+      "name": "Model input-output properties",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 16,
+      "coverage": "native",
+      "cyclonedx": "modelCard.modelParameters.inputs[].format and outputs[].format",
+      "evidence_groups": [
+        [
+          "modelCard.modelParameters.inputs.*.format"
+        ],
+        [
+          "modelCard.modelParameters.outputs.*.format"
+        ]
+      ],
+      "notes": "Both directions must be documented on every model."
+    },
+    {
+      "id": "g7-model-training",
+      "cluster": "models",
+      "name": "Model training properties",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 16,
+      "coverage": "partial",
+      "cyclonedx": "modelCard.modelParameters.approach.type",
+      "evidence_groups": [
+        [
+          "modelCard.modelParameters.approach.type"
+        ]
+      ],
+      "notes": "Learning approach is partial evidence; training/fine-tuning methods and stages need review. Task/architecture/inputs alone do not qualify."
+    },
+    {
+      "id": "g7-model-license",
+      "cluster": "models",
+      "name": "Model license",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 17,
+      "coverage": "native",
+      "cyclonedx": "component.licenses[]",
+      "evidence_groups": [
+        [
+          "licenses.*.license.id",
+          "licenses.*.license.name",
+          "licenses.*.expression"
+        ]
+      ],
+      "notes": "Assesses documented license type only. G7 lists openness of weights/architecture/data/training as illustrative examples, not a separate mandatory checklist. This profile does not infer openness."
+    },
+    {
+      "id": "g7-model-external-references",
+      "cluster": "models",
+      "name": "Model external references",
+      "scope": "model",
+      "source_section": "2.3",
+      "source_page": 17,
+      "coverage": "native",
+      "cyclonedx": "component.externalReferences[].url",
+      "evidence_groups": [
+        [
+          "externalReferences.*.url"
+        ]
+      ],
+      "notes": "Presence of a reference does not verify remote content; no URLs are fetched."
+    },
+    {
+      "id": "g7-dataset-name",
+      "cluster": "dataset-properties",
+      "name": "Dataset name",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 18,
+      "coverage": "native",
+      "cyclonedx": "data component.name or inline dataset.name",
+      "evidence_groups": [
+        [
+          "name"
+        ]
+      ],
+      "notes": "Typed dataset components and inline datasets are assessed; referenced targets are resolved."
+    },
+    {
+      "id": "g7-dataset-description",
+      "cluster": "dataset-properties",
+      "name": "Dataset description",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 18,
+      "coverage": "partial",
+      "cyclonedx": "data component.description; data[].contents.properties",
+      "evidence_groups": [
+        [
+          "description"
+        ]
+      ],
+      "notes": "A description is candidate evidence for intended use (training, fine tuning, evaluation); semantic review remains."
+    },
+    {
+      "id": "g7-dataset-content",
+      "cluster": "dataset-properties",
+      "name": "Dataset content",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 18,
+      "coverage": "partial",
+      "cyclonedx": "data[].contents; inline contents",
+      "evidence_groups": [
+        [
+          "data.*.contents.url",
+          "data.*.contents.attachment.content",
+          "data.*.contents.properties.*.value",
+          "contents.url",
+          "contents.attachment.content",
+          "contents.properties.*.value"
+        ]
+      ],
+      "notes": "Content links/attachments are candidates. Review content description, modality and encoding; retrieval is not performed."
+    },
+    {
+      "id": "g7-dataset-identifier",
+      "cluster": "dataset-properties",
+      "name": "Dataset identifier",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 18,
+      "coverage": "native",
+      "cyclonedx": "data component.bom-ref/purl; data[].contents.url",
+      "evidence_groups": [
+        [
+          "bom-ref",
+          "purl",
+          "data.*.contents.url",
+          "contents.url"
+        ]
+      ],
+      "notes": "Unresolved model-card dataset references remain review items and do not receive identity credit."
+    },
+    {
+      "id": "g7-dataset-hash",
+      "cluster": "dataset-properties",
+      "name": "Dataset hash",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 19,
+      "coverage": "native",
+      "cyclonedx": "data component.hashes[].content",
+      "evidence_groups": [
+        [
+          "hashes.*.content"
+        ]
+      ],
+      "notes": "Digest belongs to the dataset component, never to an unrelated model or library. Inline data has no native hashes field."
+    },
+    {
+      "id": "g7-dataset-provenance",
+      "cluster": "dataset-properties",
+      "name": "Dataset provenance",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 19,
+      "coverage": "partial",
+      "cyclonedx": "data[].governance; component.pedigree",
+      "evidence_groups": [
+        [
+          "data.*.governance.owners.*.organization.name",
+          "data.*.governance.owners.*.contact.name",
+          "data.*.governance.custodians.*.organization.name",
+          "data.*.governance.stewards.*.organization.name",
+          "governance.owners.*.organization.name",
+          "governance.owners.*.contact.name",
+          "pedigree.ancestors.*.name",
+          "pedigree.notes"
+        ]
+      ],
+      "notes": "Governance/ancestry provide candidates. Collection, curation, labeling and synthetic-data methods need review."
+    },
+    {
+      "id": "g7-dataset-statistics",
+      "cluster": "dataset-properties",
+      "name": "Dataset statistical properties",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 19,
+      "coverage": "manual",
+      "cyclonedx": "data[].contents.properties; external dataset documentation",
+      "evidence_groups": [],
+      "notes": "No automatic semantics for arbitrary properties; inspect lifecycle statistics such as mean/variance."
+    },
+    {
+      "id": "g7-dataset-sensitivity",
+      "cluster": "dataset-properties",
+      "name": "Dataset sensitivity",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 19,
+      "coverage": "manual",
+      "cyclonedx": "data[].classification/sensitiveData; inline classification/sensitiveData",
+      "evidence_groups": [
+        [
+          "data.*.classification",
+          "data.*.sensitiveData.*",
+          "classification",
+          "sensitiveData.*"
+        ]
+      ],
+      "notes": "Review PII, copyright, confidentiality and other sensitivity categories; absence cannot establish no sensitive data."
+    },
+    {
+      "id": "g7-dataset-dependency",
+      "cluster": "dataset-properties",
+      "name": "Dataset dependency relationship",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 19,
+      "coverage": "partial",
+      "cyclonedx": "dependencies[] outgoing from dataset; pedigree",
+      "evidence_groups": [],
+      "notes": "G7 describes creation/maintenance software and derivation from other datasets. A model-to-dataset link alone is insufficient.",
+      "check": "dataset_dependencies"
+    },
+    {
+      "id": "g7-dataset-license",
+      "cluster": "dataset-properties",
+      "name": "Dataset license",
+      "scope": "dataset",
+      "source_section": "2.4",
+      "source_page": 20,
+      "coverage": "native",
+      "cyclonedx": "data component.licenses[]",
+      "evidence_groups": [
+        [
+          "licenses.*.license.id",
+          "licenses.*.license.name",
+          "licenses.*.expression"
+        ]
+      ],
+      "notes": "Only the dataset's own license is credited. Inline data cannot borrow the model's license."
+    },
+    {
+      "id": "g7-infrastructure-software",
+      "cluster": "infrastructure",
+      "name": "Infrastructure software",
+      "scope": "document",
+      "source_section": "2.5",
+      "source_page": 20,
+      "coverage": "partial",
+      "cyclonedx": "dependencies[] to software components",
+      "evidence_groups": [],
+      "notes": "Resolved model/application-to-software edges are candidates for runtime infrastructure. Dataset edges alone are insufficient.",
+      "check": "software_dependencies"
+    },
+    {
+      "id": "g7-infrastructure-hardware",
+      "cluster": "infrastructure",
+      "name": "Infrastructure hardware",
+      "scope": "document",
+      "source_section": "2.5",
+      "source_page": 20,
+      "coverage": "manual",
+      "cyclonedx": "externalReferences[type=bom] and dependencies",
+      "evidence_groups": [],
+      "notes": "Verify that a BOM reference is an HBOM for deployment hardware; generic BOM links/hardware entries do not prove this."
+    },
+    {
+      "id": "g7-security-controls",
+      "cluster": "security-properties",
+      "name": "Security controls",
+      "scope": "document",
+      "source_section": "2.6",
+      "source_page": 21,
+      "coverage": "manual",
+      "cyclonedx": "declarations; externalReferences; documentation",
+      "evidence_groups": [],
+      "notes": "Review implemented AI-specific and general security controls and their scope."
+    },
+    {
+      "id": "g7-security-compliance",
+      "cluster": "security-properties",
+      "name": "Security compliance",
+      "scope": "document",
+      "source_section": "2.6",
+      "source_page": 22,
+      "coverage": "manual",
+      "cyclonedx": "declarations.attestations; certification/standards external references",
+      "evidence_groups": [
+        [
+          "declarations.attestations"
+        ]
+      ],
+      "notes": "Review certification applicability, issuer, evidence and validity; arbitrary properties cannot certify compliance."
+    },
+    {
+      "id": "g7-security-policy",
+      "cluster": "security-properties",
+      "name": "Cybersecurity policy information",
+      "scope": "document",
+      "source_section": "2.6",
+      "source_page": 22,
+      "coverage": "partial",
+      "cyclonedx": "externalReferences[].url; component.externalReferences[].url",
+      "evidence_groups": [
+        [
+          "externalReferences.*.url",
+          "components.*.externalReferences.*.url",
+          "metadata.component.externalReferences.*.url"
+        ]
+      ],
+      "notes": "Only security.txt URL candidates qualify. Producer attribution and retrieved content require review.",
+      "check": "security_txt"
+    },
+    {
+      "id": "g7-security-vulnerabilities",
+      "cluster": "security-properties",
+      "name": "Vulnerability referencing",
+      "scope": "document",
+      "source_section": "2.6",
+      "source_page": 22,
+      "coverage": "manual",
+      "cyclonedx": "externalReferences[type=advisories]; vulnerabilities[].references",
+      "evidence_groups": [
+        [
+          "vulnerabilities.*.references.*.url"
+        ]
+      ],
+      "notes": "G7 asks for exploitability databases/repositories. Generic vulnerability presence or an empty vulnerability list is insufficient."
+    },
+    {
+      "id": "g7-kpi-security",
+      "cluster": "key-performance-indicators",
+      "name": "Security metrics",
+      "scope": "document",
+      "source_section": "2.7",
+      "source_page": 22,
+      "coverage": "manual",
+      "cyclonedx": "modelCard.quantitativeAnalysis.performanceMetrics; assessment references",
+      "evidence_groups": [],
+      "notes": "Review security-specific benchmarks (e.g. adversarial robustness); generic accuracy is insufficient."
+    },
+    {
+      "id": "g7-kpi-operational",
+      "cluster": "key-performance-indicators",
+      "name": "Operational performance KPIs",
+      "scope": "document",
+      "source_section": "2.7",
+      "source_page": 22,
+      "coverage": "manual",
+      "cyclonedx": "operational metrics documentation or scoped properties",
+      "evidence_groups": [],
+      "notes": "G7 examples concern uptime, incident resolution, latency, throughput and load balancing. Model accuracy does not qualify."
+    }
+  ]
+}
