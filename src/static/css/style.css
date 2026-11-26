@@ -1286,3 +1286,16 @@ th {
     margin-right: 20px;
     margin-bottom: 5px;
 }
+
+/* Optional OWASP GenAI risk section */
+.risk-options { margin-top: 12px; }
+.risk-options summary { cursor: pointer; font-weight: 600; }
+.risk-options fieldset { border: 1px solid #ddd; border-radius: 6px; margin: 8px 0; padding: 8px 12px; }
+.risk-options label { display: block; margin: 4px 0; }
+.risk-meta { font-size: 0.9em; color: #555; }
+.risk-list { font-size: 0.75em; font-weight: normal; color: #666; margin-left: 6px; }
+.risk-control { display: inline-block; margin: 2px 8px 2px 0; white-space: nowrap; }
+.risk-status { font-size: 0.75em; padding: 1px 6px; border-radius: 8px; border: 1px solid #ccc; }
+.risk-status-reviewed { background: #e6f4ea; border-color: #34a853; }
+.risk-status-draft { background: #fff4e5; border-color: #f29900; }
+.risk-status-unreviewed { background: #f1f3f4; border-color: #9aa0a6; }

@@ -23,6 +23,7 @@ from .extractor import EnhancedExtractor
 from .model_file_extractors import ModelFileExtractor, default_extractors
 from .scoring import calculate_completeness_score
 from .registry import get_field_registry_manager
+from . import owasp_risks
 from ..utils.validation import validate_aibom
 from ..utils.license_utils import normalize_license_id, get_license_url
 from ..config import AIBOM_GEN_VERSION, AIBOM_GEN_NAME
@@ -51,6 +52,7 @@ class AIBOMService:
         self.use_best_practices = use_best_practices
         self.enhancement_report = None
         self.extraction_results = {}
+        self.risk_section = None
         self.model_file_extractors = (
             model_file_extractors if model_file_extractors is not None
             else default_extractors()
@@ -80,10 +82,18 @@ class AIBOMService:
         enable_summarization: bool = False,
         spec_version: str = "1.6",
         metadata_overrides: Optional[Dict[str, str]] = None,
+        risk_options: Optional["owasp_risks.RiskOptions"] = None,
     ) -> Dict[str, Any]:
         """
         Generate an AIBOM for the specified Hugging Face model.
+
+        risk_options (off by default) adds candidate OWASP GenAI risks and the
+        framework controls mapped to them, from the vendored OWASP GenAI
+        Crosswalk data. See src/models/owasp_risks.py.
         """
+        self.risk_section = None
+        # Fail loudly on an unknown profile or framework, before the catch-all below.
+        owasp_risks.check_options(risk_options)
         try:
             model_id = self._normalise_model_id(model_id)
             use_inference = include_inference if include_inference is not None else self.use_inference
@@ -120,17 +130,24 @@ class AIBOMService:
             # 5. Create Final AIBOM
             aibom = self._create_aibom_structure(model_id, final_metadata, spec_version=spec_version, metadata_overrides=metadata_overrides)
             
-            # Validate Schema
-            is_valid, validation_errors = validate_aibom(aibom)
-            if not is_valid:
-                logger.warning(f"AIBOM schema validation failed with {len(validation_errors)} errors")
-            
             # 6. Final Score
             final_score = calculate_completeness_score(
                 aibom, 
                 validate=True,
                 extraction_results=self.extraction_results
             )
+
+            # 6b. Candidate OWASP GenAI risks (optional). Added after scoring so
+            # the completeness score still measures the model's own documentation.
+            if risk_options is not None and risk_options.enabled:
+                task = final_metadata.get("primaryPurpose") or final_metadata.get("pipeline_tag")
+                self.risk_section = owasp_risks.build_risk_section(task, risk_options)
+                owasp_risks.apply_to_aibom(aibom, self.risk_section)
+
+            # Validate Schema (after every section is in place)
+            is_valid, validation_errors = validate_aibom(aibom)
+            if not is_valid:
+                logger.warning(f"AIBOM schema validation failed with {len(validation_errors)} errors")
             
             # 7. Store Report
             self.enhancement_report = {

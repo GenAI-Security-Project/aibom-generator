@@ -34,6 +34,30 @@
                     onclick="this.disabled=true; this.innerText='Generating...'; document.getElementById('sbom-form').submit();">Generate
                     AIBOM</button>
             </form>
+            {% if risk_frameworks %}
+            <details class="risk-options">
+                <summary>Optional: add candidate OWASP GenAI risks and mapped controls</summary>
+                <p>From the <a href="https://github.com/GenAI-Security-Project/crosswalk" target="_blank"
+                        rel="noopener noreferrer">OWASP GenAI Crosswalk</a>. These are risks that apply to this
+                    <em>kind</em> of model, with the framework controls mapped to them &mdash; not an assessment of the
+                    model. The LLM Top 10 applies to generative models; tick what else is true of the deployment.</p>
+                <label><input type="checkbox" name="owasp_risks" value="true" form="sbom-form"> Add the OWASP risk section</label>
+                <fieldset>
+                    <legend>The model&hellip;</legend>
+                    <label><input type="checkbox" name="risk_llm" value="true" form="sbom-form"> is an LLM, whatever its Hugging Face task (LLM Top 10)</label>
+                    <label><input type="checkbox" name="risk_agentic" value="true" form="sbom-form"> runs in an agent (Agentic Top 10)</label>
+                    <label><input type="checkbox" name="risk_rag" value="true" form="sbom-form"> uses retrieval / RAG (GenAI Data Security)</label>
+                    <label><input type="checkbox" name="risk_training_data" value="true" form="sbom-form"> is trained or tuned on organisational data (GenAI Data Security)</label>
+                    <label><input type="checkbox" name="risk_skills" value="true" form="sbom-form"> loads agent skills (Agentic Skills Top 10)</label>
+                </fieldset>
+                <fieldset>
+                    <legend>Frameworks</legend>
+                    {% for fid, fname, checked in risk_frameworks %}
+                    <label><input type="checkbox" name="risk_frameworks" value="{{ fid }}" form="sbom-form" {% if checked %}checked{% endif %}> {{ fname }}</label>
+                    {% endfor %}
+                </fieldset>
+            </details>
+            {% endif %}
 
         </div>
 

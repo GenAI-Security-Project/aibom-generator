@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Optional
 from ..models.service import AIBOMService
+from ..models import owasp_risks
 from ..models.scoring import calculate_completeness_score
 from ..config import OUTPUT_DIR, TEMPLATES_DIR
 from ..utils.formatter import export_aibom
@@ -55,7 +56,8 @@ class CLIController:
 
     def generate(self, model_id: str, output_file: Optional[str] = None, include_inference: bool = False, 
                  enable_summarization: bool = False, verbose: bool = False,
-                 name: Optional[str] = None, version: Optional[str] = None, manufacturer: Optional[str] = None):
+                 name: Optional[str] = None, version: Optional[str] = None, manufacturer: Optional[str] = None,
+                 risk_options: Optional[owasp_risks.RiskOptions] = None):
         if verbose:
             logging.getLogger().setLevel(logging.DEBUG)
 
@@ -75,7 +77,8 @@ class CLIController:
                     "name": name,
                     "version": version,
                     "manufacturer": manufacturer
-                }
+                },
+                **({"risk_options": risk_options} if risk_options is not None else {}),
             )
             primary_report = self.service.get_enhancement_report()
             
@@ -108,9 +111,12 @@ class CLIController:
             
             if "schema_validation" not in primary_report:
                 primary_report["schema_validation"] = {}
-            primary_report["schema_validation"]["valid"] = is_valid
-            primary_report["schema_validation"]["errors"] = validation_errors
-            primary_report["schema_validation"]["error_count"] = len(validation_errors)
+            # The score's validation runs before the optional OWASP risk section is
+            # added; when that section is present, keep the service's later result.
+            if getattr(self.service, "risk_section", None) is None:
+                primary_report["schema_validation"]["valid"] = is_valid
+                primary_report["schema_validation"]["errors"] = validation_errors
+                primary_report["schema_validation"]["error_count"] = len(validation_errors)
 
             reports = [
                 {"spec_version": "1.6", "output_file": output_file_1_6, "schema_validation": primary_report["schema_validation"]},
@@ -155,7 +161,8 @@ class CLIController:
                         "completeness_score": completeness_score,
                         "enhancement_report": primary_report or {},
                         "result_file": "#",
-                        "static_root": "static" 
+                        "static_root": "static",
+                        "owasp_risks": owasp_risks.summary_for_ui(getattr(self.service, "risk_section", None)),
                     }
 
                     html_content = template.render(context)
@@ -214,6 +221,16 @@ class CLIController:
                         except OSError:
                             logger.debug("Failed to remove temporary HTML report: %s", html_temp_file, exc_info=True)
                     logger.warning("Failed to generate HTML report: %s", e, exc_info=True)
+
+            section = getattr(self.service, "risk_section", None)
+            if section is not None:
+                logger.info(
+                    "OWASP GenAI candidate risks (not assessed): %d from profile(s) %s; %d control link(s) in %s",
+                    len(section["risks"]), ",".join(section["profiles"]) or "none",
+                    len(section["links"]), ",".join(section["framework_ids"]),
+                )
+                if not section["risks"]:
+                    logger.info("No risk list applies to this model's task; use --llm, --agentic, --rag, --training-data or --skills.")
 
             for r in reports:
                 spec = r.get("spec_version", "1.6")

@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 from .controllers.cli_controller import CLIController
+from .models import owasp_risks
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,33 @@ def main():
     parser.add_argument("--version", "-v", help="Component version in metadata")
     parser.add_argument("--manufacturer", "-m", help="Component manufacturer/supplier in metadata")
 
+    risks = parser.add_argument_group(
+        "OWASP GenAI risks (off by default)",
+        "Add candidate OWASP GenAI risks and the framework controls mapped to them, from the "
+        "OWASP GenAI Crosswalk. Candidates only: nothing is assessed. Any option below turns the section on.")
+    risks.add_argument("--owasp-risks", action="store_true",
+                       help="Add the section; the LLM Top 10 applies when the model's task is generative")
+    risks.add_argument("--llm", action="store_true", help="Add the LLM Top 10 whatever the task")
+    risks.add_argument("--agentic", action="store_true", help="The model runs in an agent (Agentic Top 10)")
+    risks.add_argument("--rag", action="store_true", help="The model uses retrieval (GenAI Data Security)")
+    risks.add_argument("--training-data", action="store_true",
+                       help="The model is trained or tuned on organisational data (GenAI Data Security)")
+    risks.add_argument("--skills", action="store_true", help="The model loads agent skills (Agentic Skills Top 10)")
+    risks.add_argument("--frameworks",
+                       help="Comma-separated framework ids or names (default: the crosswalk's verified core)")
+
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    risk_options = owasp_risks.RiskOptions.from_flags(
+        owasp_risks=args.owasp_risks, llm=args.llm, agentic=args.agentic, rag=args.rag,
+        training_data=args.training_data, skills=args.skills, frameworks=args.frameworks)
+    try:
+        owasp_risks.check_options(risk_options)
+    except owasp_risks.OwaspRiskError as e:
+        parser.error(str(e))
 
     controller = CLIController()
 
@@ -71,7 +95,8 @@ def main():
         verbose=args.verbose,
         name=args.name,
         version=args.version,
-        manufacturer=args.manufacturer
+        manufacturer=args.manufacturer,
+        risk_options=risk_options,
     )
 
 if __name__ == "__main__":

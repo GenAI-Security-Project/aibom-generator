@@ -1,0 +1,45 @@
+{
+  "$comment": "Hand-authored. Which OWASP GenAI source lists an AI Bill of Materials should list as CANDIDATE risks for a model, and which frameworks it should show controls from by default. Read by AIBOM tools together with data/exports/aibom-index.json. See docs/AIBOM_INTEGRATION.md.",
+  "format_version": "1.0.0",
+  "status": "DRAFT — SME review required",
+  "status_note": "Which risks apply to a model is security judgment (C4). These rules are deliberately coarse: a profile adds a whole source list, never a single entry, and a tool must label every result 'candidate — not assessed'. A model page alone cannot show whether a deployment is agentic or uses retrieval, so every profile except llm is opt-in.",
+  "profiles": [
+    {
+      "id": "llm",
+      "description": "A generative language model. Applied by default when the model's task is a text-generation task.",
+      "default_for_tasks": [
+        "text-generation",
+        "text2text-generation",
+        "conversational",
+        "image-text-to-text",
+        "visual-question-answering",
+        "summarization",
+        "translation",
+        "question-answering"
+      ],
+      "source_lists": ["LLM-Top10-2026"]
+    },
+    {
+      "id": "agentic",
+      "description": "The model is deployed as, or inside, an agent that plans and calls tools. Opt-in: the user states it.",
+      "default_for_tasks": [],
+      "source_lists": ["Agentic-Top10-2026"]
+    },
+    {
+      "id": "data",
+      "description": "The deployment retrieves from, or the model is trained or fine-tuned on, organisational data (RAG, fine-tuning, training pipelines). Opt-in: the user states it.",
+      "default_for_tasks": [],
+      "source_lists": ["DSGAI-2026"]
+    },
+    {
+      "id": "skills",
+      "description": "The deployment loads agent skills or plugins from a registry. Opt-in: the user states it.",
+      "default_for_tasks": [],
+      "source_lists": ["AST-Top10-2026"]
+    }
+  ],
+  "default_frameworks": {
+    "$comment": "The verified core ratified in #99 (2026-11-25); MITRE ATLAS joined when its registry re-sync (#434) landed. A tool may let the user choose any framework in the index; these are shown when the user chooses none.",
+    "framework_ids": ["owasp-aisvs", "nist-ai-rmf", "nist-csf", "eu-ai-act", "mitre-atlas"]
+  }
+}

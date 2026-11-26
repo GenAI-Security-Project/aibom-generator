@@ -4,7 +4,7 @@ import json
 import logging
 import html
 from urllib.parse import urlparse
-from typing import Optional
+from typing import List, Optional
 import aiofiles
 
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
@@ -14,6 +14,7 @@ from huggingface_hub import HfApi
 from huggingface_hub.utils import RepositoryNotFoundError
 
 from ..models.service import AIBOMService
+from ..models import owasp_risks
 from ..models.scoring import calculate_completeness_score
 from ..utils.analytics import log_sbom_generation, get_sbom_count
 from ..utils.formatter import export_aibom
@@ -51,8 +52,19 @@ def is_valid_hf_input(input_str: str) -> bool:
 async def root(request: Request):
     return templates.TemplateResponse(request, "index.html", {
         "request": request, 
-        "sbom_count": get_sbom_count()
+        "sbom_count": get_sbom_count(),
+        "risk_frameworks": _risk_framework_choices(),
     })
+
+
+def _risk_framework_choices():
+    """(id, name, checked-by-default) for the optional OWASP risk section's form."""
+    try:
+        defaults = set(owasp_risks.resolve_frameworks(None))
+        return [(f["id"], f["name"], f["id"] in defaults) for f in owasp_risks.load_index()["frameworks"]]
+    except Exception as e:  # missing vendored data must not take the home page down
+        logger.warning("OWASP risk data unavailable: %s", e)
+        return []
 
 @router.get("/status")
 async def get_status():
@@ -63,7 +75,14 @@ async def generate_form(
     request: Request,
     model_id: str = Form(...),
     include_inference: bool = Form(False),
-    use_best_practices: bool = Form(True)
+    use_best_practices: bool = Form(True),
+    owasp_risks_on: bool = Form(False, alias="owasp_risks"),
+    risk_llm: bool = Form(False),
+    risk_agentic: bool = Form(False),
+    risk_rag: bool = Form(False),
+    risk_training_data: bool = Form(False),
+    risk_skills: bool = Form(False),
+    risk_frameworks: List[str] = Form(default_factory=list),
 ):
     # Security: Validate BEFORE sanitizing to prevent bypass attacks
     # (e.g., <script>org/model</script> → &lt;script&gt;org/model&lt;/script&gt; could slip through)
@@ -101,11 +120,29 @@ async def generate_form(
             "model_id": normalized_id
         })
 
+    # Optional OWASP GenAI risk section: on only when the box is ticked.
+    risk_options = None
+    if owasp_risks_on:
+        risk_options = owasp_risks.RiskOptions.from_flags(
+            owasp_risks=True, llm=risk_llm, agentic=risk_agentic, rag=risk_rag,
+            training_data=risk_training_data, skills=risk_skills,
+            frameworks=",".join(risk_frameworks) or None)
+        try:
+            owasp_risks.check_options(risk_options)
+        except owasp_risks.OwaspRiskError as e:
+            return templates.TemplateResponse(request, "error.html", {
+                "request": request,
+                "error": html.escape(str(e)),
+                "sbom_count": get_sbom_count(),
+                "model_id": normalized_id
+            })
+
     # Generate (non-blocking)
     try:
         def _generate_task():
             service = AIBOMService(use_best_practices=use_best_practices)
-            aibom = service.generate_aibom(sanitized_model_id, include_inference=include_inference)
+            extra = {"risk_options": risk_options} if risk_options is not None else {}
+            aibom = service.generate_aibom(sanitized_model_id, include_inference=include_inference, **extra)
             report = service.get_enhancement_report()
             return service, aibom, report
 
@@ -153,6 +190,7 @@ async def generate_form(
             "sbom_count": get_sbom_count(),
             "completeness_score": completeness_score,
             "enhancement_report": report or {},
+            "owasp_risks": owasp_risks.summary_for_ui(getattr(service, "risk_section", None)),
             # Pass legacy variables for template compatibility if needed
             "result_file": f"/output/{filename}" 
         }
