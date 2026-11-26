@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/GenAI-Security-Project/crosswalk",
+  "commit": "aea739892f79600dd958cf110d0ceb350ef1dd7d",
+  "files": {
+    "aibom-index.json": {
+      "path": "data/exports/aibom-index.json",
+      "sha256": "d3e40b25c8c9ba46c901bc8016605fdc6bef3c71538f3077acf2551287e8e396"
+    },
+    "aibom-applicability.json": {
+      "path": "data/aibom-applicability.json",
+      "sha256": "f4725b0905ae80a3a0263ebf8a695731a37504eef54aa572e4a68bf292a68f4a"
+    }
+  },
+  "license": "CC BY-SA 4.0"
+}

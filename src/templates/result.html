@@ -104,6 +104,9 @@
                 <div class="aibom-tab active" onclick="switchTab('human-view')">Human-Friendly View</div>
                 <div class="aibom-tab" onclick="switchTab('field-checklist')">Field Checklist</div>
                 <div class="aibom-tab" onclick="switchTab('score-view')">Score Report</div>
+                {% if owasp_risks %}
+                <div class="aibom-tab" onclick="switchTab('risks-view')">Risks</div>
+                {% endif %}
                 <div class="aibom-tab" onclick="switchTab('json-view')">JSON View</div>
             </div>
 
@@ -845,6 +848,44 @@
                 {% endif %}
             </div>
         </div>
+
+        {% if owasp_risks %}
+        <!-- OWASP GenAI Risks Tab (optional section) -->
+        <div id="risks-view" class="tab-content">
+            <div class="content-section">
+                <h3>&#9888;&#65039;&nbsp;&nbsp;Candidate OWASP GenAI Risks &mdash; not assessed</h3>
+                <p>Risks that apply to this <em>kind</em> of model, with the framework controls the
+                    <a href="https://github.com/GenAI-Security-Project/crosswalk/tree/{{ owasp_risks.source }}" target="_blank"
+                        rel="noopener noreferrer">OWASP GenAI Crosswalk</a> maps to each. Nothing here says the model has
+                    a risk or meets a control. Each control shows the crosswalk's review status for that mapping.</p>
+                <p class="risk-meta">Profiles: {{ owasp_risks.profiles|join(', ') or 'none' }} &middot;
+                    Frameworks: {{ owasp_risks.frameworks|join(', ') }} &middot;
+                    Risk selection: {{ owasp_risks.applicability_status }}</p>
+                {% if not owasp_risks.risks %}
+                <p>No OWASP risk list applies to this model's task. Tick the options that describe the deployment to
+                    add one.</p>
+                {% endif %}
+                {% for r in owasp_risks.risks %}
+                <div class="aibom-section risk-item">
+                    <h4>{{ r.id }} {{ r.name }} <span class="risk-list">{{ r.list }}</span></h4>
+                    {% if r.groups %}
+                    {% for g in r.groups %}
+                    <div class="aibom-property">
+                        <span class="property-name">{{ g.framework }}:</span>
+                        <span class="property-value">
+                            {% for c in g.controls %}<span class="risk-control">{{ c.id }} <span
+                                    class="risk-status risk-status-{{ c.status }}">{{ c.status }}</span></span>{% endfor %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p>No controls mapped in the selected frameworks.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- JSON View Tab -->
         <div id="json-view" class="tab-content">
