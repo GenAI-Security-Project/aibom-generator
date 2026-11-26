@@ -40,6 +40,20 @@ def test_vendored_files_match_source_pin():
         assert digest == meta["sha256"], name
 
 
+def test_vendored_format_is_the_supported_major():
+    assert risks.load_index()["meta"]["format_version"].startswith(f"{risks.SUPPORTED_FORMAT_MAJOR}.")
+    assert risks.load_applicability()["format_version"].startswith(f"{risks.SUPPORTED_FORMAT_MAJOR}.")
+
+
+@pytest.mark.parametrize("version,ok", [("1.0.0", True), ("1.7.2", True), ("2.0.0", False), (None, False)])
+def test_new_major_format_is_refused(version, ok):
+    if ok:
+        risks.check_format_version(version, "x")
+    else:
+        with pytest.raises(risks.OwaspRiskError, match="format_version"):
+            risks.check_format_version(version, "x")
+
+
 def test_generative_task_gets_llm_list_by_default():
     assert risks.select_profiles("text-generation") == ["llm"]
     assert risks.select_profiles("image-classification") == []

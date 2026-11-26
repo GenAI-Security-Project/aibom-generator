@@ -28,6 +28,9 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "owasp_crosswalk"
 
+# Major version of the crosswalk files' format_version this module reads.
+SUPPORTED_FORMAT_MAJOR = 1
+
 PROP_PREFIX = "owasp:aibom:risk:"
 STATUS_VALUE = "candidate-not-assessed"
 CANDIDATE_LABEL = "Candidate risk — not assessed."
@@ -70,14 +73,33 @@ class RiskOptions:
         return cls(enabled=bool(owasp_risks or profiles or fw), profiles=profiles, frameworks=fw)
 
 
+def check_format_version(version: Optional[str], what: str) -> None:
+    """Refuse a crosswalk file whose format this code was not written for.
+
+    The crosswalk versions both files with semver: a minor version only adds
+    fields (safe to read), a major version changes or removes them.
+    """
+    major = str(version or "").split(".")[0]
+    if major != str(SUPPORTED_FORMAT_MAJOR):
+        raise OwaspRiskError(
+            f"{what} has format_version {version!r}; this code reads "
+            f"{SUPPORTED_FORMAT_MAJOR}.x. Update src/models/owasp_risks.py "
+            "before vendoring a new major version."
+        )
+
+
 @lru_cache(maxsize=1)
 def load_index() -> Dict[str, Any]:
-    return json.loads((DATA_DIR / "aibom-index.json").read_text(encoding="utf-8"))
+    data = json.loads((DATA_DIR / "aibom-index.json").read_text(encoding="utf-8"))
+    check_format_version(data.get("meta", {}).get("format_version"), "aibom-index.json")
+    return data
 
 
 @lru_cache(maxsize=1)
 def load_applicability() -> Dict[str, Any]:
-    return json.loads((DATA_DIR / "aibom-applicability.json").read_text(encoding="utf-8"))
+    data = json.loads((DATA_DIR / "aibom-applicability.json").read_text(encoding="utf-8"))
+    check_format_version(data.get("format_version"), "aibom-applicability.json")
+    return data
 
 
 @lru_cache(maxsize=1)
