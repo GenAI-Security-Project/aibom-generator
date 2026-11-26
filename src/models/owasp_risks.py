@@ -203,6 +203,19 @@ def _control_ref(framework_id: str, control_id: str) -> str:
     return f"owasp-crosswalk:control:{framework_id}:{control_id}"
 
 
+def _distinct(links: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """One link per (control, review status), in order. The crosswalk can map the
+    same risk to the same control on more than one row (different evidence);
+    a reader needs the control once per status, not once per row."""
+    seen, out = set(), []
+    for link in links:
+        key = (link["control_id"], link["review_status"])
+        if key not in seen:
+            seen.add(key)
+            out.append(link)
+    return out
+
+
 def ethical_considerations(section: Dict[str, Any]) -> List[Dict[str, str]]:
     lists, frameworks, _ = _maps()
     out = []
@@ -213,7 +226,7 @@ def ethical_considerations(section: Dict[str, Any]) -> List[Dict[str, str]]:
                 by_fw.setdefault(link["framework_id"], []).append(link)
         parts = []
         for fid in section["framework_ids"]:
-            links = by_fw.get(fid)
+            links = _distinct(by_fw.get(fid, []))
             if not links:
                 continue
             shown = ", ".join(f"{l['control_id']} ({l['review_status']})"
@@ -350,7 +363,7 @@ def summary_for_ui(section: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]
     for r in section["risks"]:
         groups = []
         for fid in section["framework_ids"]:
-            ls = [l for l in section["links"] if l["entry"] == r["id"] and l["framework_id"] == fid]
+            ls = _distinct([l for l in section["links"] if l["entry"] == r["id"] and l["framework_id"] == fid])
             if ls:
                 groups.append({"framework": frameworks[fid]["name"],
                                "controls": [{"id": l["control_id"], "status": l["review_status"]} for l in ls]})

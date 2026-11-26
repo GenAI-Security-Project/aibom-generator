@@ -142,6 +142,19 @@ def test_reviewed_status_is_never_invented():
             l["review_status"] == "reviewed" for l in s["links"] if item["name"].startswith(l["entry"] + " "))
 
 
+def test_repeated_mapping_rows_are_shown_once():
+    # LLM02 -> MITRE ATLAS AML.T0057 sits on two crosswalk rows, both unreviewed.
+    s = _section(frameworks="mitre-atlas")
+    rows = [l for l in s["links"] if l["entry"] == "LLM02" and l["control_id"] == "AML.T0057"]
+    assert len(rows) == 2
+    ui = risks.summary_for_ui(s)
+    llm02 = next(r for r in ui["risks"] if r["id"] == "LLM02")
+    ids = [c["id"] for g in llm02["groups"] for c in g["controls"]]
+    assert ids.count("AML.T0057") == 1
+    text = next(e for e in risks.ethical_considerations(s) if e["name"].startswith("LLM02 "))
+    assert text["mitigationStrategy"].count("AML.T0057") == 1
+
+
 def test_bom_refs_are_unique():
     s = _section(agentic=True, frameworks=",".join(f["id"] for f in risks.load_index()["frameworks"]))
     refs = []
